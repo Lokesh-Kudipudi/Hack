@@ -161,3 +161,47 @@ def test_d7_isolation_forest():
     outlier_score = d7.update(now, 25.0)
     assert outlier_score > max(normal_scores)
     assert outlier_score >= 8.0
+
+
+def test_d4_var_ratio_two_sided_flatline():
+    """VarRatio with two_sided=True must detect variance collapse (flatline sensor)."""
+    np.random.seed(42)
+    normal_probation = list(np.random.normal(50.0, 5.0, size=100))
+    d4 = VarRatio(w=20, two_sided=True)
+    d4.init_from_probation(normal_probation)
+
+    now = pd.Timestamp("2026-01-01")
+    # Feed fluctuating normal noise
+    for _ in range(25):
+        d4.update(now, float(np.random.normal(50.0, 5.0)))
+
+    # Now feed completely flatline constant values (sensor died / zero variance)
+    scores = []
+    for _ in range(20):
+        s = d4.update(now, 50.0)
+        scores.append(s)
+
+    # Late flatline score must trigger high collapse score
+    assert scores[-1] > 2.0
+
+
+def test_d5_seasonal_weekly_and_autoperiod():
+    """Seasonal with weekly=True must distinguish Monday 9am from Sunday 9am."""
+    s = Seasonal(weekly=True, auto_period=True, min_count=3)
+    # Generate 28 days (4 weeks) of hourly probation data with strong 24h cycle
+    base_t = pd.Timestamp("2026-01-05 00:00:00")  # Monday
+    ts = [base_t + pd.Timedelta(hours=i) for i in range(28 * 24)]
+    vals = [50.0 + 20.0 * np.sin(2 * np.pi * t.hour / 24.0) for t in ts]
+
+    s.init_from_probation(ts, vals)
+    assert s.num_buckets == 168
+    assert s.detected_period == 24  # Autocorrelation correctly recovered 24h lag
+
+    # Normal Monday 12pm (sin(pi) = 0 -> value = 50.0)
+    mon_noon = pd.Timestamp("2026-01-19 12:00:00")
+    score_normal = s.update(mon_noon, 50.0)
+    assert score_normal < 1.0
+
+    # Anomalous midnight value at noon
+    score_anom = s.update(mon_noon, 10.0)
+    assert score_anom > 5.0
