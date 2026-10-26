@@ -20,6 +20,7 @@ from sentinel.detectors import (
     Seasonal,
     CUSUM,
 )
+from sentinel.fusion import FusionEngine
 from sentinel.spot import SPOT, DSPOT
 from sentinel.types import Detector, Result
 
@@ -110,6 +111,11 @@ class Sentinel:
                         init_level=self.spot_init_level,
                         min_excesses=self.spot_min_excesses,
                     )
+
+        # Fusion Engine (Task K4)
+        fusion_strategy = str(self.config.get("fusion", "max"))
+        vote_k = int(self.config.get("vote_k", 2))
+        self.fusion_engine = FusionEngine(strategy=fusion_strategy, vote_k=vote_k, extreme_ratio=1.5)
 
         # Probation buffers
         self.count: int = 0
@@ -221,18 +227,11 @@ class Sentinel:
                 calibrated_scores[name] = max(0.0, min(1.0, cal_score))
                 alarms[name] = ratio > 1.0
 
-        # MAX-Score Fusion
-        fused_score = max(calibrated_scores.values()) if calibrated_scores else 0.0
-
-        # Determine top detector by normalized deviation ratio
-        top_name = max(norm_ratios, key=norm_ratios.get) if norm_ratios else "RobustZ"
-        top_score = raw_scores[top_name] if raw_scores else 0.0
-        top_ratio = norm_ratios[top_name] if norm_ratios else 0.0
-
-        # Check threshold exceedances (consensus voting: >= 2 detectors or 1 extreme outlier >= 1.5)
-        fired = [name for name, is_al in alarms.items() if is_al]
-        is_anom = (len(fired) >= 2) or (top_ratio >= 1.5)
-
+        # Multi-detector fusion (Task K4)
+        fused_score, is_anom, top_name, top_ratio, fired = self.fusion_engine.fuse(
+            calibrated_scores, norm_ratios, alarms
+        )
+        top_score = raw_scores.get(top_name, 0.0)
         label = "ANOMALOUS" if is_anom else "NORMAL"
 
         # Event manager logic with debounce (ADR-003)

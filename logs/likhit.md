@@ -36,3 +36,9 @@
   - Runtime: **16.37 µs/pt** (well within < 50 µs/pt budget).
 - Notes / next: Task K4 (Extract modular fusion engine to `sentinel/fusion.py` with k-of-n vote and tests).
 
+## 2026-10-26 20:28 — K4 Multi-Detector Fusion Engine
+- Changed: `sentinel/fusion.py`, `tests/test_fusion.py`, `sentinel/pipeline.py`
+- Result: Modular `FusionEngine` with MAX fusion, k-of-n consensus voting, and extreme outlier bypass. All 58 tests in full test suite pass.
+- Notes / next: Task K5 (Event lifecycle manager in `sentinel/events.py`).
+
+
