@@ -4,8 +4,7 @@
 **Current Branch:** `main` (strictly local commits, NEVER push to remote)  
 **Target:** Challenge 2 — Adaptive Streaming Time-Series Anomaly Detection on NAB  
 **Last Updated:** 2026-10-26 20:53  
-**Status:** **ALL TASKS K1 THROUGH K8 COMPLETE AND BENCHMARKED** 🚀
-
+**Status:** **ALL TASKS K1 THROUGH K8 COMPLETE AND BENCHMARKED**
 ---
 
 ## 1. Master Task Checklist
@@ -88,7 +87,7 @@
 | earthgecko Skyline | 58.2 | 46.2 | 63.9 | Heavy ensemble |
 | KNN CAD | 58.0 | 43.4 | 64.8 | O(N) neighbor search |
 | Relative Entropy | 54.6 | 47.6 | 58.8 | High memory |
-| **🛡️ Sentinel (Ours)** | **53.00** | **37.27** | **59.76** | **15.4 – 35.1 µs/pt (Strict O(1))** |
+| **Sentinel (Ours)** | **53.00** | **37.27** | **59.76** | **15.4 – 35.1 µs/pt (Strict O(1))** |
 | Random Cut Forest | 51.7 | 38.4 | 59.7 | ~200 µs/pt |
 | Twitter ADVec v1.0.0 | 47.1 | 33.6 | 53.5 | >1,000 µs/pt |
 | Windowed Gaussian (baseline) | 39.6 | 20.9 | 47.4 | 49.0 µs/pt |

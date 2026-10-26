@@ -1,4 +1,4 @@
-# 🛡️ Sentinel — Adaptive Streaming Time-Series Anomaly Detection
+# Sentinel — Adaptive Streaming Time-Series Anomaly Detection
 
 [![Tests](https://img.shields.io/badge/pytest-70%20passed-brightgreen.svg)]()
 [![NAB Standard Score](https://img.shields.io/badge/NAB%20Score-58.07-orange.svg)]()
@@ -31,7 +31,7 @@ Sentinel reads one `(timestamp, value)` point at a time and returns, for every p
 
 ---
 
-## 🚀 Key Highlights & Achievements
+## Key Highlights & Achievements
 
 1. **Beats Major Published Industry Standards on NAB**:
    - **Sentinel (NAB-tuned config): 58.07 Standard / 45.10 Reward Low FP / 64.00 Reward Low FN** (default config: 53.00)
@@ -49,7 +49,7 @@ Sentinel reads one `(timestamp, value)` point at a time and returns, for every p
 
 ---
 
-## 📊 Benchmark Leaderboard
+## Benchmark Leaderboard
 
 ### Official Published NAB Leaderboard Comparison
 
@@ -64,7 +64,7 @@ Evaluated on the full 58-file corpus using NAB's official sweeper (`data/NAB/nab
 | earthgecko Skyline | 58.2 | 46.2 | 63.9 | Heavy ensemble | Multi-process |
 | KNN CAD | 58.0 | 43.4 | 64.8 | High memory | $O(N)$ Nearest Neighbors |
 | Relative Entropy | 54.6 | 47.6 | 58.8 | High memory | Kernel Density |
-| **🛡️ Sentinel (Ours, NAB-tuned)** | **58.07** | **45.10** | **64.00** | **5.5 µs/pt** | **Strict $O(1)$ Causal** |
+| **Sentinel (Ours, NAB-tuned)** | **58.07** | **45.10** | **64.00** | **5.5 µs/pt** | **Strict $O(1)$ Causal** |
 | Sentinel (Ours, default config) | 53.00 | 37.27 | 59.76 | 5.5 µs/pt | Strict $O(1)$ Causal |
 | Random Cut Forest | 51.7 | 38.4 | 59.7 | ~200 µs/pt | Random Trees |
 | Twitter ADVec v1.0.0 | 47.1 | 33.6 | 53.5 | >1,000 µs/pt | Seasonal ESD |
@@ -94,7 +94,7 @@ Two global operating points, both found by the leave-one-category-out search in 
 
 ---
 
-## 🏗️ Architectural Components
+## Architectural Components
 
 ```
                    Streaming Observation (t, x_t)
@@ -169,7 +169,7 @@ Two global operating points, both found by the leave-one-category-out search in 
 
 ---
 
-## 📈 Visualizations & Figures
+## Visualizations & Figures
 
 ![ablation](results/figures/ablation.png)
 
@@ -181,7 +181,7 @@ Full tables: [results/leaderboard.md](results/leaderboard.md) · [results/ablati
 
 ---
 
-## 🖥️ Interactive Streamlit Dashboard
+## Interactive Streamlit Dashboard
 
 Launch the live replay demo:
 ```bash
@@ -192,7 +192,7 @@ Pick any series, press **▶ Replay** and watch the stream: value vs expected $\
 
 ---
 
-## ⚙️ Quickstart & Reproduction
+## Quickstart & Reproduction
 
 ### 1. Setup Environment
 ```bash
@@ -230,7 +230,7 @@ for t, x in zip(df.timestamp, df.value):
 
 ---
 
-## 📜 Architecture Decision Records (ADRs)
+## Architecture Decision Records (ADRs)
 
 All foundational architectural decisions, invariants, and empirical milestones are formally documented in [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md):
 - `ADR-001`: Strict Streaming & Causal Invariant ($O(1)$ memory & time, $< 50\ \mu\text{s/pt}$)
