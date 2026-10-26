@@ -84,3 +84,13 @@ def test_full_nab_corpus():
     w = data.load_windows(data.windows_path(NAB))
     assert set(w) == {f.key for f in files}
     assert sum(len(v) for v in w.values()) == 116
+
+
+def test_file_order_preserved(tmp_path):
+    p = tmp_path / "c" / "x.csv"
+    p.parent.mkdir()
+    p.write_text("timestamp,value\n2020-01-01 00:10:00,1\n2020-01-01 00:05:00,2\n2020-01-01 00:15:00,3\n")
+    df = data.load_series(p)
+    assert df["value"].tolist() == [1.0, 2.0, 3.0]
+    w = [(pd.Timestamp("2020-01-01 00:10:00"), pd.Timestamp("2020-01-01 00:15:00"))]
+    assert data.window_indices(df["timestamp"], w) == [(0, 2)]

@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Sequence, Tuple
 
+import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -80,7 +81,10 @@ def list_files(root: Optional[Path] = None, categories: Optional[Sequence[str]] 
 
 
 def load_series(path: Path) -> pd.DataFrame:
-    """DataFrame with columns timestamp (datetime64), value (float), sorted by time."""
+    """DataFrame with columns timestamp (datetime64), value (float), in file (= stream) order.
+
+    Not sorted: a few NAB files have duplicate or backward timestamps and NAB streams them as-is.
+    """
     df = pd.read_csv(path)
     df = df.rename(columns={c: c.strip().lower() for c in df.columns})
     if not {"timestamp", "value"} <= set(df.columns):
@@ -88,7 +92,7 @@ def load_series(path: Path) -> pd.DataFrame:
     df = df[["timestamp", "value"]].copy()
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df["value"] = df["value"].astype(float)
-    return df.sort_values("timestamp", kind="stable").reset_index(drop=True)
+    return df.reset_index(drop=True)
 
 
 def load_windows(path: Optional[Path] = None) -> Dict[str, List[Window]]:
@@ -105,14 +109,17 @@ def probation_length(n: int) -> int:
 
 
 def window_indices(timestamps: pd.Series, windows: Sequence[Window]) -> List[Tuple[int, int]]:
-    """Map timestamp windows to inclusive index ranges [i_start, i_end]; drops windows with no points."""
-    ts = pd.DatetimeIndex(timestamps)
+    """Map timestamp windows to inclusive index ranges [i_start, i_end]; drops windows with no points.
+
+    i = first point with t >= start, j = last point with t <= end (robust to non-monotonic time).
+    """
+    ts = pd.DatetimeIndex(timestamps).values
     out = []
     for a, b in windows:
-        i = int(ts.searchsorted(a, side="left"))
-        j = int(ts.searchsorted(b, side="right")) - 1
-        if i <= j:
-            out.append((i, j))
+        ge = np.flatnonzero(ts >= np.datetime64(a))
+        le = np.flatnonzero(ts <= np.datetime64(b))
+        if len(ge) and len(le) and ge[0] <= le[-1]:
+            out.append((int(ge[0]), int(le[-1])))
     return out
 
 
