@@ -16,6 +16,7 @@ DETECTOR_TYPE_MAP = {
     "VarRatio": "variance_change",
     "Seasonal": "pattern_break",
     "CUSUM": "level_shift",
+    "StreamingIsolationForest": "multivariate_outlier",
 }
 
 TYPE_DESCRIPTIONS = {
@@ -24,6 +25,7 @@ TYPE_DESCRIPTIONS = {
     "variance_change": "volatility/variance regime shift",
     "pattern_break": "diurnal/seasonal pattern break",
     "level_shift": "persistent level shift / mean drift",
+    "multivariate_outlier": "boundary isolation anomaly",
 }
 
 

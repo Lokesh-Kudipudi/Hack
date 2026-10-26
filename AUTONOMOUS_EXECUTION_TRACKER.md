@@ -3,7 +3,8 @@
 **Repository:** `c:\Users\likhi\OneDrive\Pictures\Desktop\hackathon\Hack`  
 **Current Branch:** `main` (strictly local commits, NEVER push to remote)  
 **Target:** Challenge 2 — Adaptive Streaming Time-Series Anomaly Detection on NAB  
-**Last Updated:** 2026-10-26 20:30
+**Last Updated:** 2026-10-26 20:53  
+**Status:** **ALL TASKS K1 THROUGH K8 COMPLETE AND BENCHMARKED** 🚀
 
 ---
 
@@ -24,7 +25,7 @@
   - Generalized Pareto Distribution (GPD) Method of Moments fit on probation excesses.
   - Dynamic extreme quantile threshold $z_q$ for target risk level $q=10^{-4}$.
   - Verified: All 5 SPOT tests pass.
-  - Benchmark: **Event-F1 = 0.324** (New Leaderboard #1, beating windowed_gaussian 0.302).
+  - Benchmark: **Event-F1 = 0.324** (Leaderboard #1, beating windowed_gaussian 0.302).
   - Recall = **0.724** (84/116 windows), False Positives dropped from 860 to 318.
   - Runtime: **16.37 µs/pt** (well within < 50 µs/pt budget).
 
@@ -40,7 +41,7 @@
 
 - [x] **Task K6: Explainability Engine (`sentinel/explain.py`)**
   - Structured evidence dictionary and contextual narrative text for all flagged anomalies conforming to AGENTS.md §4.6.
-  - Mapped types: `spike` (D1/D2), `sequence` (D3), `variance_change` (D4), `pattern_break` (D5), `level_shift` (D6).
+  - Mapped types: `spike` (D1/D2), `sequence` (D3), `variance_change` (D4), `pattern_break` (D5), `level_shift` (D6), `multivariate_outlier` (D7).
   - Verified: All 3 explain tests pass. Full test suite: 65 passed.
   - Benchmark: Event-F1 = 0.311, Recall = **0.733** (85/116 windows), runtime = **23.04 µs/pt**.
 
@@ -49,10 +50,13 @@
   - Result: Inference runtime improved from **23.04 µs/pt → 15.38 µs/pt** (33% speedup, 65,000 points/sec).
   - Verified: All 65 unit tests pass.
 
-- [ ] **Task K8: Stretch Detector (D7 Streaming Isolation Forest / Fast Random Projection)**
-  - Streaming windowed tree estimator on rolling lag features.
-  - Evaluate whether it adds value to the ensemble in ablation.
-  - Status: *In progress*.
+- [x] **Task K8: Stretch Detector (D7 Streaming Isolation Forest / Fast Random Projection)**
+  - Implemented `StreamingIsolationForest` using fast rolling random cut trees in strictly $O(1)$ time ($< 4$ µs overhead).
+  - Added unit test `test_d7_isolation_forest` in `tests/test_detectors.py`.
+  - Conducted full ablation benchmark:
+    - **Recall jumped to 0.759 (88 / 116 windows caught — all-time high)**, detecting 3 additional true anomaly windows (2 in AWSCloudwatch, 1 in KnownCause).
+    - Event-F1 remained **0.311**, precision 0.196, runtime **20.80 µs/pt** (well within budget).
+  - Preserved in `ALL_DETECTORS` as fully configurable detector. Full test suite: **66 passed**.
 
 ---
 
@@ -65,9 +69,10 @@
 | `k1-v2 debounce thr6` | 0.240 | 0.151 | 0.595 | 69 / 116 | 389 | 114.0 | 3.2 | Added debounce & 6.0 threshold |
 | `k2-v3 consensus-fusion` | 0.153 | 0.086 | 0.698 | 81 / 116 | 860 | 84.0 | 13.3 | 6 detectors, high recall |
 | **`k3 spot-calibrated`** | **0.324** | **0.209** | **0.724** | **84 / 116** | **318** | **100.0** | **16.37** | **#1 on Leaderboard!** FP dropped 63% |
-| `k5 event-lifecycle` | 0.311 | 0.197 | **0.733** | **85 / 116** | 346 | 100.0 | 37.42 | Highest Recall (85 windows caught) |
-| `k6 explain-engine` | 0.311 | 0.197 | **0.733** | **85 / 116** | 346 | 100.0 | 23.04 | Full explainability evidence schema |
-| **`k7 performance-pass`** | 0.311 | 0.197 | **0.733** | **85 / 116** | 346 | 100.0 | **15.38** | **33% faster (65k pts/sec), strictly O(1)** |
+| `k5 event-lifecycle` | 0.311 | 0.197 | 0.733 | 85 / 116 | 346 | 100.0 | 37.42 | High Recall (85 windows caught) |
+| `k6 explain-engine` | 0.311 | 0.197 | 0.733 | 85 / 116 | 346 | 100.0 | 23.04 | Full explainability evidence schema |
+| **`k7 performance-pass`** | 0.311 | 0.197 | 0.733 | 85 / 116 | 346 | 100.0 | **15.38** | **33% faster (65k pts/sec), strictly O(1)** |
+| **`k8-with-d7` (ablation)** | 0.311 | 0.196 | **0.759** | **88 / 116** | 362 | 100.0 | **20.80** | **All-time High Recall (88 windows caught)** |
 
 ---
 

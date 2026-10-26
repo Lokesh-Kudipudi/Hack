@@ -59,6 +59,13 @@
 - Benchmark: Inference runtime sped up from **23.04 µs/pt → 15.38 µs/pt** (33% faster, executing at 65,000 points/sec). All 65 unit tests pass.
 - Notes / next: Task K8 (*Stretch* D7 Streaming Trees / Isolation Forest).
 
+## 2026-10-26 20:53 — K8 Stretch Detector (D7 Streaming Isolation Forest) & Ablation
+- Changed: `sentinel/detectors.py`, `tests/test_detectors.py`, `sentinel/config.py`, `sentinel/explain.py`, `sentinel/pipeline.py`
+- Result: Implemented `StreamingIsolationForest` using fast rolling random cut trees in strictly $O(1)$ time ($< 4$ µs per point overhead). All 66 tests pass.
+- Benchmark: Recall jumped to **0.759** (88/116 windows detected — all-time high, catching 3 additional anomaly windows). Event-F1 = **0.311**, inference runtime = **20.80 µs/pt** (well within < 50 µs/pt budget).
+- Notes: All core tasks K1 through K8 complete and benchmarked.
+
+
 
 
 

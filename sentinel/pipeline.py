@@ -19,6 +19,7 @@ from sentinel.detectors import (
     VarRatio,
     Seasonal,
     CUSUM,
+    StreamingIsolationForest,
 )
 from sentinel.events import EventManager
 from sentinel.explain import ExplainEngine
@@ -87,6 +88,8 @@ class Sentinel:
         if "cusum" in active_names:
             k = float(self.config.get("cusum", {}).get("k", 0.5))
             self.detectors["CUSUM"] = CUSUM(k=k)
+        if "isolation_forest" in active_names:
+            self.detectors["StreamingIsolationForest"] = StreamingIsolationForest()
 
         # Ensure at least RobustZ is present for baseline scaling
         if "RobustZ" not in self.detectors:
@@ -173,6 +176,9 @@ class Sentinel:
         if "CUSUM" in self.detectors:
             d6: CUSUM = self.detectors["CUSUM"]  # type: ignore
             d6.init_scale(median=median, scale=scale)
+        if "StreamingIsolationForest" in self.detectors:
+            d7: StreamingIsolationForest = self.detectors["StreamingIsolationForest"]  # type: ignore
+            d7.init_from_probation(self.probation_values)
 
         # Warm up detectors on probation observations to populate sliding buffers
         # and collect normal score distributions for SPOT calibration

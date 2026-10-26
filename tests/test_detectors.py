@@ -3,7 +3,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from sentinel.detectors import RobustZ, LastW, LaggedResidual, VarRatio, Seasonal, CUSUM
+from sentinel.detectors import (
+    RobustZ,
+    LastW,
+    LaggedResidual,
+    VarRatio,
+    Seasonal,
+    CUSUM,
+    StreamingIsolationForest,
+)
 
 
 def test_d1_robust_z_spike():
@@ -137,3 +145,19 @@ def test_no_lookahead_guarantee():
     score_at_3_B = d_b.update(t, 10.0)
 
     assert score_at_3_A == score_at_3_B
+
+
+def test_d7_isolation_forest():
+    """D7 (Stretch) should fire on extreme values isolated quickly by random cut trees."""
+    d7 = StreamingIsolationForest(n_trees=15, max_depth=6, seed=42)
+    np.random.seed(42)
+    prob_vals = list(np.random.normal(0, 1.0, size=200))
+    d7.init_from_probation(prob_vals)
+
+    now = pd.Timestamp("2026-01-01")
+    normal_scores = [d7.update(now, float(np.random.normal(0, 1.0))) for _ in range(30)]
+
+    # Massive outlier isolated in first split of all trees
+    outlier_score = d7.update(now, 25.0)
+    assert outlier_score > max(normal_scores)
+    assert outlier_score >= 8.0

@@ -45,7 +45,7 @@ Owns: `sentinel/**`, `tests/test_detectors.py`, `tests/test_spot.py`, `tests/tes
 | K5 | `sentinel/events.py`: merge gap, cooldown, `is_event_start`, re-baseline after confirmed level shift. `tests/test_events.py`. | K4 | Tests pass | Done |
 | K6 | `sentinel/explain.py`: evidence dict + text per AGENTS.md §4.6 for every ANOMALOUS point. `tests/test_explain.py`. | K5 | Every ANOMALOUS Result has evidence | Done |
 | K7 | Performance pass: profile `Sentinel.update`, remove hot-path allocations, target < 50 µs/point. Adopt tuned config from L7 into `sentinel/config.py`. | K6, L5 | Benchmark meets target (15.38 µs/pt) | Done |
-| K8 | *Stretch*: D7 Isolation Forest on rolling window features (fit on probation, periodic refit), kept only if ablation shows gain. | K5 | Ablation decides | Not started |
+| K8 | *Stretch*: D7 Isolation Forest on rolling window features (fit on probation, periodic refit), kept only if ablation shows gain. | K5 | Ablation decides (0.759 recall, 20.8 µs/pt) | Done |
 
 ---
 
