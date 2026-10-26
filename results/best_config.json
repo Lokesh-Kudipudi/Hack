@@ -1,16 +1,17 @@
 {
  "detectors": [
-  "RobustZ",
-  "LastW",
-  "LaggedResidual",
-  "VarRatio",
-  "Seasonal",
-  "CUSUM"
+  "robust_z",
+  "last_w",
+  "lagged_residual",
+  "var_ratio",
+  "seasonal",
+  "cusum"
  ],
  "fusion": "vote",
  "vote_k": 2,
- "spot_q": 1e-05,
- "cooldown": 600,
- "merge_gap": 50,
- "lag_h": 32
+ "spot.q": 1e-06,
+ "thr_scale": 1.5,
+ "debounce": 2,
+ "events.cooldown": 600,
+ "events.merge_gap": 64
 }

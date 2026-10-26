@@ -35,18 +35,30 @@ def _style(ax):
     ax.grid(axis="y", alpha=0.25)
 
 
+# headline runs for slides: (detector, tag) -> label
+HEADLINE = {
+    ("null", "baseline"): "null",
+    ("random", "baseline"): "random",
+    ("windowed_gaussian", "baseline thr=1.0"): "windowedGaussian (NAB baseline)",
+    ("sentinel", "likhit default"): "Sentinel — default config",
+    ("sentinel", "tuned for NAB"): "Sentinel — tuned for NAB score",
+    ("sentinel", "tuned for event-F1 (LOCO)"): "Sentinel — tuned for event-F1",
+}
+
+
 def _latest(runs: List[Dict]) -> Dict[str, Dict]:
-    """Latest full-corpus run per (detector, tag)."""
+    """Latest full-corpus run per headline (detector, tag), on the real (git-tracked) engine only."""
     out = {}
     for r in runs:
-        if "overall" in r and not r.get("categories"):
-            out[f"{r['detector']} [{r.get('tag', '')}]"] = r
+        label = HEADLINE.get((r.get("detector"), r.get("tag")))
+        if label and "overall" in r and not r.get("categories") and r.get("sentinel_source") != "local-untracked":
+            out[label] = r
     return out
 
 
 def f1_comparison(runs: Dict[str, Dict], path: Path) -> None:
     items = sorted(runs.items(), key=lambda kv: kv[1]["overall"]["f1"] or 0)
-    labels = [k.replace("windowed_gaussian", "windowedGaussian") for k, _ in items]
+    labels = [k for k, _ in items]
     fig, ax = plt.subplots(figsize=(9, 0.5 * len(items) + 1.5))
     y = range(len(items))
     for off, key, col, lab in ((-0.25, "f1", BLUE, "Event-F1"), (0, "precision", GREY, "Precision"),
@@ -148,7 +160,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     sent = [r for r in latest.values() if r["detector"] == "sentinel"]
     wg = [r for r in latest.values() if r["detector"] == "windowed_gaussian"]
     if sent and wg:
-        per_category(max(wg, key=lambda r: r["overall"]["f1"]), max(sent, key=lambda r: r["overall"]["f1"]),
+        per_category(max(wg, key=lambda r: r["overall"]["f1"] or 0), max(sent, key=lambda r: r["overall"]["f1"] or 0),
                      FIG / "per_category_f1.png")
     benches = [r for r in runs if r.get("kind") == "benchmark"]
     if benches:

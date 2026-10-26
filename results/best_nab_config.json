@@ -1,0 +1,17 @@
+{
+ "detectors": [
+  "robust_z",
+  "last_w",
+  "lagged_residual",
+  "var_ratio",
+  "seasonal",
+  "cusum"
+ ],
+ "fusion": "max",
+ "vote_k": 1,
+ "spot.q": 1e-06,
+ "thr_scale": 0.75,
+ "debounce": 1,
+ "events.cooldown": 200,
+ "events.merge_gap": 64
+}

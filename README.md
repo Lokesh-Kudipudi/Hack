@@ -1,10 +1,10 @@
 # 🛡️ Sentinel — Adaptive Streaming Time-Series Anomaly Detection
 
-[![Tests](https://img.shields.io/badge/pytest-66%20passed-brightgreen.svg)]()
-[![NAB Standard Score](https://img.shields.io/badge/NAB%20Score-53.00-orange.svg)]()
-[![Event F1](https://img.shields.io/badge/Event--F1-0.538%20(Tuned)-blue.svg)]()
-[![Throughput](https://img.shields.io/badge/Throughput-65%2C000%20pts%2Fsec-success.svg)]()
-[![Latency](https://img.shields.io/badge/Latency-15.38%20%C2%B5s%2Fpt-purple.svg)]()
+[![Tests](https://img.shields.io/badge/pytest-70%20passed-brightgreen.svg)]()
+[![NAB Standard Score](https://img.shields.io/badge/NAB%20Score-58.07-orange.svg)]()
+[![Event F1](https://img.shields.io/badge/Event--F1-0.481%20(LOCO%200.451)-blue.svg)]()
+[![Throughput](https://img.shields.io/badge/Throughput-182%2C000%20pts%2Fsec-success.svg)]()
+[![Latency](https://img.shields.io/badge/Latency-5.5%20%C2%B5s%2Fpt-purple.svg)]()
 
 > **Hackathon Challenge 2:** Online, lookahead-free streaming anomaly detection on the 58-file Numenta Anomaly Benchmark (NAB). Built with a causal multi-horizon detector ensemble, Extreme Value Theory (SPOT/EVT) dynamic thresholding, event lifecycle debounce & re-baselining, and structured operational explainability.
 
@@ -34,14 +34,14 @@ Sentinel reads one `(timestamp, value)` point at a time and returns, for every p
 ## 🚀 Key Highlights & Achievements
 
 1. **Beats Major Published Industry Standards on NAB**:
-   - **Sentinel: 53.00 Standard / 59.76 Reward Low FN**
-   - Outperforms **Random Cut Forest (51.7)**, **Twitter ADVec (47.1)**, **Windowed Gaussian (39.6)**, **Etsy Skyline (35.7)**, **Bayesian Changepoint (17.7)**, and **EXPoSE (16.4)**.
+   - **Sentinel (NAB-tuned config): 58.07 Standard / 45.10 Reward Low FP / 64.00 Reward Low FN** (default config: 53.00)
+   - Level with **earthgecko Skyline (58.2)** and **KNN CAD (58.0)**; outperforms **Relative Entropy (54.6)**, **Random Cut Forest (51.7)**, **Twitter ADVec (47.1)**, **Windowed Gaussian (39.6)**, **Etsy Skyline (35.7)**, **Bayesian Changepoint (17.7)**, and **EXPoSE (16.4)**.
 2. **High Generalization & Event-F1**:
-   - Tuned global config reaches **Event-F1 = 0.538** (Precision 0.654, Recall 0.457, only 28 FPs).
-   - **Leave-One-Category-Out (LOCO) Held-Out F1 = 0.507** (pooled 0.479), proving zero overfitting to specific data streams.
+   - Event-F1-tuned global config reaches **Event-F1 = 0.481** (Precision 0.464, Recall 0.500, 67 FP events) vs **0.302** for the windowedGaussian baseline and 0.311 for the default config.
+   - **Leave-One-Category-Out (LOCO) held-out F1 = 0.451** (pooled 0.412): tuning on 6 categories and testing on the unseen 7th loses only 0.03 F1 — the global config transfers.
 3. **Ultra-Low Latency & High Throughput**:
-   - Executes in **15.38 µs/point** (~65,000 points/second on a single CPU core).
-   - **3.2x faster than the hackathon constraint** ($< 50\ \mu\text{s/point}$).
+   - Executes in **5.5 µs/point** (~182,000 points/second on a single CPU core; p99 10.3 µs).
+   - **9x faster than the < 50 µs/point target** and 9x faster than windowedGaussian (48.7 µs).
 4. **Strictly Causal & $O(1)$**:
    - Zero lookahead, no future centering, fixed-size rolling circular deques with entry/exit running sums.
 5. **Human-in-the-Loop Explainability**:
@@ -59,20 +59,38 @@ Evaluated on the full 58-file corpus using NAB's official sweeper (`data/NAB/nab
 |---|---|---|---|---|
 | **Perfect Detector** | 100.0 | 100.0 | 100.0 | — | — |
 | ARTime | 74.9 | 65.1 | 80.4 | Heavy batch | Non-streaming |
-| Numenta HTM | 70.5 | 62.6 | 75.2 | ~500 µs/pt | Heavy Cortical Network |
+| Numenta HTM | 70.1 | 63.1 | 74.3 | ~500 µs/pt | Heavy Cortical Network |
 | CAD OSE | 69.9 | 67.0 | 73.2 | High memory | Conformal Predictor |
 | earthgecko Skyline | 58.2 | 46.2 | 63.9 | Heavy ensemble | Multi-process |
 | KNN CAD | 58.0 | 43.4 | 64.8 | High memory | $O(N)$ Nearest Neighbors |
 | Relative Entropy | 54.6 | 47.6 | 58.8 | High memory | Kernel Density |
-| **🛡️ Sentinel (Ours)** | **53.00** | **37.27** | **59.76** | **15.4 – 35.1 µs/pt** | **Strict $O(1)$ Causal** |
+| **🛡️ Sentinel (Ours, NAB-tuned)** | **58.07** | **45.10** | **64.00** | **5.5 µs/pt** | **Strict $O(1)$ Causal** |
+| Sentinel (Ours, default config) | 53.00 | 37.27 | 59.76 | 5.5 µs/pt | Strict $O(1)$ Causal |
 | Random Cut Forest | 51.7 | 38.4 | 59.7 | ~200 µs/pt | Random Trees |
 | Twitter ADVec v1.0.0 | 47.1 | 33.6 | 53.5 | >1,000 µs/pt | Seasonal ESD |
 | Windowed Gaussian | 39.6 | 20.9 | 47.4 | 49.0 µs/pt | Sliding Window |
 | Etsy Skyline | 35.7 | 27.1 | 44.5 | Batch | Heuristics |
 | Bayesian Changepoint | 17.7 | 3.2 | 32.2 | Quadratic | $O(N^2)$ Exact Bayesian |
 | EXPoSE | 16.4 | 3.2 | 26.9 | Batch | Kernel Embedding |
-| Random Detector | 11.0 | 1.2 | 19.5 | 0.6 µs/pt | Uniform Random |
+| Random Detector | 16.8 | 5.8 | 25.9 | 0.4 µs/pt | Uniform Random |
 | Null Detector | 0.0 | 0.0 | 0.0 | 0.5 µs/pt | Constant 0.5 |
+
+### Event-based metrics (PS primary metric) — full corpus, 116 anomaly windows
+
+Two global operating points, both found by the leave-one-category-out search in [results/tuning.md](results/tuning.md):
+
+| Detector | Event-F1 | Precision | Recall | FP events | Missed windows | NAB std | µs/pt |
+|---|---|---|---|---|---|---|---|
+| windowedGaussian (NAB baseline, best thr) | 0.302 | 0.211 | 0.534 | 232 | 54 | 39.6 | 48.7 |
+| Sentinel — default config | 0.311 | 0.197 | 0.733 | 346 | 31 | 53.0 | 5.5 |
+| **Sentinel — tuned for event-F1** (`results/best_config.json`) | **0.481** | **0.464** | 0.500 | **67** | 58 | 42.6 | 5.5 |
+| **Sentinel — tuned for NAB** (`results/best_nab_config.json`) | 0.353 | 0.230 | **0.759** | 294 | **28** | **58.1** | 5.5 |
+
+- Event-F1 config: 2-of-n vote fusion, SPOT q = 1e-6, detector thresholds ×1.5, debounce 2, cooldown 600, merge gap 64.
+- NAB config: MAX fusion, SPOT q = 1e-6, thresholds ×0.75, debounce 1, cooldown 200 — NAB rewards early detection and recall more than event-F1 does.
+- **Ablation** ([results/ablation.md](results/ablation.md)): SPOT turns a static robust-z (F1 0.044, 3545 FPs) into 0.360; event
+  lifecycle → 0.387; all 6 detectors with MAX fusion 0.379; **2-of-n voting 0.481** (FP 115 → 67). VarRatio is the most
+  valuable second detector (RobustZ + VarRatio alone: 0.488); the D7 isolation forest raises recall but costs precision (0.457).
 
 ---
 
@@ -178,7 +196,7 @@ Pick any series, press **▶ Replay** and watch the stream: value vs expected $\
 
 ### 1. Setup Environment
 ```bash
-python -m venv .venv
+python3.11 -m venv .venv   # Python >= 3.10
 source .venv/bin/activate  # Or on Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 git clone --depth 1 https://github.com/numenta/NAB data/NAB
@@ -187,7 +205,7 @@ git clone --depth 1 https://github.com/numenta/NAB data/NAB
 ### 2. Run Test Suite
 ```bash
 pytest -q
-# All 66 tests pass in < 16 seconds
+# All 70 tests pass in ~5 seconds
 ```
 
 ### 3. Run Benchmark & Evaluation
