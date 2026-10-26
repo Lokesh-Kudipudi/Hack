@@ -94,8 +94,8 @@ def test_benchmark_on_tiny_series():
 def test_tune_grid_and_loco():
     from eval import tune
     from eval.scorer import FileScore
-    cfgs = tune.expand({"fusion": [("max", 1), ("vote", 2)], "spot_q": [1e-4]})
-    assert cfgs == [{"fusion": "max", "vote_k": 1, "spot_q": 1e-4}, {"fusion": "vote", "vote_k": 2, "spot_q": 1e-4}]
+    cfgs = tune.expand({"fusion": [("max", 1), ("vote", 2)], "spot.q": [1e-4]})
+    assert cfgs == [{"fusion": "max", "vote_k": 1, "spot.q": 1e-4}, {"fusion": "vote", "vote_k": 2, "spot.q": 1e-4}]
     # config 0 wins on A, config 1 wins on B: each held-out category gets the other's winner
     per_cfg = [[FileScore("A/x", "A", tp=1), FileScore("B/y", "B", fp=3, fn=1)],
                [FileScore("A/x", "A", fn=1), FileScore("B/y", "B", tp=1)]]
@@ -107,6 +107,16 @@ def test_tune_grid_and_loco():
 
 def test_ablation_configs_use_handoff_flags():
     from eval.ablation import configs
-    allowed = {"detectors", "use_spot", "use_events", "fusion", "vote_k", "threshold"}
+    allowed = {"detectors", "use_spot", "fusion", "vote_k", "threshold", "debounce", "events.cooldown",
+               "events.merge_gap"}
     for _, _, _, cfg in configs():
         assert set(cfg) <= allowed
+
+
+def test_sentinel_config_deep_merge():
+    pytest.importorskip("sentinel.config")
+    from sentinel.config import DEFAULT_CONFIG
+    cfg = run.sentinel_config({"spot.q": 1e-6, "events": {"cooldown": 7}, "thr_scale": 2.0})
+    assert cfg["spot"]["q"] == 1e-6 and cfg["spot"]["init_level"] == DEFAULT_CONFIG["spot"]["init_level"]
+    assert cfg["events"]["cooldown"] == 7 and cfg["events"]["merge_gap"] == DEFAULT_CONFIG["events"]["merge_gap"]
+    assert cfg["detector_thresholds"]["RobustZ"] == 2 * DEFAULT_CONFIG["detector_thresholds"]["RobustZ"]

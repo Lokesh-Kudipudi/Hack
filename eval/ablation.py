@@ -2,7 +2,7 @@
 
     python -m eval.ablation [--tag name] [--categories ...]
 
-Uses only the hand-off config flags (AGENTS/TASKS): detectors, use_spot, fusion, vote_k, use_events.
+Variants use sentinel/config.py keys (detectors, use_spot, fusion, vote_k, debounce, events.*) layered on --base.
 Writes results/runs/<ts>_ablation_<tag>.json, results/ablation.md and results/figures/ablation.png.
 """
 from __future__ import annotations
@@ -15,25 +15,37 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from eval.run import REPO_ROOT, RUNS_DIR, _git_sha, evaluate, make_factory, sentinel_source
 
-ALL = ["RobustZ", "LastW", "LaggedResidual", "VarRatio", "Seasonal", "CUSUM"]
+ALL = ["robust_z", "last_w", "lagged_residual", "var_ratio", "seasonal", "cusum"]
+NAMES = {"robust_z": "RobustZ", "last_w": "LastW", "lagged_residual": "LaggedResidual", "var_ratio": "VarRatio",
+         "seasonal": "Seasonal", "cusum": "CUSUM", "isolation_forest": "IsolationForest"}
+# Sentinel always runs its event manager; this makes it a plain rising-edge detector
+NO_EVENTS = {"debounce": 1, "events.cooldown": 0, "events.merge_gap": 1}
 FIG_DIR = REPO_ROOT / "results" / "figures"
 
 
 def configs() -> List[Tuple[str, str, str, dict]]:
-    """(group, name, detector, config)."""
-    mx = {"fusion": "max"}
+    """(group, name, detector, config). Sentinel configs use sentinel/config.py keys (dotted = nested)
+    and are layered on top of --base. Sentinel always includes RobustZ (used for scaling)."""
+    mx = {"fusion": "max", "vote_k": 1}
+    z = {"detectors": ["robust_z"]}
     out = [("baseline", "windowedGaussian (thr 1.0)", "windowed_gaussian", {"threshold": 1.0}),
-           ("build-up", "RobustZ, static thr, no events", "sentinel",
-            {"detectors": ["RobustZ"], "use_spot": False, "use_events": False, **mx}),
-           ("build-up", "RobustZ + SPOT", "sentinel", {"detectors": ["RobustZ"], "use_events": False, **mx}),
-           ("build-up", "RobustZ + SPOT + events", "sentinel", {"detectors": ["RobustZ"], **mx}),
-           ("build-up", "all 6, static thr + events (MAX)", "sentinel", {"use_spot": False, **mx}),
-           ("build-up", "all 6 + SPOT, no events (MAX)", "sentinel", {"use_events": False, **mx}),
-           ("build-up", "all 6 + SPOT + events (MAX)", "sentinel", {**mx}),
-           ("fusion", "all 6 + SPOT + events, vote k=2", "sentinel", {"fusion": "vote", "vote_k": 2}),
-           ("fusion", "all 6 + SPOT + events, vote k=3", "sentinel", {"fusion": "vote", "vote_k": 3})]
-    out += [("alone", f"{d} only", "sentinel", {"detectors": [d]}) for d in ALL]
-    out += [("removed", f"all − {d}", "sentinel", {"detectors": [x for x in ALL if x != d]}) for d in ALL]
+           ("build-up", "RobustZ, static thr, no event logic", "sentinel", {**z, "use_spot": False, **NO_EVENTS, **mx}),
+           ("build-up", "RobustZ + SPOT", "sentinel", {**z, "use_spot": True, **NO_EVENTS, **mx}),
+           ("build-up", "RobustZ + SPOT + events", "sentinel", {**z, "use_spot": True, **mx}),
+           ("build-up", "all 6, static thr + events (MAX)", "sentinel", {"detectors": ALL, "use_spot": False, **mx}),
+           ("build-up", "all 6 + SPOT, no event logic (MAX)", "sentinel",
+            {"detectors": ALL, "use_spot": True, **NO_EVENTS, **mx}),
+           ("build-up", "all 6 + SPOT + events (MAX)", "sentinel", {"detectors": ALL, "use_spot": True, **mx}),
+           ("fusion", "all 6 + SPOT + events, vote k=2", "sentinel",
+            {"detectors": ALL, "use_spot": True, "fusion": "vote", "vote_k": 2}),
+           ("fusion", "all 6 + SPOT + events, vote k=3", "sentinel",
+            {"detectors": ALL, "use_spot": True, "fusion": "vote", "vote_k": 3}),
+           ("tuned", "tuned config (base)", "sentinel", {})]
+    out += [("alone", f"RobustZ + {NAMES[d]}" if d != "robust_z" else "RobustZ only", "sentinel", {"detectors": [d]})
+            for d in ALL]
+    out += [("removed", f"all − {NAMES[d]}", "sentinel", {"detectors": [x for x in ALL if x != d]})
+            for d in ALL if d != "robust_z"]
+    out += [("added", "all 6 + IsolationForest (D7)", "sentinel", {"detectors": ALL + ["isolation_forest"]})]
     return out
 
 
@@ -84,7 +96,8 @@ def plot(rows: List[Dict], path) -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    colors = {"baseline": "#9aa0a6", "build-up": "#1a73e8", "fusion": "#7e57c2", "alone": "#12a4af", "removed": "#e8710a"}
+    colors = {"baseline": "#9aa0a6", "build-up": "#1a73e8", "fusion": "#7e57c2", "tuned": "#d93025",
+              "alone": "#12a4af", "removed": "#e8710a", "added": "#34a853"}
     fig, ax = plt.subplots(figsize=(9, 0.32 * len(rows) + 1.2))
     names = [r["name"] for r in rows][::-1]
     vals = [r["f1"] or 0 for r in rows][::-1]

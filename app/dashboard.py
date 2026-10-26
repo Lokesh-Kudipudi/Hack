@@ -60,12 +60,19 @@ def _expected_and_sigma(det):
         d = by.get(name)
         if d is not None and hasattr(d, "expected") and d.expected() is not None:
             exp = d.expected()
-            sig = d.sigma() if hasattr(d, "sigma") else None
+            sig = _sigma(d)
             break
     if sig is None:
-        z = by.get("RobustZ")
-        sig = z.sigma() if z is not None and hasattr(z, "sigma") else None
+        sig = _sigma(by.get("RobustZ"))
     return exp, sig
+
+
+def _sigma(d):
+    if d is None:
+        return None
+    if hasattr(d, "sigma"):
+        return d.sigma()
+    return getattr(d, "scale", None)
 
 
 @st.cache_data(show_spinner="Streaming the series through the detector…")
