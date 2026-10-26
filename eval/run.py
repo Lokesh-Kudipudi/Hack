@@ -28,11 +28,48 @@ DETECTORS = ["sentinel", *BASELINES]
 Factory = Callable[[int, str, dict], object]
 
 
+def sentinel_config(overrides: Optional[dict] = None) -> dict:
+    """Full Sentinel config: sentinel.config.DEFAULT_CONFIG deep-merged with overrides.
+
+    Sentinel itself does a shallow update, so a partial nested dict (e.g. {"spot": {"q": 1e-5}})
+    would drop the other defaults; here nested dicts merge. Dotted keys ("spot.q") set nested values.
+    Eval-only key "thr_scale" multiplies every entry of detector_thresholds.
+    """
+    import copy
+    from sentinel.config import DEFAULT_CONFIG
+
+    cfg = copy.deepcopy(DEFAULT_CONFIG)
+
+    def merge(dst: dict, src: dict) -> None:
+        for k, v in src.items():
+            if isinstance(v, dict) and isinstance(dst.get(k), dict):
+                merge(dst[k], v)
+            else:
+                dst[k] = copy.deepcopy(v)
+
+    overrides = dict(overrides or {})
+    scale = overrides.pop("thr_scale", None)
+    for k, v in overrides.items():
+        if "." in k:
+            *path, leaf = k.split(".")
+            d = cfg
+            for p in path:
+                d = d.setdefault(p, {})
+            d[leaf] = v
+        else:
+            merge(cfg, {k: v})
+    if scale is not None:
+        cfg["detector_thresholds"] = {k: v * scale for k, v in cfg["detector_thresholds"].items()}
+        cfg["fixed_threshold"] = cfg.get("fixed_threshold", 6.0) * scale
+    return cfg
+
+
 def make_factory(detector: str, config: Optional[dict] = None) -> Factory:
     config = dict(config or {})
     if detector == "sentinel":
         from sentinel.pipeline import Sentinel  # lazy: eval works before sentinel/ exists
-        return lambda n, key, cfg=config: Sentinel(n_total=n, config=cfg or None)
+        full = sentinel_config(config)
+        return lambda n, key, cfg=full: Sentinel(n_total=n, config=cfg)
     if detector in BASELINES:
         cls = BASELINES[detector]
         return lambda n, key, cfg=config: cls(n_total=n, key=key, **cfg)

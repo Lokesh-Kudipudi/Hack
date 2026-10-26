@@ -22,23 +22,24 @@ from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from typing import Dict, List, Optional, Sequence
 
-from eval import scorer
+from eval import nab_score, scorer
 from eval.data import iter_corpus
 from eval.run import REPO_ROOT, RUNS_DIR, _git_sha, make_factory, run_file, sentinel_source
 
+ALL6 = ["robust_z", "last_w", "lagged_residual", "var_ratio", "seasonal", "cusum"]
+
+# Keys follow sentinel/config.py; dotted keys set nested values, "thr_scale" scales detector_thresholds
+# (see eval.run.sentinel_config).
 GRIDS = {
-    "small": {"fusion": [("max", 1), ("vote", 2)], "spot_q": [1e-4, 1e-5], "cooldown": [300]},
+    "small": {"fusion": [("max", 1), ("vote", 2)], "spot.q": [1e-4, 1e-6], "events.cooldown": [200]},
     "default": {
-        "detectors": [
-            ["RobustZ", "LastW", "LaggedResidual", "VarRatio", "Seasonal", "CUSUM"],
-            ["RobustZ", "LastW", "LaggedResidual", "VarRatio", "Seasonal"],
-            ["LastW", "LaggedResidual", "Seasonal", "VarRatio"],
-        ],
+        "detectors": [ALL6, [d for d in ALL6 if d != "var_ratio"], ALL6 + ["isolation_forest"]],
         "fusion": [("max", 1), ("vote", 2), ("vote", 3)],
-        "spot_q": [1e-4, 1e-5, 1e-6, 1e-7],
-        "cooldown": [100, 300, 600],
-        "merge_gap": [10, 50],
-        "lag_h": [32, 64, 128],
+        "spot.q": [1e-4, 1e-6],
+        "thr_scale": [0.75, 1.0, 1.5],
+        "debounce": [1, 2, 4],
+        "events.cooldown": [200, 600],
+        "events.merge_gap": [16, 64],
     },
 }
 
@@ -71,11 +72,15 @@ def run_config(args) -> List[dict]:
     detector, cfg, categories = args
     factory = make_factory(detector, cfg)
     out = []
+    runs, windows = [], {}
     for info, df, wins in _corpus(categories):
         res, _ = run_file(factory, df, info.key)
         fs = scorer.score_run(res, wins, info.key, info.category)
         out.append(fs.__dict__)
-    return out
+        runs.append((info.key, res["timestamp"], res["score"].clip(0, 1)))
+        windows[info.key] = wins
+    nab = nab_score.nab_score(runs, windows)["score"]
+    return {"files": out, "nab": nab}
 
 
 def _f1(fss: List[scorer.FileScore]) -> float:
@@ -115,9 +120,11 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict:
     print(f"{len(cfgs)} configs x corpus, {args.jobs} workers")
     with ProcessPoolExecutor(args.jobs) as ex:
         raw = list(ex.map(run_config, [(args.detector, c, args.categories) for c in cfgs]))
-    per_cfg = [[scorer.FileScore(**d) for d in r] for r in raw]
+    per_cfg = [[scorer.FileScore(**d) for d in r["files"]] for r in raw]
+    nabs = [r["nab"] for r in raw]
 
-    full = [scorer.metrics(fss) for fss in per_cfg]
+    full = [{**scorer.metrics(fss), "nab": nabs[i]} for i, fss in enumerate(per_cfg)]
+    best_nab = max(range(len(cfgs)), key=lambda i: nabs[i])
     order = sorted(range(len(cfgs)), key=lambda i: -(full[i]["f1"] or 0))
     best = order[0]
     lo = loco(cfgs, per_cfg)
@@ -127,7 +134,8 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict:
         "git_sha": _git_sha(), "sentinel_source": sentinel_source() if args.detector == "sentinel" else None,
         "grid": GRIDS[args.grid], "base": base, "n_configs": len(cfgs),
         "best_config": cfgs[best], "best_full_corpus": full[best], "loco": lo,
-        "top10": [{"config": cfgs[i], **{k: full[i][k] for k in ("f1", "precision", "recall", "tp", "fp", "fn")}}
+        "best_nab_config": cfgs[best_nab], "best_nab_full_corpus": full[best_nab],
+        "top10": [{"config": cfgs[i], **{k: full[i][k] for k in ("f1", "precision", "recall", "tp", "fp", "fn", "nab")}}
                   for i in order[:10]],
     }
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
@@ -136,7 +144,8 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict:
     (REPO_ROOT / "results" / "tuning.md").write_text(render_md(record))
     (REPO_ROOT / "results" / "best_config.json").write_text(json.dumps(cfgs[best], indent=1) + "\n")
 
-    print(f"best (all categories): F1={full[best]['f1']:.3f}  {cfgs[best]}")
+    print(f"best (all categories): F1={full[best]['f1']:.3f} NAB={nabs[best]:.1f}  {cfgs[best]}")
+    print(f"best NAB: NAB={nabs[best_nab]:.1f} F1={full[best_nab]['f1']:.3f}  {cfgs[best_nab]}")
     print(f"LOCO mean held-out F1={lo['mean_held_out_f1']:.3f}  pooled held-out F1={lo['pooled_held_out']['f1']:.3f}")
     for c, v in lo["per_category"].items():
         print(f"  {c:24s} held-out F1={v['held_out_f1'] if v['held_out_f1'] is not None else float('nan'):.3f}  "
@@ -157,16 +166,20 @@ def render_md(r: Dict) -> str:
              f"- **Mean held-out event-F1 (categories with anomalies): {_f(lo['mean_held_out_f1'])}**",
              f"- Pooled held-out event-F1: {_f(lo['pooled_held_out']['f1'])} "
              f"(TP {lo['pooled_held_out']['tp']}, FP {lo['pooled_held_out']['fp']}, FN {lo['pooled_held_out']['fn']})",
-             f"- Best config on all categories (in-sample F1 {_f(r['best_full_corpus']['f1'])}): `{json.dumps(r['best_config'])}`",
+             f"- Best config on all categories (in-sample F1 {_f(r['best_full_corpus']['f1'])}, "
+             f"NAB {_f(r['best_full_corpus'].get('nab'), 1)}): `{json.dumps(r['best_config'])}`",
+             f"- Best NAB config (NAB {_f(r.get('best_nab_full_corpus', {}).get('nab'), 1)}, "
+             f"F1 {_f(r.get('best_nab_full_corpus', {}).get('f1'))}): `{json.dumps(r.get('best_nab_config'))}`",
              "", "| Held-out category | Selected config (tuned on the other 6) | Train F1 | Held-out F1 | TP | FP | FN |",
              "|---|---|---|---|---|---|---|"]
     for c, v in lo["per_category"].items():
         lines.append(f"| {c} | `{json.dumps(v['config'])}` | {_f(v['train_f1'])} | **{_f(v['held_out_f1'])}** | "
                      f"{v['tp']} | {v['fp']} | {v['fn']} |")
-    lines += ["", "## Top 10 configs (full corpus, in-sample)", "", "| F1 | P | R | TP | FP | FN | Config |",
-              "|---|---|---|---|---|---|---|"]
+    lines += ["", "## Top 10 configs (full corpus, in-sample)", "", "| F1 | P | R | TP | FP | FN | NAB | Config |",
+              "|---|---|---|---|---|---|---|---|"]
     for t in r["top10"]:
         lines.append(f"| {_f(t['f1'])} | {_f(t['precision'])} | {_f(t['recall'])} | {t['tp']} | {t['fp']} | {t['fn']} | "
+                     f"{_f(t.get('nab'), 1)} | "
                      f"`{json.dumps(t['config'])}` |")
     lines.append("")
     return "\n".join(lines)
