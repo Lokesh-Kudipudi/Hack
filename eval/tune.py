@@ -41,6 +41,19 @@ GRIDS = {
         "events.cooldown": [200, 600],
         "events.merge_gap": [16, 64],
     },
+    # one config for both metrics: union of the F1-optimal and NAB-optimal regions
+    "joint": {
+        "detectors": [["robust_z", "lagged_residual"], ["robust_z", "last_w", "lagged_residual"],
+                      ["robust_z", "last_w", "lagged_residual", "var_ratio"], ALL6],
+        "fusion": [("max", 1), ("vote", 2)],
+        "spot.q_per_detector": [{"LastW": 1e-4, "LaggedResidual": 1e-4}, {"LastW": 1e-3, "LaggedResidual": 1e-4}],
+        "detector_thresholds": [{"LastW": 2.0, "LaggedResidual": 2.0}],
+        "thr_scale": [0.75, 1.0, 1.5],
+        "events.cooldown": [200, 400, 600],
+        "debounce": [1, 2],
+        "events.merge_gap": [16, 64],
+        "spot.q": [1e-6],
+    },
     # detector subsets x per-detector risk: with LastW/LaggedResidual active, smaller ensembles may win
     "subsets": {
         "detectors": [["robust_z", "lagged_residual"], ["robust_z", "last_w", "lagged_residual"],
@@ -115,12 +128,14 @@ def _f1(fss: List[scorer.FileScore]) -> float:
     return m["f1"] or 0.0
 
 
-def loco(cfgs: List[dict], per_cfg: List[List[scorer.FileScore]]) -> Dict:
+def loco(cfgs: List[dict], per_cfg: List[List[scorer.FileScore]], allowed: Optional[Sequence[int]] = None) -> Dict:
+    """allowed: candidate config indices (e.g. those meeting a NAB floor); default all."""
     cats = sorted({fs.category for fs in per_cfg[0]})
+    cand = list(allowed) if allowed else list(range(len(cfgs)))
     held, pooled = {}, []
     for c in cats:
-        train = [_f1([fs for fs in fss if fs.category != c]) for fss in per_cfg]
-        best = max(range(len(cfgs)), key=lambda i: train[i])
+        train = {i: _f1([fs for fs in per_cfg[i] if fs.category != c]) for i in cand}
+        best = max(cand, key=lambda i: train[i])
         test = [fs for fs in per_cfg[best] if fs.category == c]
         pooled += test
         m = scorer.metrics(test)
@@ -140,6 +155,9 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict:
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ap.add_argument("--categories", nargs="+")
     ap.add_argument("--tag", default="loco")
+    ap.add_argument("--objective", default="f1", choices=["f1", "nab", "joint"],
+                    help="f1: max event-F1; nab: max NAB score; joint: max event-F1 among configs with NAB >= --nab-min")
+    ap.add_argument("--nab-min", type=float, default=50.0)
     args = ap.parse_args(argv)
 
     base = json.loads(args.base) if args.base else {}
@@ -152,9 +170,17 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict:
 
     full = [{**scorer.metrics(fss), "nab": nabs[i]} for i, fss in enumerate(per_cfg)]
     best_nab = max(range(len(cfgs)), key=lambda i: nabs[i])
-    order = sorted(range(len(cfgs)), key=lambda i: -(full[i]["f1"] or 0))
+    eligible = list(range(len(cfgs)))
+    if args.objective == "joint":
+        eligible = [i for i in eligible if nabs[i] >= args.nab_min] or eligible
+        print(f"{len(eligible)} configs meet NAB >= {args.nab_min}")
+    if args.objective == "nab":
+        order = sorted(range(len(cfgs)), key=lambda i: -nabs[i])
+    else:
+        order = sorted(eligible, key=lambda i: -(full[i]["f1"] or 0))
     best = order[0]
-    lo = loco(cfgs, per_cfg)
+    # NAB floor uses the full-corpus NAB (not recomputed per held-out split); F1 selection is held-out
+    lo = loco(cfgs, per_cfg, eligible)
     now = datetime.now()
     record = {
         "kind": "tune", "created": now.isoformat(timespec="seconds"), "tag": args.tag, "detector": args.detector,
@@ -162,14 +188,19 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict:
         "grid": GRIDS[args.grid], "base": base, "n_configs": len(cfgs),
         "best_config": cfgs[best], "best_full_corpus": full[best], "loco": lo,
         "best_nab_config": cfgs[best_nab], "best_nab_full_corpus": full[best_nab],
+        "objective": args.objective, "nab_min": args.nab_min if args.objective == "joint" else None,
+        "all": [{"config": cfgs[i], **{k: full[i][k] for k in ("f1", "precision", "recall", "fp", "fn", "nab")}}
+                for i in range(len(cfgs))],
         "top10": [{"config": cfgs[i], **{k: full[i][k] for k in ("f1", "precision", "recall", "tp", "fp", "fn", "nab")}}
                   for i in order[:10]],
     }
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
     path = RUNS_DIR / f"{now:%Y%m%d-%H%M%S}_tune_{args.tag}.json"
     path.write_text(json.dumps(record, indent=1))
-    (REPO_ROOT / "results" / "tuning.md").write_text(render_md(record))
-    (REPO_ROOT / "results" / "best_config.json").write_text(json.dumps(cfgs[best], indent=1) + "\n")
+    suffix = {"f1": "", "nab": "_nab", "joint": "_joint"}[args.objective]
+    md, cfg_out = f"tuning{suffix}.md", f"best{suffix}_config.json"
+    (REPO_ROOT / "results" / md).write_text(render_md(record))
+    (REPO_ROOT / "results" / cfg_out).write_text(json.dumps(cfgs[best], indent=1) + "\n")
 
     print(f"best (all categories): F1={full[best]['f1']:.3f} NAB={nabs[best]:.1f}  {cfgs[best]}")
     print(f"best NAB: NAB={nabs[best_nab]:.1f} F1={full[best_nab]['f1']:.3f}  {cfgs[best_nab]}")
@@ -177,7 +208,7 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict:
     for c, v in lo["per_category"].items():
         print(f"  {c:24s} held-out F1={v['held_out_f1'] if v['held_out_f1'] is not None else float('nan'):.3f}  "
               f"(train {v['train_f1']:.3f})  fp={v['fp']}")
-    print("saved", path.relative_to(REPO_ROOT), "results/tuning.md, results/best_config.json")
+    print("saved", path.relative_to(REPO_ROOT), f"results/{md}, results/{cfg_out}")
     return record
 
 
@@ -189,7 +220,10 @@ def render_md(r: Dict) -> str:
     lo = r["loco"]
     lines = ["# Hyperparameter tuning (leave-one-category-out)", "",
              f"Generated by `python -m eval.tune` ({r['created']}, sha {r['git_sha']}, sentinel: {r['sentinel_source']}). "
-             f"{r['n_configs']} global configs; grid: `{json.dumps(r['grid'])}`; base: `{json.dumps(r['base'])}`.", "",
+             f"{r['n_configs']} global configs; grid: `{json.dumps(r['grid'])}`; base: `{json.dumps(r['base'])}`. "
+             f"Objective: **{r.get('objective', 'f1')}**"
+             + (f" (max event-F1 subject to NAB ≥ {r['nab_min']}; NAB floor checked on the full corpus)"
+                if r.get("objective") == "joint" else "") + ".", "",
              f"- **Mean held-out event-F1 (categories with anomalies): {_f(lo['mean_held_out_f1'])}**",
              f"- Pooled held-out event-F1: {_f(lo['pooled_held_out']['f1'])} "
              f"(TP {lo['pooled_held_out']['tp']}, FP {lo['pooled_held_out']['fp']}, FN {lo['pooled_held_out']['fn']})",
