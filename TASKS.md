@@ -52,34 +52,63 @@ Owns: `sentinel/**`, `tests/test_detectors.py`, `tests/test_spot.py`, `tests/tes
 
 ---
 
-## Next up — 2026-10-26 (after per-detector q + joint tuning)
+## Next up — 2026-10-26 (phase 3: recall & detection delay vs. independent improvements)
 
-Current best (global configs, full NAB corpus): **event-F1 0.563** (P 0.675, R 0.483; held-out pooled 0.510) with
-`results/best_config.json`; **NAB 59.06** with `results/best_nab_config.json`; joint (F1 0.461, NAB 53.1) with
-`results/best_joint_config.json`. 2.4–5.7 µs/pt. F1 and NAB trade off (see `results/figures/pareto_f1_nab.png`).
+Current state on `main`: the engine **default** is the tuned event-F1 operating point (RobustZ + LaggedResidual, per-detector
+SPOT risk): **event-F1 0.563** (P 0.675, R 0.483, FP 27; held-out pooled 0.510), 2.4 µs/pt. Other operating points:
+`results/best_nab_config.json` (NAB 59.06), `results/best_joint_config.json` (F1 0.461 / NAB 53.1).
+Weakest metrics: **recall 0.48 (60 of 116 windows missed)** and **detection delay (median ~50% into the window)**.
 Work on branches `<name>/<topic>` (AGENTS §9).
 
-### Lokesh
+**File boundaries for this phase** (so the two lists never collide):
+- Lokesh: `sentinel/events.py`, `sentinel/fusion.py`, `sentinel/spot.py`, the decision/score section of
+  `sentinel/pipeline.py` (after detector scores are computed), new `sentinel/recall.py`, `sentinel/config.py` keys for
+  his features, `eval/**`, `app/**`, `results/**`, and tests for those.
+- Likhit: `sentinel/detectors.py`, `sentinel/explain.py`, `sentinel/types.py`, new modules (`sentinel/validate.py`,
+  `sentinel/state.py`, `sentinel/pool.py`, `sentinel/__main__.py`), `pyproject.toml`, `ARCHITECTURE_DECISIONS.md`, and
+  tests for those. Touching `pipeline.py` only for one-line hooks (input validation call, state save/load) — tell Lokesh.
+
+### Done in this round (by Lokesh)
+
+| ID | Task | Result |
+|---|---|---|
+| K10 | Tuned config as engine default (`ORIGINAL_DEFAULT_CONFIG` kept) | `Sentinel()` → F1 0.563 with no overrides |
+| K13 | Evidence `deviation_sigma` = value deviation on the robust (MAD) scale; raw detector score + threshold ratio as extra fields; volatility / drift context in text | No more "792σ" from VarRatio |
+| K14 | `use_events=False` honoured (rising-edge events); ADR-001 runtime wording (50 µs is our own budget); ADR-009 per-detector risk | Docs match code |
+| L14 | Dashboard operating-point selector (engine default / F1 / joint / NAB / original); alarm line from the active config | Verified in browser |
+| L15 | README pass (defaults, operating points, ADR-009, test count) | Done |
+| L11 | Submission format | Dropped for now |
+
+### Lokesh — recall & detection delay
 
 | ID | Task | Why | Done when | Status |
 |---|---|---|---|---|
-| L11 | Ask organisers for the hidden-test **submission format** (file layout, columns, one file vs many, labels format, is `n_total` known per stream); adapt `eval.predict` output to it. | 40% of the score is hidden data; we can't submit without it | `eval.predict` writes the exact required file(s) | Not started |
-| L12 | Experiment harness for recall/delay ideas from NAB leaders: proportional cooldown, score smoothing, spatial-extreme flag — tune each via `eval.tune` with LOCO once Likhit exposes the config keys (K11–K12). | Recall 0.48 and detection at ~50% of the window are our weakest metrics | Held-out pooled F1 > 0.510 or documented as no gain | Not started |
-| L13 | Slide deck: problem, architecture, threshold design (EVT + per-detector risk), ablation story (+0.16 from per-detector q), F1-vs-NAB trade-off, leaderboard, runtime, demo screenshots; Q&A prep sheet. | Presentation is 15% | Deck reviewed by both | Not started |
-| L14 | Dashboard: re-verify on final engine; add an operating-point selector (F1 / joint / NAB config) and show the active config. | Demo is 10% | Demo run-through without errors | Not started |
-| L15 | Final README / figures / leaderboard pass after K10 lands (badges, tables, ADR links). | Numbers must match the submitted engine | README numbers = latest runs | Not started |
-| L16 | *Stretch* (old L10): Chronos-Bolt-small vs Last-3 on ~10 files (F1 + runtime) for the "foundation model = one-liner" slide. | Story, not score | Comparison table | Not started |
+| L17 | **Miss & delay analysis**: for every missed window and every late detection, which file/category, anomaly shape (spike / level shift / pattern / drift), what each detector's score did inside the window, and how early a detection was possible. `results/miss_analysis.md` + figure. | Decide which mechanism to build first | Report committed | Not started |
+| L18 | **Proportional cooldown** (`events.cooldown_frac`): cooldown = frac × probation length (CAD OSE "rest period"), so short files are not muted for 600 points and long files are not re-alarmed too soon. | Recall on short files; FP on long files | Config key + tests; tuned | Not started |
+| L19 | **Spatial-extreme flag** (`sentinel/recall.py`): value beyond running min/max ± tol × range ⇒ immediate alarm on the first point (Numenta). Running min/max seeded from probation, causal. | Earliest possible detection of new extremes | Config key + tests; tuned | Not started |
+| L20 | **Score smoothing / anomaly likelihood**: short moving average of detector scores compared with their long-run distribution before thresholding (Numenta likelihood). Lets us loosen q for recall without single-point FPs. | Recall without precision loss | Config key + tests; tuned | Not started |
+| L21 | **Faster confirmation**: adaptive debounce (confirm immediately when 2+ detectors agree or ratio high), onset-sensitive LastW risk; re-test Seasonal / VarRatio under MAX with stricter per-detector q for pattern-break recall. | Delay at ~50% of window; pattern breaks missed | Delay median < 0.4 of window at equal F1, or documented | Not started |
+| L22 | **Tune all new knobs with LOCO**; add delay as a tie-break / constraint in `eval.tune`; adopt into defaults only if held-out pooled F1 > 0.510 (or equal F1 with lower delay); refresh README, figures, ADR. | Keep the honest-validation story | New default or documented no-gain | Not started |
 
-### Likhit
+### Likhit — independent improvements (no dependency on Lokesh's work)
 
 | ID | Task | Why | Done when | Status |
 |---|---|---|---|---|
-| K9 | Review Lokesh's engine change now on `main` (`spot.q_per_detector`, deep-merge config in `sentinel/pipeline.py`, 2 tests). | Your files; root cause of "inactive" LastW/LaggedResidual | Approved or follow-up fix | Not started |
-| K10 | Make `results/best_config.json` the built-in default in `sentinel/config.py` (RobustZ + LaggedResidual, MAX, q 1e-6 / 1e-4 for LaggedResidual, debounce 2, cooldown 600, merge gap 64) so `Sentinel()` gives F1 0.563 with no overrides; update tests. | Hidden-test runs and judges' demo use defaults | `python -m eval.run --detector sentinel` → F1 0.563 | Not started |
-| K11 | Proportional cooldown option (`events.cooldown_frac`: cooldown = frac × probation length or × n_total, as CAD OSE's rest period) + spatial-extreme flag (value beyond running min/max ± 5% of range ⇒ alarm, as Numenta) — both configurable, default off. | Earlier detection / recall on short vs long files | Config keys + tests; Lokesh tunes (L12) | Not started |
-| K12 | Score smoothing before thresholding (short moving average of detector scores, Numenta anomaly-likelihood style), configurable. | Fewer single-point false alarms → room to loosen q for recall | Config key + tests | Not started |
-| K13 | Evidence quality: `deviation_sigma` uses the top detector's raw score (e.g. "792σ" for VarRatio); compute σ-deviation vs RobustZ scale/expected value instead, and keep `text` readable. | Interpretable evidence is a PS requirement and a judging point | No absurd σ values on the corpus | Not started |
-| K14 | Honour or remove ignored config keys (`use_events`); update ADR-001 wording (50 µs is our own budget, ≈ windowedGaussian cost, not an industry requirement); add an ADR for per-detector SPOT risk. | Correctness of docs/claims in Q&A | ADRs consistent with code and results | Not started |
+| K9 | Review Lokesh's engine changes on `main`: per-detector SPOT risk, deep-merge config, tuned defaults, evidence σ, `use_events`, ADR-009. | Your codebase | Approved or follow-up fixes | Not started |
+| K15 | **Input robustness** (`sentinel/validate.py` + detectors): NaN / inf / missing values, duplicate and backward timestamps, irregular sampling gaps, constant series, very large magnitudes — never crash, never emit NaN scores, documented behaviour. `tests/test_robustness.py`. | Hidden test data may be messier than NAB | Fuzz tests pass | Not started |
+| K16 | **State checkpointing** (`sentinel/state.py`): `Sentinel.save()` / `Sentinel.load()` to pause and resume a stream; test that resumed output == uninterrupted output. | Real streaming deployments restart | Round-trip test passes | Not started |
+| K17 | **Multi-stream API + CLI**: `SentinelPool` (one Sentinel per stream id, lazy creation, memory per stream reported) and `python -m sentinel --input file.csv` / stdin JSONL → JSONL results. | Usable as a service; nicer demo | CLI + tests | Not started |
+| K18 | **Packaging**: `pyproject.toml`, `pip install -e .`, public API in `sentinel/__init__.py` (`Sentinel`, `run_series`, `Result`, `DEFAULT_CONFIG`), version string. | Code-quality score | Fresh venv install works | Not started |
+| K19 | **Detector quality** in `detectors.py` (all new options default off so results don't move): Seasonal weekly profile (hour × weekday) + automatic period detection from probation autocorrelation; two-sided VarRatio (variance collapse / flatline); review D7 isolation forest. Unit tests per detector on synthetic series. | Better raw signals for Lokesh to tune later | Tests pass; options documented | Not started |
+| K20 | **Explainability v2** (`explain.py`): context in evidence (recent window mean/std vs baseline, time-of-day profile value), a confidence field, type-specific sentence templates; overhead < 1 µs per anomalous point. | Interpretable evidence is a PS requirement and judging point | Schema documented in ADR-007 | Not started |
+| K21 | **Determinism & causality tests**: property tests that the output for a prefix never changes when more data is appended (no look-ahead) and that runs are bit-identical; coverage report. | Strong Q&A defence | Tests pass | Not started |
+
+### Later (either person)
+
+| ID | Task | Status |
+|---|---|---|
+| L13 | Slide deck + Q&A prep (problem, architecture, EVT + per-detector risk, ablation, F1-vs-NAB trade-off, leaderboard, runtime, demo) | Not started |
+| L16 | *Stretch*: Chronos-Bolt-small vs Last-3 on ~10 files | Not started |
 
 ## Hand-off points
 
@@ -95,6 +124,6 @@ Work on branches `<name>/<topic>` (AGENTS §9).
 <!-- Format: - [from → to] YYYY-MM-DD: request — status -->
 - [lokesh → likhit] 2026-10-26: (superseded — was tuned on the stand-in engine) adopt stand-in config — closed
 - [lokesh → likhit] 2026-10-26: config-key mismatch — closed: eval now deep-merges overrides into `sentinel.config.DEFAULT_CONFIG` (dotted keys like `spot.q`, `events.cooldown`; see `eval.run.sentinel_config`).
-- [lokesh → likhit] 2026-10-26: adopt `results/best_config.json` (event-F1 0.481, LOCO held-out 0.451) as default in `sentinel/config.py`; `results/best_nab_config.json` is the NAB operating point (NAB 58.07). Both are in your schema. — open
-- [lokesh → likhit] 2026-10-26: ablation findings on your engine (results/ablation.md): (a) LastW and LaggedResidual add ~0 (all − LastW = 0.481 unchanged, all − LaggedResidual 0.489) — likely silenced by `effective_zq = max(z_q, base_th)` with base 6σ on a global MAD scale; in the stand-in, LaggedResidual alone scored 0.526. (b) Seasonal costs precision (all − Seasonal 0.495, P 0.682). (c) `Sentinel.__init__` does a shallow `cfg.update`, so partial nested dicts drop defaults — suggest deep merge. (d) `use_events` is ignored. (e) Tested making the 1.5x extreme bypass configurable: at most +0.013 F1 — not worth changing. — open
-- [lokesh → likhit] 2026-10-26: on branch `lokesh/engine-d2-d3-fix` (please review/merge via PR): added `spot.q_per_detector` (per-detector SPOT risk) + deep-merge of nested config in `sentinel/pipeline.py`, `sentinel/config.py`, 2 tests in `tests/test_pipeline.py`. Root cause of "inactive" LastW/LaggedResidual was a single global q=1e-6 (precision 0.9, recall 0.15 alone), not their scaling. New best config (RobustZ + LaggedResidual, MAX): event-F1 0.563, LOCO pooled 0.510. — open
+- [lokesh → likhit] 2026-10-26: adopt `results/best_config.json` (event-F1 0.481, LOCO held-out 0.451) as default in `sentinel/config.py`; `results/best_nab_config.json` is the NAB operating point (NAB 58.07). Both are in your schema. — closed 2026-10-26 (done on main by Lokesh; review under K9)
+- [lokesh → likhit] 2026-10-26: ablation findings on your engine (results/ablation.md): (a) LastW and LaggedResidual add ~0 (all − LastW = 0.481 unchanged, all − LaggedResidual 0.489) — likely silenced by `effective_zq = max(z_q, base_th)` with base 6σ on a global MAD scale; in the stand-in, LaggedResidual alone scored 0.526. (b) Seasonal costs precision (all − Seasonal 0.495, P 0.682). (c) `Sentinel.__init__` does a shallow `cfg.update`, so partial nested dicts drop defaults — suggest deep merge. (d) `use_events` is ignored. (e) Tested making the 1.5x extreme bypass configurable: at most +0.013 F1 — not worth changing. — closed 2026-10-26 (done on main by Lokesh; review under K9)
+- [lokesh → likhit] 2026-10-26: on branch `lokesh/engine-d2-d3-fix` (please review/merge via PR): added `spot.q_per_detector` (per-detector SPOT risk) + deep-merge of nested config in `sentinel/pipeline.py`, `sentinel/config.py`, 2 tests in `tests/test_pipeline.py`. Root cause of "inactive" LastW/LaggedResidual was a single global q=1e-6 (precision 0.9, recall 0.15 alone), not their scaling. New best config (RobustZ + LaggedResidual, MAX): event-F1 0.563, LOCO pooled 0.510. — closed 2026-10-26 (done on main by Lokesh; review under K9)

@@ -51,3 +51,8 @@
 - Changed: eval/tune.py (`--objective f1|nab|joint`, `--nab-min`, joint grid, all configs stored), eval/figures.py (pareto_f1_nab.png), README.md (3 operating points, trade-off, table fix), TASKS.md (Next up: L11–L16, K9–K14), results/*
 - Result: 576 configs. Joint (max F1 s.t. NAB ≥ 52): F1 0.461 / NAB 53.1 (held-out pooled 0.399). New NAB best 59.06 (> earthgeckoSkyline 58.2). F1 best unchanged 0.563 / NAB 42.8.
 - Notes: no single config wins both — NAB rewards recall (FP weight 0.11), event-F1 counts every FP. Decision: submit the event-F1 config; quote NAB config for leaderboard.
+
+## 2026-10-26 — Non-recall improvements + phase-3 task split (branch lokesh/non-recall-improvements)
+- Changed: sentinel/config.py (tuned DEFAULT_CONFIG, ORIGINAL_DEFAULT_CONFIG), sentinel/pipeline.py (use_events honoured, evidence σ on MAD scale + detector_score/threshold_ratio), sentinel/explain.py (optional extras, volatility/drift context), tests/test_pipeline.py (+2), eval/tune.py (pin ALL6 in old grids), eval/figures.py (examples use engine defaults), app/dashboard.py (operating-point selector; fixed: it loaded the joint config as "tuned"; alarm line key), ARCHITECTURE_DECISIONS.md (ADR-001 wording, ADR-009), README.md, TASKS.md (phase 3 lists, file boundaries), results/*
+- Result: `Sentinel()` defaults → event-F1 0.563 / 2.35 µs/pt; evidence σ median 27 (was raw detector scores, e.g. 792σ); 77 tests pass; dashboard verified (NAB operating point on nyc_taxi: 5/5 windows, F1 0.83).
+- Notes: TASKS phase 3 — Lokesh L17–L22 (recall & delay), Likhit K9, K15–K21 (independent), file boundaries listed. L11 dropped per user.

@@ -180,7 +180,7 @@ def example(key: str, config: dict, windows: Dict, path: Path) -> None:
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--config", help="Sentinel config JSON (or path) for example plots; default: latest tuned")
+    ap.add_argument("--config", help="Sentinel config JSON (or path) for example plots; default: engine defaults")
     args = ap.parse_args(argv)
     FIG.mkdir(parents=True, exist_ok=True)
     runs = load_runs()
@@ -188,8 +188,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         p = Path(args.config)
         config = json.loads(p.read_text() if p.is_file() else args.config)
     else:
-        tunes = [r for r in runs if r.get("kind") == "tune"]
-        config = tunes[-1]["best_config"] if tunes else {}
+        config = {}  # engine defaults (= tuned event-F1 operating point)
 
     latest = _latest(runs)
     if latest:
