@@ -1,0 +1,52 @@
+{
+ "kind": "benchmark",
+ "created": "2026-10-26T23:41:08",
+ "tag": "corpus",
+ "git_sha": "ca75967",
+ "machine": "arm64 arm Darwin",
+ "python": "3.11.15",
+ "categories": null,
+ "results": [
+  {
+   "detector": "sentinel",
+   "points": 365558,
+   "us_per_point_mean": 2.5758226738301446,
+   "us_per_point_p50": 2.625,
+   "us_per_point_p99": 4.334,
+   "us_per_point_max": 565.25,
+   "points_per_sec": 388225.4823516404,
+   "loop_us_per_point_best": 2.6655132920083817,
+   "sentinel_source": "tracked"
+  },
+  {
+   "detector": "null",
+   "points": 365558,
+   "us_per_point_mean": 0.2578854244743652,
+   "us_per_point_p50": 0.25,
+   "us_per_point_p99": 0.75,
+   "us_per_point_max": 17.458,
+   "points_per_sec": 3877691.0406559403,
+   "loop_us_per_point_best": 0.33705469720263265
+  },
+  {
+   "detector": "random",
+   "points": 365558,
+   "us_per_point_mean": 0.3886148107824204,
+   "us_per_point_p50": 0.375,
+   "us_per_point_p99": 0.583,
+   "us_per_point_max": 15.709,
+   "points_per_sec": 2573242.121129256,
+   "loop_us_per_point_best": 0.46775636697870104
+  },
+  {
+   "detector": "windowed_gaussian",
+   "points": 365558,
+   "us_per_point_mean": 48.73522331066479,
+   "us_per_point_p50": 34.167,
+   "us_per_point_p99": 180.542,
+   "us_per_point_max": 280.0,
+   "points_per_sec": 20519.040071396754,
+   "loop_us_per_point_best": 48.82376326602072
+  }
+ ]
+}

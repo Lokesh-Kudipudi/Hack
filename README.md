@@ -1,10 +1,10 @@
 # Sentinel — Adaptive Streaming Time-Series Anomaly Detection
 
-[![Tests](https://img.shields.io/badge/pytest-77%20passed-brightgreen.svg)]()
-[![NAB Standard Score](https://img.shields.io/badge/NAB%20Score-59.06-orange.svg)]()
-[![Event F1](https://img.shields.io/badge/Event--F1-0.563%20(LOCO%200.510)-blue.svg)]()
-[![Throughput](https://img.shields.io/badge/Throughput-180k--420k%20pts%2Fsec-success.svg)]()
-[![Latency](https://img.shields.io/badge/Latency-2.4--5.5%20%C2%B5s%2Fpt-purple.svg)]()
+[![Tests](https://img.shields.io/badge/pytest-85%20passed-brightgreen.svg)]()
+[![NAB Standard Score](https://img.shields.io/badge/NAB%20Score-60.00-orange.svg)]()
+[![Event F1](https://img.shields.io/badge/Event--F1-0.673%20(LOCO%200.654)-blue.svg)]()
+[![Throughput](https://img.shields.io/badge/Throughput-390k%20pts%2Fsec-success.svg)]()
+[![Latency](https://img.shields.io/badge/Latency-2.6%20%C2%B5s%2Fpt-purple.svg)]()
 
 > **Hackathon Challenge 2:** Online, lookahead-free streaming anomaly detection on the 58-file Numenta Anomaly Benchmark (NAB). Built with a causal multi-horizon detector ensemble, Extreme Value Theory (SPOT/EVT) dynamic thresholding, event lifecycle debounce & re-baselining, and structured operational explainability.
 
@@ -34,15 +34,17 @@ Sentinel reads one `(timestamp, value)` point at a time and returns, for every p
 ## Key Highlights & Achievements
 
 1. **Beats Major Published Industry Standards on NAB**:
-   - **Sentinel (NAB-tuned config): 59.06 Standard / 44.53 Reward Low FP / 65.81 Reward Low FN** (original K1–K8 defaults: 53.00)
+   - **Sentinel (NAB operating point): 60.00 Standard / 55.24 Reward Low FP / 63.56 Reward Low FN**; the engine default scores 54.90 (original K1–K8 defaults: 53.00)
    - Above **earthgecko Skyline (58.2)** and **KNN CAD (58.0)**; outperforms **Relative Entropy (54.6)**, **Random Cut Forest (51.7)**, **Twitter ADVec (47.1)**, **Windowed Gaussian (39.6)**, **Etsy Skyline (35.7)**, **Bayesian Changepoint (17.7)**, and **EXPoSE (16.4)**.
 2. **High Generalization & Event-F1**:
-   - Event-F1-tuned global config reaches **Event-F1 = 0.563** (Precision 0.675, Recall 0.483, only 27 FP events) vs **0.302** for the windowedGaussian baseline and 0.311 for the original K1–K8 defaults. **This is now the engine default** — `Sentinel()` uses it with no config.
-   - **Leave-One-Category-Out (LOCO) held-out F1: pooled 0.510, mean 0.492** — tuned on 6 categories, tested on the unseen 7th.
-   - Key engine change: a **per-detector SPOT risk level** (`spot.q_per_detector`). One global q silenced the clean short/long-horizon detectors; giving them a looser q is worth +0.16 F1 on its own.
+   - Engine default (`Sentinel()`, no config) reaches **Event-F1 = 0.673** (Precision 0.747, Recall 0.612, 24 FP events) vs **0.302** for the windowedGaussian baseline and 0.311 for the original K1–K8 defaults.
+   - **Leave-One-Category-Out (LOCO) held-out F1: pooled 0.654, mean 0.593** — tuned on 6 categories, tested on the unseen 7th.
+   - Two engine changes made the difference: a **per-detector SPOT risk level** (ADR-009: 0.311 → 0.563) and **recall mechanisms**
+     (ADR-010: spatial-extreme flag, proportional cooldown, debounce 3, extreme ratio 2.0: 0.563 → 0.673, recall 0.48 → 0.61).
+   - Detections land **at the labelled anomaly point** (median +0 points; 62 of 71 at or before it).
 3. **Ultra-Low Latency & High Throughput**:
-   - Executes in **5.5 µs/point** (~182,000 points/second on a single CPU core; p99 10.3 µs).
-   - **9x faster than the < 50 µs/point target** and 9x faster than windowedGaussian (48.7 µs).
+   - Executes in **2.6 µs/point** (~390,000 points/second on a single CPU core; p99 4.3 µs).
+   - **~19x faster than our < 50 µs/point budget** and than windowedGaussian (48.7 µs).
 4. **Strictly Causal & $O(1)$**:
    - Zero lookahead, no future centering, fixed-size rolling circular deques with entry/exit running sums.
 5. **Human-in-the-Loop Explainability**:
@@ -62,11 +64,11 @@ Evaluated on the full 58-file corpus using NAB's official sweeper (`data/NAB/nab
 | ARTime | 74.9 | 65.1 | 80.4 | Heavy batch | Non-streaming |
 | Numenta HTM | 70.1 | 63.1 | 74.3 | ~500 µs/pt | Heavy Cortical Network |
 | CAD OSE | 69.9 | 67.0 | 73.2 | High memory | Conformal Predictor |
-| **Sentinel (Ours, NAB-tuned)** | **59.06** | **44.53** | **65.81** | **5.7 µs/pt** | **Strict $O(1)$ Causal** |
+| **Sentinel (Ours, NAB operating point)** | **60.00** | **55.24** | **63.56** | **3.7 µs/pt** | **Strict $O(1)$ Causal** |
 | earthgecko Skyline | 58.2 | 46.2 | 63.9 | Heavy ensemble | Multi-process |
 | KNN CAD | 58.0 | 43.4 | 64.8 | High memory | $O(N)$ Nearest Neighbors |
 | Relative Entropy | 54.6 | 47.6 | 58.8 | High memory | Kernel Density |
-| Sentinel (Ours, joint config) | 53.10 | 47.19 | 56.67 | 5.7 µs/pt | Strict $O(1)$ Causal |
+| Sentinel (Ours, engine default) | 54.90 | 53.78 | 57.00 | 2.6 µs/pt | Strict $O(1)$ Causal |
 | Sentinel (Ours, original K1–K8 defaults) | 53.00 | 37.27 | 59.76 | 5.5 µs/pt | Strict $O(1)$ Causal |
 | Random Cut Forest | 51.7 | 38.4 | 59.7 | ~200 µs/pt | Random Trees |
 | Twitter ADVec v1.0.0 | 47.1 | 33.6 | 53.5 | >1,000 µs/pt | Seasonal ESD |
@@ -79,29 +81,33 @@ Evaluated on the full 58-file corpus using NAB's official sweeper (`data/NAB/nab
 
 ### Event-based metrics (PS primary metric) — full corpus, 116 anomaly windows
 
-Three global operating points, all found by searching global configs only (see [results/tuning.md](results/tuning.md),
-[results/tuning_joint.md](results/tuning_joint.md)):
+Global operating points, all found by searching global configs only with leave-one-category-out validation
+([results/tuning.md](results/tuning.md)):
 
 | Detector | Event-F1 | Precision | Recall | FP events | Missed windows | NAB std | µs/pt |
 |---|---|---|---|---|---|---|---|
 | windowedGaussian (NAB baseline, best thr) | 0.302 | 0.211 | 0.534 | 232 | 54 | 39.6 | 48.7 |
 | Sentinel — original K1–K8 defaults (`ORIGINAL_DEFAULT_CONFIG`) | 0.311 | 0.197 | 0.733 | 346 | 31 | 53.0 | 5.5 |
-| **Sentinel — tuned for event-F1 = engine default** (`results/best_config.json`) | **0.563** | **0.675** | 0.483 | **27** | 60 | 42.8 | **2.4** |
-| Sentinel — joint: max F1 with NAB ≥ 52 (`results/best_joint_config.json`) | 0.461 | 0.361 | 0.638 | 131 | 42 | 53.1 | 5.7 |
-| **Sentinel — tuned for NAB** (`results/best_nab_config.json`) | 0.347 | 0.222 | **0.793** | 322 | **24** | **59.1** | 5.7 |
+| Sentinel — phase 2: per-detector risk (ADR-009) | 0.563 | 0.675 | 0.483 | 27 | 60 | 42.8 | 2.4 |
+| **Sentinel — engine default** (phase 3, ADR-010; `results/best_config.json`) | **0.673** | **0.747** | 0.612 | **24** | 45 | 54.9 | **2.6** |
+| **Sentinel — NAB operating point** (`results/best_nab_config.json`) | 0.541 | 0.439 | **0.707** | 105 | **34** | **60.0** | 3.7 |
 
-- Event-F1 config: **RobustZ + LaggedResidual only**, MAX fusion, SPOT q = 1e-6 (1e-4 for LaggedResidual), debounce 2, cooldown 600, merge gap 64. Chosen from 720 configs (detector subsets × per-detector risk) by leave-one-category-out search.
-- NAB config: all 6 detectors, 2-of-n vote, thresholds ×0.75, cooldown 200, merge gap 16, looser LastW risk (1e-3).
-- **Event-F1 and NAB pull in opposite directions** (figure below, 576 configs): NAB rewards catching every window early and
-  penalises each extra alarm only lightly (FP weight 0.11), event-F1 counts every false alarm in full. No config is best on
-  both; the joint config (best F1 with NAB ≥ 52, i.e. above Random Cut Forest) costs 0.10 F1 versus the F1 config.
-  **We submit the event-F1 config** (the PS's primary metric) and quote the NAB config for leaderboard comparison.
+- Engine default: **RobustZ + LaggedResidual**, MAX fusion, SPOT q = 1e-6 (1e-5 for LaggedResidual), **spatial-extreme
+  flag** (new running min/max beyond 5% of the range), debounce 3, extreme ratio 2.0, cooldown = 0.5 × probation length.
+- NAB operating point: adds Seasonal (threshold 15) and a 2-detector agreement bypass, LaggedResidual risk 1e-4.
+- **Event-F1 and NAB still trade off** (figure below, 1488 evaluated configs): NAB rewards catching every window and charges
+  an extra alarm only 0.11, event-F1 counts every false alarm in full. Phase 3 moved the whole front up and right: the
+  default now scores above Random Cut Forest on NAB *and* 0.673 F1, so it also serves as the joint config
+  (`results/best_joint_config.json`). **We submit the engine default** and quote the NAB point for leaderboard comparison.
+- **Delay** ([results/miss_analysis.md](results/miss_analysis.md)): NAB windows start well before the labelled anomaly, so a
+  "50% of the window" delay means detection at the labelled point itself (median +0 points). Of the 45 remaining misses,
+  30 are pattern breaks only Seasonal sees (adding it costs too many false alarms), 12 have no detector signal at all.
 
 ![Event-F1 vs NAB trade-off](results/figures/pareto_f1_nab.png)
 - **Ablation** ([results/ablation.md](results/ablation.md)): SPOT turns a static robust-z (F1 0.040, 4519 FPs) into 0.376;
-  event lifecycle → 0.392; all 6 detectors with MAX fusion 0.404, with 2-of-n voting 0.470. Once the clean detectors can
-  fire (per-detector q), **RobustZ + LaggedResidual alone reaches 0.563** — the long-horizon residual (ICLR one-liner) is
-  the single most valuable detector; adding noisier detectors (VarRatio, Seasonal, CUSUM, isolation forest) costs precision.
+  events → 0.392; all 6 detectors with MAX fusion 0.419, voting 0.456; per-detector risk with RobustZ + LaggedResidual
+  0.563; + spatial-extreme flag 0.587; + debounce 3 / extreme ratio 2.0 0.610; + proportional cooldown 0.640;
+  + LaggedResidual risk 1e-5 **0.673**. Removing the spatial flag from the final default costs the most (→ 0.428).
 
 ---
 
@@ -261,3 +267,4 @@ All foundational architectural decisions, invariants, and empirical milestones a
 - `ADR-007`: Structured Evidence & Explainability Schema
 - `ADR-008`: Event-Aligned Continuous Scoring for Official NAB Calibration
 - `ADR-009`: Per-Detector SPOT Risk Level and Tuned Defaults
+- `ADR-010`: Recall Mechanisms (Spatial-Extreme Flag, Proportional Cooldown, Confirmation)

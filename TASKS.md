@@ -58,6 +58,8 @@ Current state on `main`: the engine **default** is the tuned event-F1 operating 
 SPOT risk): **event-F1 0.563** (P 0.675, R 0.483, FP 27; held-out pooled 0.510), 2.4 µs/pt. Other operating points:
 `results/best_nab_config.json` (NAB 59.06), `results/best_joint_config.json` (F1 0.461 / NAB 53.1).
 Weakest metrics: **recall 0.48 (60 of 116 windows missed)** and **detection delay (median ~50% into the window)**.
+
+**Update (Lokesh, L17–L22 done):** engine default now **event-F1 0.673** (P 0.747, R 0.612, FP 24; held-out pooled 0.654), NAB 54.9; NAB operating point 60.00. Detection is at the labelled anomaly point (median +0 points). See ADR-010.
 Work on branches `<name>/<topic>` (AGENTS §9).
 
 **File boundaries for this phase** (so the two lists never collide):
@@ -83,12 +85,12 @@ Work on branches `<name>/<topic>` (AGENTS §9).
 
 | ID | Task | Why | Done when | Status |
 |---|---|---|---|---|
-| L17 | **Miss & delay analysis**: for every missed window and every late detection, which file/category, anomaly shape (spike / level shift / pattern / drift), what each detector's score did inside the window, and how early a detection was possible. `results/miss_analysis.md` + figure. | Decide which mechanism to build first | Report committed | Not started |
-| L18 | **Proportional cooldown** (`events.cooldown_frac`): cooldown = frac × probation length (CAD OSE "rest period"), so short files are not muted for 600 points and long files are not re-alarmed too soon. | Recall on short files; FP on long files | Config key + tests; tuned | Not started |
-| L19 | **Spatial-extreme flag** (`sentinel/recall.py`): value beyond running min/max ± tol × range ⇒ immediate alarm on the first point (Numenta). Running min/max seeded from probation, causal. | Earliest possible detection of new extremes | Config key + tests; tuned | Not started |
-| L20 | **Score smoothing / anomaly likelihood**: short moving average of detector scores compared with their long-run distribution before thresholding (Numenta likelihood). Lets us loosen q for recall without single-point FPs. | Recall without precision loss | Config key + tests; tuned | Not started |
-| L21 | **Faster confirmation**: adaptive debounce (confirm immediately when 2+ detectors agree or ratio high), onset-sensitive LastW risk; re-test Seasonal / VarRatio under MAX with stricter per-detector q for pattern-break recall. | Delay at ~50% of window; pattern breaks missed | Delay median < 0.4 of window at equal F1, or documented | Not started |
-| L22 | **Tune all new knobs with LOCO**; add delay as a tie-break / constraint in `eval.tune`; adopt into defaults only if held-out pooled F1 > 0.510 (or equal F1 with lower delay); refresh README, figures, ADR. | Keep the honest-validation story | New default or documented no-gain | Not started |
+| L17 | **Miss & delay analysis**: for every missed window and every late detection, which file/category, anomaly shape (spike / level shift / pattern / drift), what each detector's score did inside the window, and how early a detection was possible. `results/miss_analysis.md` + figure. | Decide which mechanism to build first | Report committed | Done — results/miss_analysis.md |
+| L18 | **Proportional cooldown** (`events.cooldown_frac`): cooldown = frac × probation length (CAD OSE "rest period"), so short files are not muted for 600 points and long files are not re-alarmed too soon. | Recall on short files; FP on long files | Config key + tests; tuned | Done — events.cooldown_frac (default 0.5) |
+| L19 | **Spatial-extreme flag** (`sentinel/recall.py`): value beyond running min/max ± tol × range ⇒ immediate alarm on the first point (Numenta). Running min/max seeded from probation, causal. | Earliest possible detection of new extremes | Config key + tests; tuned | Done — sentinel/recall.py SpatialExtreme (default on) |
+| L20 | **Score smoothing / anomaly likelihood**: short moving average of detector scores compared with their long-run distribution before thresholding (Numenta likelihood). Lets us loosen q for recall without single-point FPs. | Recall without precision loss | Config key + tests; tuned | Done — implemented, no gain, off by default |
+| L21 | **Faster confirmation**: adaptive debounce (confirm immediately when 2+ detectors agree or ratio high), onset-sensitive LastW risk; re-test Seasonal / VarRatio under MAX with stricter per-detector q for pattern-break recall. | Delay at ~50% of window; pattern breaks missed | Delay median < 0.4 of window at equal F1, or documented | Done — debounce 3, extreme_ratio 2.0; agree_k no gain |
+| L22 | **Tune all new knobs with LOCO**; add delay as a tie-break / constraint in `eval.tune`; adopt into defaults only if held-out pooled F1 > 0.510 (or equal F1 with lower delay); refresh README, figures, ADR. | Keep the honest-validation story | New default or documented no-gain | Done — default F1 0.673, LOCO pooled 0.654 |
 
 ### Likhit — independent improvements (no dependency on Lokesh's work)
 

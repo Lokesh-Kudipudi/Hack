@@ -164,3 +164,28 @@ This document captures the architectural rationale, technical trade-offs, and em
     (`results/best_nab_config.json`, NAB 59.06) uses all 6 detectors with 2-of-n voting.
   - Recall (0.48) and detection delay (~50% into the window) remain the main weaknesses.
 
+---
+
+## ADR-010: Recall Mechanisms (Spatial-Extreme Flag, Proportional Cooldown, Confirmation)
+
+- **Status:** Accepted & Implemented
+- **Date:** 2026-10-26
+- **Context:**
+  After ADR-009 the engine missed 60 of 116 windows (recall 0.48). The miss analysis (`results/miss_analysis.md`) showed
+  27% of misses were *suppressed* (flagged, but cooldown / an earlier event / debounce blocked a new event) and most others
+  had only weak or pattern-only signal. Detection "delay" turned out to be detection at the labelled anomaly point
+  (median +0 points) — NAB windows start well before the label — so the lever is recall, not earlier firing.
+- **Decision** (`sentinel/recall.py`, `sentinel/events.py`, config keys; each validated with leave-one-category-out search):
+  1. **Spatial-extreme flag** (Numenta): a value beyond the running min/max by more than 5% of the range is anomalous on its
+     first point, confirmed without debounce. Seeded from probation, active only after 100 observed values.
+  2. **Proportional cooldown** (CAD OSE "rest period"): `events.cooldown_frac` = 0.5 × probation length instead of a fixed
+     600 points, so short streams are not muted for most of their length.
+  3. **Confirmation**: debounce 3, single-detector bypass at 2.0× threshold (`extreme_ratio`), LaggedResidual risk 1e-5.
+  4. Also implemented and evaluated, **off by default** because they did not help: score smoothing before SPOT
+     (`smoothing.window`), 2-detector agreement bypass (`events.agree_k`).
+- **Consequences:**
+  - **Empirical Impact:** event-F1 0.563 → **0.673** (P 0.747, R 0.612, FP 24), NAB 42.8 → 54.9, held-out pooled F1
+    0.510 → **0.654**; 2.6 µs/pt. Removing the spatial flag costs the most (→ 0.428).
+  - NAB operating point (`results/best_nab_config.json`): NAB **60.00** (adds Seasonal + agreement bypass), F1 0.541.
+  - Remaining misses: 30 pattern breaks only Seasonal detects (adding it costs ~90 FPs), 12 with no detector signal.
+

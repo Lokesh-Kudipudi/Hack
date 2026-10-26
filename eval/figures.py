@@ -114,37 +114,51 @@ def runtime(bench: Dict, path: Path) -> None:
     plt.close(fig)
 
 
-def pareto(rec: Dict, path: Path) -> None:
-    """Event-F1 vs NAB for every config of a tuning run, with the Pareto front and chosen configs."""
-    pts = [(r["f1"] or 0, r["nab"]) for r in rec["all"]]
-    front, best_nab = [], -1e9
+PHASES = {"joint-nab52": ("phase 2: detectors x per-detector risk", "#9aa0a6"),
+          "loco-recall": ("phase 3: + recall mechanisms", "#7fb3f5"),
+          "loco-recall2": ("phase 3: + recall mechanisms", "#7fb3f5")}
+
+
+def pareto(runs: List[Dict], path: Path) -> None:
+    """Event-F1 vs NAB for every config evaluated in the tuning phases, with the overall Pareto front."""
+    recs = [r for r in runs if r.get("kind") == "tune" and r.get("all") and r.get("tag") in PHASES]
+    if not recs:
+        return
+    fig, ax = plt.subplots(figsize=(7.5, 5.2))
+    pts, seen = [], set()
+    for r in recs:
+        lab, col = PHASES[r["tag"]]
+        xs = [c["f1"] or 0 for c in r["all"]]
+        ys = [c["nab"] for c in r["all"]]
+        pts += list(zip(xs, ys))
+        ax.scatter(xs, ys, s=7, color=col, alpha=0.5, label=None if lab in seen else lab)
+        seen.add(lab)
+    front, best = [], -1e9
     for f, n in sorted(pts, key=lambda p: (-p[0], -p[1])):
-        if n > best_nab:
+        if n > best:
             front.append((f, n))
-            best_nab = n
-    fig, ax = plt.subplots(figsize=(7.5, 4.6))
-    ax.scatter([p[0] for p in pts], [p[1] for p in pts], s=8, color=GREY, alpha=0.45, label="config (one point each)")
-    ax.plot([p[0] for p in front], [p[1] for p in front], color=BLUE, lw=1.5, marker="o", ms=3, label="Pareto front")
+            best = n
+    ax.plot([p[0] for p in front], [p[1] for p in front], color=BLUE, lw=1.5, label="Pareto front")
     for y, name in ((58.2, "earthgeckoSkyline 58.2"), (51.7, "randomCutForest 51.7"), (39.6, "windowedGaussian 39.6")):
         ax.axhline(y, color=GREY, lw=0.8, ls=":")
-        ax.text(ax.get_xlim()[0] if False else 0.005, y + 0.4, name, fontsize=7, color="#5f6368",
-                transform=ax.get_yaxis_transform())
-    ax.scatter([0.302], [39.6], marker="x", color="#202124", s=40, zorder=4, label="windowedGaussian baseline")
-    marks = [("best_config.json", "tuned for event-F1", RED, "^"), ("best_nab_config.json", "tuned for NAB", ORANGE, "s"),
-             ("best_joint_config.json", "joint (chosen)", GREEN, "*")]
-    for fname, lab, col, mk in marks:
-        f = REPO_ROOT / "results" / fname
-        if not f.is_file():
-            continue
-        cfg = json.loads(f.read_text())
-        hit = [r for r in rec["all"] if r["config"] == cfg]
-        if hit:
-            ax.scatter([hit[0]["f1"]], [hit[0]["nab"]], marker=mk, s=140 if mk == "*" else 70, color=col,
-                       edgecolor="white", zorder=5, label=lab)
+        ax.text(0.005, y + 0.4, name, fontsize=7, color="#5f6368", transform=ax.get_yaxis_transform())
+    marks = [(("windowed_gaussian", "baseline thr=1.0"), "windowedGaussian baseline", "#202124", "x"),
+             (("sentinel", "likhit default"), "original K1-K8 defaults", ORANGE, "s"),
+             (("sentinel", "tuned for NAB (phase 3)"), "NAB operating point", ORANGE, "D"),
+             (("sentinel", "engine default (phase 3, final)"), "engine default (submitted)", RED, "*")]
+    latest = {}
+    for r in runs:
+        if "overall" in r and not r.get("categories") and r.get("sentinel_source") != "local-untracked":
+            latest[(r["detector"], r.get("tag"))] = r
+    for key, lab, col, mk in marks:
+        r = latest.get(key)
+        if r:
+            ax.scatter([r["overall"]["f1"]], [r["nab"]["standard"]["score"]], marker=mk, color=col,
+                       s=160 if mk == "*" else 55, edgecolor="white" if mk != "x" else None, zorder=5, label=lab)
     ax.set_xlabel("Event-F1 (PS primary metric)")
     ax.set_ylabel("NAB standard score")
-    ax.set_title(f"Event-F1 vs NAB across {len(pts)} global configs")
-    ax.legend(frameon=False, fontsize=7, loc="upper right")
+    ax.set_title(f"Event-F1 vs NAB across {len(pts)} evaluated global configs")
+    ax.legend(frameon=False, fontsize=7, loc="upper center", bbox_to_anchor=(0.5, -0.13), ncol=3)
     _style(ax)
     fig.tight_layout()
     fig.savefig(path, dpi=150)
@@ -202,9 +216,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     benches = [r for r in runs if r.get("kind") == "benchmark"]
     if benches:
         runtime(benches[-1], FIG / "runtime.png")
-    tunes_all = [r for r in runs if r.get("kind") == "tune" and r.get("all")]
-    if tunes_all:
-        pareto(tunes_all[-1], FIG / "pareto_f1_nab.png")
+    pareto(runs, FIG / "pareto_f1_nab.png")
     windows = load_windows(windows_path())
     for key in EXAMPLES:
         example(key, config, windows, FIG / f"example_{Path(key).stem}.png")

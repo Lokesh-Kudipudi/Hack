@@ -14,5 +14,9 @@
  "detector_thresholds": {
   "Seasonal": 15.0
  },
- "extreme_ratio": 1.5
+ "extreme_ratio": 1.5,
+ "spot.q_per_detector": {
+  "LastW": 0.0001,
+  "LaggedResidual": 0.0001
+ }
 }
