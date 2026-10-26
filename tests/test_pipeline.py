@@ -138,3 +138,8 @@ def test_evidence_sigma_is_value_deviation():
     ev = [e for e in out["evidence"] if e]
     assert ev, "the change should be flagged"
     assert all(0 < e["deviation_sigma"] < 50 for e in ev)
+
+
+def test_empty_nested_dict_clears_default():
+    s = Sentinel(n_total=1000, config={"spot": {"q_per_detector": {}}})
+    assert s.spot_q_per_detector == {}

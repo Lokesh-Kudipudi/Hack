@@ -30,10 +30,11 @@ from sentinel.spot import SPOT, DSPOT
 from sentinel.types import Detector, Result
 
 def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-    """Copy of base with override applied; nested dicts merge instead of being replaced."""
+    """Copy of base with override applied; nested dicts merge instead of being replaced.
+    An empty dict replaces (e.g. {"spot": {"q_per_detector": {}}} clears the per-detector risks)."""
     out = copy.deepcopy(base)
     for k, v in override.items():
-        if isinstance(v, dict) and isinstance(out.get(k), dict):
+        if isinstance(v, dict) and v and isinstance(out.get(k), dict):
             out[k] = _deep_merge(out[k], v)
         else:
             out[k] = copy.deepcopy(v)

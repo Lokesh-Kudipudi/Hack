@@ -42,7 +42,7 @@ def sentinel_config(overrides: Optional[dict] = None) -> dict:
 
     def merge(dst: dict, src: dict) -> None:
         for k, v in src.items():
-            if isinstance(v, dict) and isinstance(dst.get(k), dict):
+            if isinstance(v, dict) and v and isinstance(dst.get(k), dict):  # {} replaces
                 merge(dst[k], v)
             else:
                 dst[k] = copy.deepcopy(v)
