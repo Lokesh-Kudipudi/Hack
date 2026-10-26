@@ -17,3 +17,8 @@
 - Changed: eval/scorer.py, tests/test_scorer.py
 - Result: 10 toy-case tests pass (TP, FP, FN, inclusive bounds, duplicates, probation clip/drop, no-anomaly file, micro aggregation). Oracle detector → F1 1.0 on full corpus.
 - Notes: windows straddling probation are clipped; delay measured from clipped start. Next: L3 NAB score wrapper.
+
+## 2026-10-26 — L3 NAB score wrapper
+- Changed: eval/nab_score.py, tests/test_nab_score.py
+- Result: reproduces published standard-profile scores to 0.01 from NAB's stored result CSVs — null 0.00, windowedGaussian 39.65, numenta 70.10. Corpus scoring ~1 s. 28 tests pass.
+- Notes: mirrors NAB runner (corpus-wide threshold optimisation + null/perfect normalisation); also supports fixed threshold and all 3 profiles. CLI: `python -m eval.nab_score --nab-results <det>...`. Next: L4 baselines + run CLI + leaderboard.

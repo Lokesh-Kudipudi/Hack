@@ -8,7 +8,7 @@ Status values: `Not started` · `In progress` · `Done` · `Blocked (<reason>)`
 ## Status so far
 
 - 2026-10-26 — Planning complete: PS analysed, NAB repo explored, ICLR 2026 one-liners paper reviewed, `target.md` / `AGENTS.md` / `TASKS.md` written. TinyEdge CNN notebook rejected (see AGENTS.md §2).
-- 2026-10-26 — Lokesh: L0–L2 done. GitHub remote `Lokesh-Kudipudi/Hack` live. `eval/data.py` loads all 58 NAB files + 116 windows (NAB clone or starter-pack layout); `eval/scorer.py` event-F1/P/R/delay per §5 (oracle sanity check → F1 1.0). Env: `uv venv -p 3.11 .venv`; `pytest.ini` limits pytest to `tests/`.
+- 2026-10-26 — Lokesh: L0–L2 done. GitHub remote `Lokesh-Kudipudi/Hack` live. `eval/data.py` loads all 58 NAB files + 116 windows (NAB clone or starter-pack layout); `eval/scorer.py` event-F1/P/R/delay per §5 (oracle sanity check → F1 1.0). L3 done: `eval/nab_score.py` reproduces published NAB standard scores exactly (windowedGaussian 39.65, numenta 70.10, null 0.00); tests in `tests/test_nab_score.py`. Env: `uv venv -p 3.11 .venv`; `pytest.ini` limits pytest to `tests/`.
 
 ---
 
