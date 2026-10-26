@@ -1,25 +1,18 @@
 {
+ "spatial": {
+  "enabled": true,
+  "tol": 0.05
+ },
+ "debounce": 3,
+ "events.agree_k": 2,
+ "events.cooldown_frac": 0.5,
  "detectors": [
   "robust_z",
-  "last_w",
   "lagged_residual",
-  "var_ratio",
-  "seasonal",
-  "cusum"
+  "seasonal"
  ],
- "fusion": "vote",
- "vote_k": 2,
- "spot.q_per_detector": {
-  "LastW": 0.001,
-  "LaggedResidual": 0.0001
- },
  "detector_thresholds": {
-  "LastW": 2.0,
-  "LaggedResidual": 2.0
+  "Seasonal": 15.0
  },
- "thr_scale": 0.75,
- "events.cooldown": 200,
- "debounce": 2,
- "events.merge_gap": 16,
- "spot.q": 1e-06
+ "extreme_ratio": 1.5
 }

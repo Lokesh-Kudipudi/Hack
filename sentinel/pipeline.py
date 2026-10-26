@@ -163,7 +163,8 @@ class Sentinel:
 
         # Recall / delay mechanisms (L19, L20), off by default
         sp_cfg = self.config.get("spatial") or {}
-        self.spatial: Optional[SpatialExtreme] = (SpatialExtreme(float(sp_cfg.get("tol", 0.05)))
+        self.spatial: Optional[SpatialExtreme] = (SpatialExtreme(float(sp_cfg.get("tol", 0.05)),
+                                                                  int(sp_cfg.get("min_seed", 100)))
                                                    if sp_cfg.get("enabled") else None)
         sm_cfg = self.config.get("smoothing") or {}
         self.smoother = ScoreSmoother(int(sm_cfg.get("window", 1)), sm_cfg.get("detectors"))

@@ -107,7 +107,7 @@ def test_partial_nested_config_keeps_defaults():
     import copy
     from sentinel.config import DEFAULT_CONFIG
     before = copy.deepcopy(DEFAULT_CONFIG)
-    s = Sentinel(n_total=1000, config={"spot": {"q": 1e-3}, "events": {"cooldown": 7}})
+    s = Sentinel(n_total=1000, config={"spot": {"q": 1e-3}, "events": {"cooldown": 7, "cooldown_frac": 0.0}})
     assert s.spot_q == 1e-3
     assert s.spot_init_level == DEFAULT_CONFIG["spot"]["init_level"]
     assert s.event_manager.cooldown_duration == 7

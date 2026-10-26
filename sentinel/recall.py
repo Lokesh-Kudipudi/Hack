@@ -14,8 +14,10 @@ from typing import Dict, Iterable, Optional
 class SpatialExtreme:
     name = "SpatialExtreme"
 
-    def __init__(self, tol: float = 0.05):
+    def __init__(self, tol: float = 0.05, min_seed: int = 100):
         self.tol = float(tol)
+        self.min_seed = int(min_seed)  # range from fewer points is too noisy to call a new extreme
+        self.n = 0
         self.lo: Optional[float] = None
         self.hi: Optional[float] = None
 
@@ -24,13 +26,14 @@ class SpatialExtreme:
             self._observe(v)
 
     def _observe(self, x: float) -> None:
+        self.n += 1
         self.lo = x if self.lo is None or x < self.lo else self.lo
         self.hi = x if self.hi is None or x > self.hi else self.hi
 
     def update(self, x: float) -> bool:
         """True when x leaves the tolerated range; then the range is extended to include x."""
         flag = False
-        if self.lo is not None and self.hi is not None and self.hi > self.lo:
+        if self.n >= self.min_seed and self.hi > self.lo:
             pad = self.tol * (self.hi - self.lo)
             flag = x > self.hi + pad or x < self.lo - pad
         self._observe(x)

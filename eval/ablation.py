@@ -23,32 +23,40 @@ NO_EVENTS = {"debounce": 1, "events.cooldown": 0, "events.merge_gap": 1}
 FIG_DIR = REPO_ROOT / "results" / "figures"
 
 
+# phase-2 state (before the recall mechanisms of ADR-010): used so the build-up runs step by step
+P2 = {"spatial": {"enabled": False}, "events.cooldown_frac": 0.0, "extreme_ratio": 1.5, "debounce": 2}
+SPATIAL = {"spatial": {"enabled": True, "tol": 0.05}}
+
+
 def configs() -> List[Tuple[str, str, str, dict]]:
-    """(group, name, detector, config). Sentinel configs use sentinel/config.py keys (dotted = nested)
-    and are layered on top of --base. Sentinel always includes RobustZ (used for scaling)."""
+    """(group, name, detector, config). Sentinel configs use sentinel/config.py keys (dotted = nested), layered
+    on --base (default: engine defaults = final tuned config). Sentinel always includes RobustZ."""
     mx = {"fusion": "max", "vote_k": 1}
     z = {"detectors": ["robust_z"]}
+    q2 = {"spot.q_per_detector": {}}  # single global SPOT risk (before ADR-009)
     out = [("baseline", "windowedGaussian (thr 1.0)", "windowed_gaussian", {"threshold": 1.0}),
-           ("build-up", "RobustZ, static thr, no event logic", "sentinel", {**z, "use_spot": False, **NO_EVENTS, **mx}),
-           ("build-up", "RobustZ + SPOT", "sentinel", {**z, "use_spot": True, **NO_EVENTS, **mx}),
-           ("build-up", "RobustZ + SPOT + events", "sentinel", {**z, "use_spot": True, **mx}),
-           ("build-up", "all 6, static thr + events (MAX)", "sentinel", {"detectors": ALL, "use_spot": False, **mx}),
-           ("build-up", "all 6 + SPOT, no event logic (MAX)", "sentinel",
-            {"detectors": ALL, "use_spot": True, **NO_EVENTS, **mx}),
-           ("build-up", "all 6 + SPOT + events (MAX)", "sentinel", {"detectors": ALL, "use_spot": True, **mx}),
-           ("fusion", "all 6 + SPOT + events, vote k=2", "sentinel",
-            {"detectors": ALL, "use_spot": True, "fusion": "vote", "vote_k": 2}),
-           ("fusion", "all 6 + SPOT + events, vote k=3", "sentinel",
-            {"detectors": ALL, "use_spot": True, "fusion": "vote", "vote_k": 3}),
-           ("tuned", "tuned config (base)", "sentinel", {})]
-    # "alone" uses MAX fusion: under k-of-n voting a lone detector could only fire via the extreme bypass
+           ("build-up", "RobustZ, static thr, no event logic", "sentinel",
+            {**z, "use_spot": False, **mx, **P2, **NO_EVENTS}),
+           ("build-up", "RobustZ + SPOT", "sentinel", {**z, "use_spot": True, **mx, **P2, **NO_EVENTS}),
+           ("build-up", "RobustZ + SPOT + events", "sentinel", {**z, "use_spot": True, **mx, **P2}),
+           ("build-up", "all 6 + SPOT + events (MAX)", "sentinel", {"detectors": ALL, **mx, **P2, **q2}),
+           ("build-up", "all 6, vote k=2", "sentinel", {"detectors": ALL, "fusion": "vote", "vote_k": 2, **P2, **q2}),
+           ("build-up", "per-detector SPOT risk: RobustZ + LaggedResidual (ADR-009)", "sentinel", {**P2}),
+           ("build-up", "+ spatial-extreme flag", "sentinel", {**P2, **SPATIAL}),
+           ("build-up", "+ debounce 3, extreme ratio 2.0", "sentinel", {**P2, **SPATIAL, "debounce": 3,
+                                                                      "extreme_ratio": 2.0}),
+           ("tuned", "+ cooldown 0.5 x probation = engine default (ADR-010)", "sentinel", {})]
+    out += [("removed", "default − spatial flag", "sentinel", {"spatial": {"enabled": False}}),
+            ("removed", "default − debounce 3 (→ 2)", "sentinel", {"debounce": 2}),
+            ("removed", "default − extreme ratio 2.0 (→ 1.5)", "sentinel", {"extreme_ratio": 1.5}),
+            ("removed", "default − proportional cooldown (→ 600 pts)", "sentinel", {"events.cooldown_frac": 0.0}),
+            ("removed", "default − per-detector SPOT risk", "sentinel", {**q2})]
+    # "alone" (phase-2 settings, MAX fusion): under voting a lone detector could only fire via the extreme bypass
     out += [("alone", f"RobustZ + {NAMES[d]} (MAX)" if d != "robust_z" else "RobustZ only (MAX)", "sentinel",
-             {"detectors": [d], **mx}) for d in ALL]
-    out += [("fusion", "tuned, vote k=2", "sentinel", {"fusion": "vote", "vote_k": 2}),
-            ("fusion", "tuned, no per-detector q", "sentinel", {"spot.q_per_detector": {}, "detector_thresholds": {}})]
-    out += [("removed", f"all − {NAMES[d]}", "sentinel", {"detectors": [x for x in ALL if x != d]})
-            for d in ALL if d != "robust_z"]
-    out += [("added", "all 6 + IsolationForest (D7)", "sentinel", {"detectors": ALL + ["isolation_forest"]})]
+             {"detectors": [d], **mx, **P2}) for d in ALL]
+    out += [("added", "default + Seasonal", "sentinel", {"detectors": ["robust_z", "lagged_residual", "seasonal"]}),
+            ("added", "default + IsolationForest (D7)", "sentinel",
+             {"detectors": ["robust_z", "lagged_residual", "isolation_forest"]})]
     return out
 
 
