@@ -157,8 +157,9 @@ class VarRatio(Detector):
     """
     name: str = "VarRatio"
 
-    def __init__(self, w: int = 24):
+    def __init__(self, w: int = 24, two_sided: bool = False):
         self.w = max(2, w)
+        self.two_sided = two_sided
         self.buffer = collections.deque(maxlen=self.w)
         self.running_sum: float = 0.0
         self.running_sumsq: float = 0.0
@@ -190,8 +191,12 @@ class VarRatio(Detector):
             mean = self.running_sum / n
             local_var = max(0.0, (self.running_sumsq / n) - (mean * mean))
             ratio = (local_var + 1e-6) / (self.baseline_var + 1e-6)
-            # Higher variance ratio -> higher anomaly score
-            raw_score = max(0.0, math.sqrt(ratio) - 1.0)
+            if self.two_sided and ratio < 1.0:
+                # Variance collapse / sensor flatline
+                raw_score = (1.0 / math.sqrt(max(1e-6, ratio))) - 1.0
+            else:
+                # Variance explosion / noise chatter
+                raw_score = max(0.0, math.sqrt(ratio) - 1.0)
 
         return float(raw_score)
 
@@ -208,40 +213,73 @@ class VarRatio(Detector):
 
 
 class Seasonal(Detector):
-    """D5: Hour-of-day seasonal profile deviation.
+    """D5: Seasonal profile deviation (hourly or weekly diurnal patterns).
 
-    Catches contextual anomalies (e.g. midday load at 3 AM).
+    Catches contextual anomalies (e.g. midday load at 3 AM or Monday traffic on Sunday).
     """
     name: str = "Seasonal"
 
-    def __init__(self, alpha: float = 0.05, min_count: int = 3):
+    def __init__(
+        self,
+        alpha: float = 0.05,
+        min_count: int = 3,
+        weekly: bool = False,
+        auto_period: bool = False,
+    ):
         self.alpha = alpha
         self.min_count = min_count
-        # 24 hour buckets: each stores (running_mean, running_std, count)
+        self.weekly = weekly
+        self.auto_period = auto_period
+        self.detected_period: Optional[int] = None
+
+        # 24 hour buckets by default, or 168 weekly buckets (7 days * 24 hours)
+        self.num_buckets = 168 if self.weekly else 24
         self.profiles: Dict[int, Dict[str, float]] = {
-            h: {"mean": 0.0, "std": 1.0, "count": 0} for h in range(24)
+            k: {"mean": 0.0, "std": 1.0, "count": 0} for k in range(self.num_buckets)
         }
 
-    def init_from_probation(self, timestamps: List[pd.Timestamp], values: List[float]):
-        """Seed initial hourly profiles from probation data."""
-        hour_data: Dict[int, List[float]] = collections.defaultdict(list)
-        for ts, v in zip(timestamps, values):
-            hour_data[ts.hour].append(float(v))
+    def _get_key(self, t: pd.Timestamp) -> int:
+        if self.weekly:
+            return int(t.dayofweek * 24 + t.hour)
+        return int(t.hour)
 
-        for h, vals in hour_data.items():
+    def init_from_probation(self, timestamps: List[pd.Timestamp], values: List[float]):
+        """Seed initial hourly or weekly profiles from probation data."""
+        bucket_data: Dict[int, List[float]] = collections.defaultdict(list)
+        for ts, v in zip(timestamps, values):
+            k = self._get_key(ts)
+            bucket_data[k].append(float(v))
+
+        for k, vals in bucket_data.items():
             if len(vals) >= 2:
                 arr = np.array(vals, dtype=float)
                 m = float(np.mean(arr))
                 s = float(np.std(arr))
-                self.profiles[h] = {
+                self.profiles[k] = {
                     "mean": m,
                     "std": max(0.1, s),
                     "count": len(vals)
                 }
 
+        # Automatic period detection via autocorrelation if requested
+        if self.auto_period and len(values) >= 60:
+            arr = np.array(values, dtype=float)
+            arr = arr - np.mean(arr)
+            var = np.var(arr)
+            if var > 1e-6:
+                max_lag = min(288, len(arr) // 2)
+                best_lag = None
+                best_corr = 0.4
+                for lag in range(12, max_lag):
+                    corr = np.mean(arr[:-lag] * arr[lag:]) / var
+                    if corr > best_corr:
+                        best_corr = float(corr)
+                        best_lag = lag
+                self.detected_period = best_lag
+
     def update(self, t: pd.Timestamp, x: float) -> float:
-        h = t.hour
-        prof = self.profiles[h]
+        k = self._get_key(t)
+        prof = self.profiles[k]
         raw_score = 0.0
         if prof["count"] >= self.min_count:
             raw_score = abs(x - prof["mean"]) / (prof["std"] + 1e-6)
@@ -249,16 +287,17 @@ class Seasonal(Detector):
         return float(raw_score)
 
     def update_baseline(self, t: pd.Timestamp, x: float):
-        """Update hourly baseline profile on non-anomalous points."""
-        h = t.hour
-        prof = self.profiles[h]
+        """Update seasonal baseline profile on non-anomalous points."""
+        k = self._get_key(t)
+        prof = self.profiles[k]
         diff = x - prof["mean"]
         prof["mean"] += self.alpha * diff
         prof["std"] += self.alpha * (abs(diff) - prof["std"])
         prof["count"] += 1
 
     def expected_for_time(self, t: pd.Timestamp) -> Optional[float]:
-        prof = self.profiles[t.hour]
+        k = self._get_key(t)
+        prof = self.profiles[k]
         if prof["count"] >= self.min_count:
             return prof["mean"]
         return None

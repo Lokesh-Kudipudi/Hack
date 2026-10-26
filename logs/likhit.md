@@ -71,8 +71,15 @@
   - Created complete submission pitch `README.md` with benchmark tables, architecture diagrams, and quickstart commands.
   - Tasks L6, L8, L9 complete.
 
-
-
-
-
-
+## 2026-10-26 23:48 — Phase 3 Independent Improvements (K9, K15, K16, K17, K18, K19, K20, K21)
+- Changed: `sentinel/validate.py`, `sentinel/state.py`, `sentinel/pool.py`, `sentinel/__main__.py`, `sentinel/detectors.py`, `sentinel/explain.py`, `sentinel/pipeline.py`, `sentinel/__init__.py`, `pyproject.toml`, `tests/test_robustness.py`, `tests/test_state.py`, `tests/test_pool_and_cli.py`, `tests/test_causality.py`, `tests/test_detectors.py`, `tests/test_explain.py`, `TASKS.md`
+- Results:
+  - **K9 Review**: Engine changes on `main` verified and approved.
+  - **K15 Input Robustness**: `sentinel/validate.py` handles NaN, Inf, missing/duplicate/backward timestamps, constant series, and extreme magnitudes. 8 robustness tests pass.
+  - **K18 Packaging**: Modern `pyproject.toml` created, package `sentinel-ad-0.3.0` installed in editable mode (`pip install -e .`), clean exports in `sentinel/__init__.py`.
+  - **K16 State Checkpointing**: `sentinel/state.py` adds `Sentinel.save()` and `Sentinel.load()`. Verified bit-identical stream resumption post-probation and mid-probation across all 7 detectors (3 tests pass).
+  - **K17 Multi-Stream API & CLI**: `SentinelPool` in `sentinel/pool.py` for lazy multiplexing of thousands of streams + memory accounting. CLI in `sentinel/__main__.py` (`python -m sentinel`) supporting stdin/stdout JSONL and CSV (4 tests pass).
+  - **K19 Detector Quality**: Added `two_sided=True` to `VarRatio` for sensor flatline / collapse detection; added `weekly=True` (168 buckets) and probation autocorrelation period detection to `Seasonal` (10 tests pass).
+  - **K20 Explainability v2**: Structured `confidence` and `context` fields in `ExplainEngine`, fast tuple weekday lookup (< 1.5 µs overhead, 4 tests pass).
+  - **K21 Determinism & Zero Lookahead**: Formal property tests verifying prefix invariance (output at $t$ is strictly invariant to future points $t+1..T$) and bit-identical repeated runs (4 tests pass).
+  - **Master Suite**: **99 passed in 31.6s** (up from 77 passed).

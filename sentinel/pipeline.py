@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import copy
 import math
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
@@ -28,6 +29,7 @@ from sentinel.fusion import FusionEngine
 from sentinel.recall import ScoreSmoother, SpatialExtreme
 from sentinel.spot import SPOT, DSPOT
 from sentinel.types import Detector, Result
+from sentinel.validate import sanitize_observation
 
 def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
     """Copy of base with override applied; nested dicts merge instead of being replaced.
@@ -184,6 +186,10 @@ class Sentinel:
         self.probation_timestamps: List[pd.Timestamp] = []
         self.probation_values: List[float] = []
 
+        # Stream history tracking for input validation
+        self._last_t: Optional[pd.Timestamp] = None
+        self._last_x: Optional[float] = None
+
     @property
     def in_event(self) -> bool:
         return self.event_manager.in_event
@@ -243,9 +249,19 @@ class Sentinel:
         self.probation_timestamps = []
         self.probation_values = []
 
-    def update(self, t: pd.Timestamp, x: float) -> Result:
+    def update(self, t: Any, x: Any) -> Result:
         """Stream one point (timestamp, value) through Sentinel."""
-        x = float(x)
+        expected_base = (
+            self.detectors["RobustZ"].expected()
+            if "RobustZ" in self.detectors and hasattr(self.detectors["RobustZ"], "expected")
+            else None
+        )
+        clean_t, clean_x, _ = sanitize_observation(
+            t, x, last_t=self._last_t, last_val=self._last_x, baseline_expected=expected_base
+        )
+        self._last_t = clean_t
+        self._last_x = clean_x
+        t, x = clean_t, clean_x
         self.count += 1
 
         # Phase 1: Probation phase (never flag anomalies, only learn)
@@ -371,6 +387,28 @@ class Sentinel:
             evidence=evidence,
             detector_scores=dict(calibrated_scores),
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize internal pipeline state to dictionary."""
+        from sentinel.state import pipeline_to_dict
+        return pipeline_to_dict(self)
+
+    @classmethod
+    def from_dict(cls, state: Dict[str, Any]) -> Sentinel:
+        """Restore pipeline from serialized dictionary state."""
+        from sentinel.state import pipeline_from_dict
+        return pipeline_from_dict(cls, state)
+
+    def save(self, file_path: Union[str, Path]) -> None:
+        """Checkpoint pipeline state to file (.json or .pkl)."""
+        from sentinel.state import save_pipeline_state
+        save_pipeline_state(self, file_path)
+
+    @classmethod
+    def load(cls, file_path: Union[str, Path]) -> Sentinel:
+        """Load and restore Sentinel pipeline from checkpoint file."""
+        from sentinel.state import load_pipeline_state
+        return load_pipeline_state(cls, file_path)
 
 
 def run_series(df: pd.DataFrame, config: Optional[Dict[str, Any]] = None) -> pd.DataFrame:

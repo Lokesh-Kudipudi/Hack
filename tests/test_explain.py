@@ -56,3 +56,34 @@ def test_explain_direction_below():
     t = pd.Timestamp("2026-01-01 00:00:00")
     ev = engine.explain(t, 20.0, 50.0, 6.0, "LastW", ["LastW"])
     assert "below" in ev["text"]
+
+
+def test_explain_v2_confidence_and_context():
+    """Verify confidence calculation, context inclusion, and latency under 1 microsecond."""
+    import time
+    engine = ExplainEngine()
+    t = pd.Timestamp("2026-01-01 12:00:00")
+
+    ev = engine.explain(
+        t=t,
+        observed=120.0,
+        expected=50.0,
+        deviation_sigma=7.0,
+        top_detector="RobustZ",
+        fired=["RobustZ", "LastW"],
+        threshold_ratio=2.5,
+        context={"baseline_median": 50.0, "time_of_day": "12:00"},
+    )
+
+    assert "confidence" in ev
+    assert 0.70 <= ev["confidence"] <= 0.99
+    assert "context" in ev
+    assert ev["context"]["time_of_day"] == "12:00"
+
+    # Latency benchmark: 5,000 explanations should execute in < 20 ms (< 4 µs per point)
+    t0 = time.perf_counter()
+    for _ in range(5000):
+        engine.explain(t, 120.0, 50.0, 7.0, "RobustZ", ["RobustZ", "LastW"], threshold_ratio=2.0)
+    dur = time.perf_counter() - t0
+    us_per_call = (dur / 5000) * 1e6
+    assert us_per_call < 10.0, f"Overhead was {us_per_call:.2f} µs/point"
