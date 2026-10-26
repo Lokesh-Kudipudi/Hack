@@ -21,16 +21,17 @@ FIG_DIR = REPO_ROOT / "results" / "figures"
 
 def configs() -> List[Tuple[str, str, str, dict]]:
     """(group, name, detector, config)."""
+    mx = {"fusion": "max"}
     out = [("baseline", "windowedGaussian (thr 1.0)", "windowed_gaussian", {"threshold": 1.0}),
            ("build-up", "RobustZ, static thr, no events", "sentinel",
-            {"detectors": ["RobustZ"], "use_spot": False, "use_events": False}),
-           ("build-up", "RobustZ + SPOT", "sentinel", {"detectors": ["RobustZ"], "use_events": False}),
-           ("build-up", "RobustZ + SPOT + events", "sentinel", {"detectors": ["RobustZ"]}),
-           ("build-up", "all 6, static thr + events", "sentinel", {"use_spot": False}),
-           ("build-up", "all 6 + SPOT, no events", "sentinel", {"use_events": False}),
-           ("build-up", "all 6 + SPOT + events (MAX)", "sentinel", {}),
-           ("fusion", "all 6, vote k=2", "sentinel", {"fusion": "vote", "vote_k": 2}),
-           ("fusion", "all 6, vote k=3", "sentinel", {"fusion": "vote", "vote_k": 3})]
+            {"detectors": ["RobustZ"], "use_spot": False, "use_events": False, **mx}),
+           ("build-up", "RobustZ + SPOT", "sentinel", {"detectors": ["RobustZ"], "use_events": False, **mx}),
+           ("build-up", "RobustZ + SPOT + events", "sentinel", {"detectors": ["RobustZ"], **mx}),
+           ("build-up", "all 6, static thr + events (MAX)", "sentinel", {"use_spot": False, **mx}),
+           ("build-up", "all 6 + SPOT, no events (MAX)", "sentinel", {"use_events": False, **mx}),
+           ("build-up", "all 6 + SPOT + events (MAX)", "sentinel", {**mx}),
+           ("fusion", "all 6 + SPOT + events, vote k=2", "sentinel", {"fusion": "vote", "vote_k": 2}),
+           ("fusion", "all 6 + SPOT + events, vote k=3", "sentinel", {"fusion": "vote", "vote_k": 3})]
     out += [("alone", f"{d} only", "sentinel", {"detectors": [d]}) for d in ALL]
     out += [("removed", f"all − {d}", "sentinel", {"detectors": [x for x in ALL if x != d]}) for d in ALL]
     return out
