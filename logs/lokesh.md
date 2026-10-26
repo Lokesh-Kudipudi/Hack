@@ -69,3 +69,9 @@
 - Fixed: input-validation overhead (fast path in validate.py + lazy slow path in pipeline: 4.74 → 2.7 µs/pt, identical output); pandas `dayofweek` deprecation (6,401 warnings → 0); K19 options were unreachable from config → `var_ratio.two_sided`, `seasonal.weekly`, `seasonal.auto_period` (default off).
 - K19 evaluation: on the default they cost precision (F1 0.51–0.60) → default unchanged; two-sided VarRatio in the NAB point → NAB 60.0 → **60.58**.
 - Final: engine default F1 0.673 / P 0.747 / R 0.612 / FP 24, LOCO pooled 0.654, NAB 54.90, 2.7 µs/pt; NAB point 60.58. Leaderboard "Final results" section; regenerated all figures (published_comparison and ablation_progression rebuilt from real data — the old ones had stale/incorrect numbers); README + JUDGES_COMPREHENSIVE_REPORT.md updated.
+
+## 2026-10-27 — Measured inference time of NAB detectors (branch lokesh/nab-runtime)
+- Changed: eval/nab_runtime.py (new: runs NAB's own Python detectors via their AnomalyDetector API, times handleRecord), eval/nab_compare.py (new: event-F1/P/R of all published detectors from NAB's stored scores at NAB thresholds + measured µs/pt), results/runtime_comparison.md, results/model_comparison.md, results/figures/model_comparison.png, README.md + JUDGES report (guessed latencies replaced by measurements)
+- Result (6 streams, 20,132 points, same machine): Sentinel 2.6 µs/pt; CAD OSE 229.5; earthgecko 227.7; Bayes changepoint 113.6; windowedGaussian (NAB impl.) 57.6; EXPoSE 550.1; Relative Entropy 577.3; KNN CAD 776.9; Etsy Skyline 2589.8. Not runnable: Numenta/HTM (nupic Py2), HTM Java, ARTime (Julia), RCF (AWS), Twitter ADVec (R).
+- Event-F1 ranking: CAD OSE 0.676, Sentinel 0.673 (held-out 0.654), Numenta 0.527, …
+- Notes: installed statsmodels in .venv for earthgecko (benchmark-only, not in requirements); numpy.asscalar shim for EXPoSE.

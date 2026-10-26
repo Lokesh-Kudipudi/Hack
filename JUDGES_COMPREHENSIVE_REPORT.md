@@ -324,26 +324,26 @@ Removing the spatial flag from the final default costs the most (0.673 → 0.428
 ### 5.2 Official Published NAB Benchmark Leaderboard Comparison
 
 Evaluated using the official Numenta scoring sweeper (published scores from `data/NAB/results/final_results.json`;
-latencies of other detectors are rough literature/implementation estimates, not measured by us — only Sentinel and
-Windowed Gaussian were measured on our machine):
+latencies measured on our machine with `python -m eval.nab_runtime` — NAB's own implementations, same streams; see
+`results/runtime_comparison.md`):
 
 | Model | NAB Standard | Reward Low FP | Reward Low FN | Execution Latency | Architecture Type |
 |---|---|---|---|---|---|
 | Perfect Detector | 100.0 | 100.0 | 100.0 | — | Oracle |
-| ARTime | 74.9 | 65.1 | 80.4 | Heavy Batch | Non-streaming Auto-regressive |
-| Numenta HTM | 70.1 | 63.1 | 74.3 | ~500 µs/pt | Hierarchical Temporal Memory |
-| CAD OSE | 69.9 | 67.0 | 73.2 | High Memory | Conformal Anomaly Detector |
+| ARTime | 74.9 | 65.1 | 80.4 | not runnable here (Julia) | Non-streaming Auto-regressive |
+| Numenta HTM | 70.1 | 63.1 | 74.3 | not runnable here (nupic, Py2) | Hierarchical Temporal Memory |
+| CAD OSE | 69.9 | 67.0 | 73.2 | 229.5 µs/pt (measured) | Conformal Anomaly Detector |
 | **Sentinel (Ours — NAB operating point)** | **60.58** | **54.02** | **64.75** | **4.8 µs/pt (measured)** | **Strict $O(1)$ Causal Streaming** |
-| earthgecko Skyline | 58.2 | 46.2 | 63.9 | Heavy Ensemble | Multi-process heuristics |
-| KNN CAD | 58.0 | 43.4 | 64.8 | High Memory | $O(N)$ Nearest Neighbors |
+| earthgecko Skyline | 58.2 | 46.2 | 63.9 | 227.7 µs/pt (measured) | Multi-process heuristics |
+| KNN CAD | 58.0 | 43.4 | 64.8 | 776.9 µs/pt (measured) | $O(N)$ Nearest Neighbors |
 | **Sentinel (Ours — engine default)** | **54.90** | **53.78** | **57.00** | **2.7 µs/pt (measured)** | **Strict $O(1)$ Causal Streaming** |
-| Relative Entropy | 54.6 | 47.6 | 58.8 | High Memory | Kernel Density Estimator |
-| Random Cut Forest (AWS) | 51.7 | 38.4 | 59.7 | ~200 µs/pt | Batch Random Cut Trees |
-| Twitter ADVec v1.0.0 | 47.1 | 33.6 | 53.5 | >1,000 µs/pt | Seasonal ESD |
-| Windowed Gaussian (NAB Baseline) | 39.6 | 20.9 | 47.4 | 49.0 µs/pt | Sliding Gaussian Window |
-| Etsy Skyline | 35.7 | 27.1 | 44.5 | Batch | Heuristic voting |
-| Bayesian Changepoint | 17.7 | 3.2 | 32.2 | Quadratic | $O(N^2)$ Exact Bayesian |
-| EXPoSE | 16.4 | 3.2 | 26.9 | Batch | Kernel Embedding |
+| Relative Entropy | 54.6 | 47.6 | 58.8 | 577.3 µs/pt (measured) | Kernel Density Estimator |
+| Random Cut Forest (AWS) | 51.7 | 38.4 | 59.7 | not runnable here (AWS service) | Batch Random Cut Trees |
+| Twitter ADVec v1.0.0 | 47.1 | 33.6 | 53.5 | not runnable here (R) | Seasonal ESD |
+| Windowed Gaussian (NAB Baseline) | 39.6 | 20.9 | 47.4 | 57.6 µs/pt (measured, NAB impl.) | Sliding Gaussian Window |
+| Etsy Skyline | 35.7 | 27.1 | 44.5 | 2589.8 µs/pt (measured) | Heuristic voting |
+| Bayesian Changepoint | 17.7 | 3.2 | 32.2 | 113.6 µs/pt (measured) | $O(N^2)$ Exact Bayesian |
+| EXPoSE | 16.4 | 3.2 | 26.9 | 550.1 µs/pt (measured) | Kernel Embedding |
 
 ---
 

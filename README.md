@@ -56,28 +56,28 @@ Sentinel reads one `(timestamp, value)` point at a time and returns, for every p
 
 ### Official Published NAB Leaderboard Comparison
 
-Evaluated on the full 58-file corpus using NAB's official sweeper (`data/NAB/nab/sweeper.py`):
+Evaluated on the full 58-file corpus using NAB's official sweeper (`data/NAB/nab/sweeper.py`). Latencies: NAB's own implementations run on our machine on the same streams (`python -m eval.nab_runtime`, `results/runtime_comparison.md`):
 
 | Detector | Standard Profile | Reward Low FP | Reward Low FN | Inference Latency | Theoretical Complexity |
 |---|---|---|---|---|---|
 | **Perfect Detector** | 100.0 | 100.0 | 100.0 | — | — |
-| ARTime | 74.9 | 65.1 | 80.4 | Heavy batch | Non-streaming |
-| Numenta HTM | 70.1 | 63.1 | 74.3 | ~500 µs/pt | Heavy Cortical Network |
-| CAD OSE | 69.9 | 67.0 | 73.2 | High memory | Conformal Predictor |
+| ARTime | 74.9 | 65.1 | 80.4 | not runnable here (Julia) | Non-streaming |
+| Numenta HTM | 70.1 | 63.1 | 74.3 | not runnable here (nupic, Py2) | Heavy Cortical Network |
+| CAD OSE | 69.9 | 67.0 | 73.2 | 229.5 µs/pt (measured) | Conformal Predictor |
 | **Sentinel (Ours, NAB operating point)** | **60.58** | **54.02** | **64.75** | **4.8 µs/pt** | **Strict $O(1)$ Causal** |
-| earthgecko Skyline | 58.2 | 46.2 | 63.9 | Heavy ensemble | Multi-process |
-| KNN CAD | 58.0 | 43.4 | 64.8 | High memory | $O(N)$ Nearest Neighbors |
-| Relative Entropy | 54.6 | 47.6 | 58.8 | High memory | Kernel Density |
+| earthgecko Skyline | 58.2 | 46.2 | 63.9 | 227.7 µs/pt (measured) | Multi-process |
+| KNN CAD | 58.0 | 43.4 | 64.8 | 776.9 µs/pt (measured) | $O(N)$ Nearest Neighbors |
+| Relative Entropy | 54.6 | 47.6 | 58.8 | 577.3 µs/pt (measured) | Kernel Density |
 | Sentinel (Ours, engine default) | 54.90 | 53.78 | 57.00 | 2.7 µs/pt | Strict $O(1)$ Causal |
 | Sentinel (Ours, original K1–K8 defaults) | 53.00 | 37.27 | 59.76 | 5.5 µs/pt | Strict $O(1)$ Causal |
-| Random Cut Forest | 51.7 | 38.4 | 59.7 | ~200 µs/pt | Random Trees |
-| Twitter ADVec v1.0.0 | 47.1 | 33.6 | 53.5 | >1,000 µs/pt | Seasonal ESD |
-| Windowed Gaussian | 39.6 | 20.9 | 47.4 | 49.0 µs/pt | Sliding Window |
-| Etsy Skyline | 35.7 | 27.1 | 44.5 | Batch | Heuristics |
-| Bayesian Changepoint | 17.7 | 3.2 | 32.2 | Quadratic | $O(N^2)$ Exact Bayesian |
-| EXPoSE | 16.4 | 3.2 | 26.9 | Batch | Kernel Embedding |
-| Random Detector | 16.8 | 5.8 | 25.9 | 0.4 µs/pt | Uniform Random |
-| Null Detector | 0.0 | 0.0 | 0.0 | 0.5 µs/pt | Constant 0.5 |
+| Random Cut Forest | 51.7 | 38.4 | 59.7 | not runnable here (AWS service) | Random Trees |
+| Twitter ADVec v1.0.0 | 47.1 | 33.6 | 53.5 | not runnable here (R) | Seasonal ESD |
+| Windowed Gaussian | 39.6 | 20.9 | 47.4 | 57.6 µs/pt (measured, NAB impl.) | Sliding Window |
+| Etsy Skyline | 35.7 | 27.1 | 44.5 | 2589.8 µs/pt (measured) | Heuristics |
+| Bayesian Changepoint | 17.7 | 3.2 | 32.2 | 113.6 µs/pt (measured) | $O(N^2)$ Exact Bayesian |
+| EXPoSE | 16.4 | 3.2 | 26.9 | 550.1 µs/pt (measured) | Kernel Embedding |
+| Random Detector | 16.8 | 5.8 | 25.9 | 0.1 µs/pt (measured) | Uniform Random |
+| Null Detector | 0.0 | 0.0 | 0.0 | 0.0 µs/pt (measured) | Constant 0.5 |
 
 ### Event-based metrics (PS primary metric) — full corpus, 116 anomaly windows
 
@@ -206,6 +206,11 @@ Per-category event-F1 vs the windowedGaussian baseline, and why the remaining wi
 Example stream with ground-truth windows and detections:
 
 ![example](results/figures/example_nyc_taxi.png)
+
+Event-F1 vs inference time against NAB's own detector implementations, run on the same machine
+([results/model_comparison.md](results/model_comparison.md), `python -m eval.nab_runtime && python -m eval.nab_compare`):
+
+![model comparison](results/figures/model_comparison.png)
 
 Full tables: [results/leaderboard.md](results/leaderboard.md) · [results/ablation.md](results/ablation.md) ·
 [results/tuning.md](results/tuning.md) · [results/miss_analysis.md](results/miss_analysis.md). Full ablation chart:
