@@ -29,7 +29,7 @@ from sentinel.fusion import FusionEngine
 from sentinel.recall import ScoreSmoother, SpatialExtreme
 from sentinel.spot import SPOT, DSPOT
 from sentinel.types import Detector, Result
-from sentinel.validate import sanitize_observation
+from sentinel.validate import MAX_SAFE_MAGNITUDE, sanitize_observation
 
 def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
     """Copy of base with override applied; nested dicts merge instead of being replaced.
@@ -251,17 +251,20 @@ class Sentinel:
 
     def update(self, t: Any, x: Any) -> Result:
         """Stream one point (timestamp, value) through Sentinel."""
-        expected_base = (
-            self.detectors["RobustZ"].expected()
-            if "RobustZ" in self.detectors and hasattr(self.detectors["RobustZ"], "expected")
-            else None
-        )
-        clean_t, clean_x, _ = sanitize_observation(
-            t, x, last_t=self._last_t, last_val=self._last_x, baseline_expected=expected_base
-        )
-        self._last_t = clean_t
-        self._last_x = clean_x
-        t, x = clean_t, clean_x
+        last_t = self._last_t
+        if not (type(t) is pd.Timestamp and type(x) is float and math.isfinite(x) and abs(x) <= MAX_SAFE_MAGNITUDE
+                and (last_t is None or t > last_t)):
+            # slow path only for unusual input (NaN/inf, bad types, duplicate/backward timestamps)
+            expected_base = (
+                self.detectors["RobustZ"].expected()
+                if "RobustZ" in self.detectors and hasattr(self.detectors["RobustZ"], "expected")
+                else None
+            )
+            t, x, _ = sanitize_observation(
+                t, x, last_t=last_t, last_val=self._last_x, baseline_expected=expected_base
+            )
+        self._last_t = t
+        self._last_x = x
         self.count += 1
 
         # Phase 1: Probation phase (never flag anomalies, only learn)

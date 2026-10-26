@@ -136,6 +136,13 @@ def sanitize_observation(
     baseline_expected: Optional[float] = None,
 ) -> Tuple[pd.Timestamp, float, ValidationFlags]:
     """Sanitize both timestamp and value in a single causal call."""
+    # Fast path for the common case (clean pd.Timestamp moving forward, finite in-range number):
+    # same result as the general path, without per-point Timedelta / flag merging overhead.
+    if type(t) is pd.Timestamp and type(x) in (float, int):
+        v = float(x)
+        if math.isfinite(v) and abs(v) <= MAX_SAFE_MAGNITUDE and (last_t is None or t > last_t):
+            gap = None if last_t is None else (t.value - last_t.value) / 1e9
+            return t, v, ValidationFlags(time_gap_seconds=gap)
     clean_t, t_flags = sanitize_timestamp(t, last_t=last_t)
 
     fallback = last_val if last_val is not None else baseline_expected

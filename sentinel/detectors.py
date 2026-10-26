@@ -240,7 +240,7 @@ class Seasonal(Detector):
 
     def _get_key(self, t: pd.Timestamp) -> int:
         if self.weekly:
-            return int(t.dayofweek * 24 + t.hour)
+            return int(t.weekday() * 24 + t.hour)
         return int(t.hour)
 
     def init_from_probation(self, timestamps: List[pd.Timestamp], values: List[float]):
