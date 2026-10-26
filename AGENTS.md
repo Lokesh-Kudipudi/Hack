@@ -9,12 +9,12 @@ Read it fully before writing code. Requirements checklist: [target.md](target.md
 
 The user opens a chat and states their name: **Lokesh** or **Likhit**.
 
-1. `git pull --rebase` to get the teammate's latest work.
+1. **Before any change, switch to a branch named after the person working** (see §9): `git checkout main && git pull --rebase && git checkout -b <name>/<short-topic>` (e.g. `lokesh/l10-stretch`, `likhit/k9-detector-fix`). Never edit or commit on `main` directly.
 2. Read `AGENTS.md` (this file), `target.md`, `TASKS.md`, and the tail of your own log `logs/<name>.md`.
 3. In `TASKS.md`, find that person's section. Pick the **first task that is not `Done`** whose dependencies are `Done`.
    - If it is blocked on the other person, say so and pick the next unblocked task (or a stretch task).
 4. Mark it `In progress` in `TASKS.md`, implement it, write tests, run them.
-5. When finished: mark `Done` in `TASKS.md`, append a session entry to `logs/<name>.md`, commit, push (see §9).
+5. When finished: mark `Done` in `TASKS.md`, append a session entry to `logs/<name>.md`, commit on your branch, push the branch and open a PR into `main` (see §9).
 6. Continue to the next task unless the user says stop.
 
 Rules:
@@ -246,10 +246,11 @@ python -m eval.leaderboard
 
 ## 9. Git & logging rules
 
-- Branch: work directly on `main`, files are disjoint. Always `git pull --rebase` before starting and before pushing.
+- **Branch first — always.** The first thing in every session, before editing any file, is to create (or reuse) a branch named after the person working: `<name>/<short-topic>`, where `<name>` is `lokesh` or `likhit` (e.g. `lokesh/l10-stretch`). Never commit directly on `main`.
+- Start the branch from an up-to-date `main` (`git checkout main && git pull --rebase`). Before pushing, `git fetch origin && git rebase origin/main`.
 - Commit after each finished task (or meaningful sub-step). Message format:
   `[<name>] <TASK-ID>: <what>` + key metric if any, e.g. `[likhit] K3: SPOT thresholds — event-F1 0.52 → 0.61`.
-- Pushing to `origin main` after each task is **authorized** by the team. Never force-push.
+- Push your branch (`git push -u origin <name>/<short-topic>`) after each task and merge it into `main` via a pull request (the other person may review). Pushing your own branch is **authorized**. Never push directly to `main`, never force-push `main`.
 - After every task append to `logs/<name>.md`:
   ```
   ## YYYY-MM-DD HH:MM — <TASK-ID> <title>
