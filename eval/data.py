@@ -55,7 +55,7 @@ def windows_path(root: Optional[Path] = None) -> Optional[Path]:
         return Path(env).expanduser().resolve()
     root = Path(root) if root else data_root()
     candidates = [root / "labels" / WINDOWS_FILENAME]
-    candidates += sorted(p for p in root.rglob(WINDOWS_FILENAME) if not _skip(p))
+    candidates += sorted(p for p in root.rglob(WINDOWS_FILENAME) if not _skip(p.relative_to(root)))
     candidates.append(REPO_ROOT / "data" / "NAB" / "labels" / WINDOWS_FILENAME)
     return next((p for p in candidates if p.is_file()), None)
 

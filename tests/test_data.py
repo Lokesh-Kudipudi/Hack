@@ -94,3 +94,14 @@ def test_file_order_preserved(tmp_path):
     assert df["value"].tolist() == [1.0, 2.0, 3.0]
     w = [(pd.Timestamp("2020-01-01 00:10:00"), pd.Timestamp("2020-01-01 00:15:00"))]
     assert data.window_indices(df["timestamp"], w) == [(0, 2)]
+
+
+def test_windows_path_found_under_relative_parent_path(tmp_path, monkeypatch):
+    # a root given as "../x" must not be treated as hidden because of the ".." part
+    (tmp_path / "proj").mkdir()
+    (tmp_path / "x" / "NAB" / "labels").mkdir(parents=True)
+    (tmp_path / "x" / "NAB" / "labels" / "combined_windows.json").write_text("{}")
+    monkeypatch.chdir(tmp_path / "proj")
+    monkeypatch.delenv("SENTINEL_WINDOWS", raising=False)
+    from pathlib import Path
+    assert data.windows_path(Path("../x")) == Path("../x/NAB/labels/combined_windows.json")

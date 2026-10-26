@@ -220,6 +220,14 @@ python -m eval.tune
 python -m eval.figures
 ```
 
+### 4. Predict on new data (starter pack / hidden test windows)
+```bash
+python -m eval.predict --input path/to/csv_folder --out outputs/predictions [--combined] [--windows labels.json]
+```
+Streams every `timestamp,value` CSV (any folder nesting, or a single file) through a fresh Sentinel using the tuned
+`results/best_config.json`, and writes per-point `score,label,is_event_start,evidence` CSVs, an `events.csv` with one row
+per detected event (type, top detector, explanation), and `summary.json` (runtime; event-F1/P/R if `--windows` is given).
+
 Use from Python:
 ```python
 from sentinel.pipeline import Sentinel
