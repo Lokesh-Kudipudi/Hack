@@ -20,6 +20,7 @@ from sentinel.detectors import (
     Seasonal,
     CUSUM,
 )
+from sentinel.events import EventManager
 from sentinel.fusion import FusionEngine
 from sentinel.spot import SPOT, DSPOT
 from sentinel.types import Detector, Result
@@ -117,18 +118,28 @@ class Sentinel:
         vote_k = int(self.config.get("vote_k", 2))
         self.fusion_engine = FusionEngine(strategy=fusion_strategy, vote_k=vote_k, extreme_ratio=1.5)
 
+        # Event Manager (Task K5)
+        evt_cfg = self.config.get("events", {})
+        self.event_manager = EventManager(
+            debounce=int(self.config.get("debounce", 2)),
+            merge_gap=int(evt_cfg.get("merge_gap", 16)),
+            cooldown=int(evt_cfg.get("cooldown", 200)),
+            rebaseline_after=int(evt_cfg.get("rebaseline_after", 80)),
+            extreme_ratio=1.5,
+        )
+
         # Probation buffers
         self.count: int = 0
         self.probation_timestamps: List[pd.Timestamp] = []
         self.probation_values: List[float] = []
 
-        # Event management state
-        self.in_event: bool = False
-        self.consecutive_anom: int = 0
-        self.cooldown_remaining: int = 0
-        self.cooldown_duration: int = int(self.config.get("events", {}).get("cooldown", 200))
-        self.merge_gap: int = int(self.config.get("events", {}).get("merge_gap", 16))
-        self.gap_count: int = 0
+    @property
+    def in_event(self) -> bool:
+        return self.event_manager.in_event
+
+    @in_event.setter
+    def in_event(self, val: bool):
+        self.event_manager.in_event = val
 
     def _finish_probation(self):
         """Seed all detectors and calibrate SPOT from probation observations."""
@@ -234,29 +245,18 @@ class Sentinel:
         top_score = raw_scores.get(top_name, 0.0)
         label = "ANOMALOUS" if is_anom else "NORMAL"
 
-        # Event manager logic with debounce (ADR-003)
-        is_event_start = False
-        if self.cooldown_remaining > 0:
-            self.cooldown_remaining -= 1
+        # Event manager logic with debounce, gap merge, cooldown, and rebaseline (Task K5)
+        is_event_start, should_rebaseline = self.event_manager.update(is_anom, top_ratio)
 
-        if is_anom:
-            self.consecutive_anom += 1
-            if not self.in_event and self.cooldown_remaining == 0:
-                if self.consecutive_anom >= self.debounce or top_ratio >= 1.5:
-                    is_event_start = True
-                    self.in_event = True
-                    self.cooldown_remaining = self.cooldown_duration
+        if should_rebaseline:
+            # Confirmed persistent level shift: adapt all detectors to new baseline (AGENTS.md §4.5)
+            for det in self.detectors.values():
+                det.reset_baseline()
+            if "RobustZ" in self.detectors:
+                self.detectors["RobustZ"].median = x
 
-            self.gap_count = 0
-        else:
-            self.consecutive_anom = 0
-            if self.in_event:
-                self.gap_count += 1
-                if self.gap_count >= self.merge_gap:
-                    self.in_event = False
-                    self.gap_count = 0
-
-            # Update baseline stats only on non-anomalous observations (anti-pollution)
+        # Update baseline stats only on non-anomalous observations (anti-pollution)
+        if not is_anom:
             if "RobustZ" in self.detectors:
                 self.detectors["RobustZ"].update_baseline(x)  # type: ignore
             if "Seasonal" in self.detectors:

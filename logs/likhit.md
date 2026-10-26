@@ -41,4 +41,11 @@
 - Result: Modular `FusionEngine` with MAX fusion, k-of-n consensus voting, and extreme outlier bypass. All 58 tests in full test suite pass.
 - Notes / next: Task K5 (Event lifecycle manager in `sentinel/events.py`).
 
+## 2026-10-26 20:33 — K5 Event Lifecycle Manager
+- Changed: `sentinel/events.py`, `tests/test_events.py`, `sentinel/pipeline.py`
+- Result: Modular `EventManager` with debounce, gap merge, cooldown, and sustained level-shift rebaselining. All 62 tests pass.
+- Benchmark: Recall reached **0.733** (85/116 windows), Event-F1 = 0.311, runtime = **37.42 µs/pt**.
+- Notes / next: Task K6 (Explainability engine in `sentinel/explain.py`).
+
+
 
