@@ -113,6 +113,43 @@ def runtime(bench: Dict, path: Path) -> None:
     plt.close(fig)
 
 
+def pareto(rec: Dict, path: Path) -> None:
+    """Event-F1 vs NAB for every config of a tuning run, with the Pareto front and chosen configs."""
+    pts = [(r["f1"] or 0, r["nab"]) for r in rec["all"]]
+    front, best_nab = [], -1e9
+    for f, n in sorted(pts, key=lambda p: (-p[0], -p[1])):
+        if n > best_nab:
+            front.append((f, n))
+            best_nab = n
+    fig, ax = plt.subplots(figsize=(7.5, 4.6))
+    ax.scatter([p[0] for p in pts], [p[1] for p in pts], s=8, color=GREY, alpha=0.45, label="config (one point each)")
+    ax.plot([p[0] for p in front], [p[1] for p in front], color=BLUE, lw=1.5, marker="o", ms=3, label="Pareto front")
+    for y, name in ((58.2, "earthgeckoSkyline 58.2"), (51.7, "randomCutForest 51.7"), (39.6, "windowedGaussian 39.6")):
+        ax.axhline(y, color=GREY, lw=0.8, ls=":")
+        ax.text(ax.get_xlim()[0] if False else 0.005, y + 0.4, name, fontsize=7, color="#5f6368",
+                transform=ax.get_yaxis_transform())
+    ax.scatter([0.302], [39.6], marker="x", color="#202124", s=40, zorder=4, label="windowedGaussian baseline")
+    marks = [("best_config.json", "tuned for event-F1", RED, "^"), ("best_nab_config.json", "tuned for NAB", ORANGE, "s"),
+             ("best_joint_config.json", "joint (chosen)", GREEN, "*")]
+    for fname, lab, col, mk in marks:
+        f = REPO_ROOT / "results" / fname
+        if not f.is_file():
+            continue
+        cfg = json.loads(f.read_text())
+        hit = [r for r in rec["all"] if r["config"] == cfg]
+        if hit:
+            ax.scatter([hit[0]["f1"]], [hit[0]["nab"]], marker=mk, s=140 if mk == "*" else 70, color=col,
+                       edgecolor="white", zorder=5, label=lab)
+    ax.set_xlabel("Event-F1 (PS primary metric)")
+    ax.set_ylabel("NAB standard score")
+    ax.set_title(f"Event-F1 vs NAB across {len(pts)} global configs")
+    ax.legend(frameon=False, fontsize=7, loc="upper right")
+    _style(ax)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
 def example(key: str, config: dict, windows: Dict, path: Path) -> None:
     paths = {f.key: f.path for f in list_files()}
     if key not in paths:
@@ -165,6 +202,9 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     benches = [r for r in runs if r.get("kind") == "benchmark"]
     if benches:
         runtime(benches[-1], FIG / "runtime.png")
+    tunes_all = [r for r in runs if r.get("kind") == "tune" and r.get("all")]
+    if tunes_all:
+        pareto(tunes_all[-1], FIG / "pareto_f1_nab.png")
     windows = load_windows(windows_path())
     for key in EXAMPLES:
         example(key, config, windows, FIG / f"example_{Path(key).stem}.png")

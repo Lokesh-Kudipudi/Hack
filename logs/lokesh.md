@@ -46,3 +46,8 @@
 - Result: perdet grid 0.502 (LOCO mean 0.491); subsets grid → RobustZ + LaggedResidual, MAX, q_LR=1e-4: **F1 0.563, P 0.675, R 0.483, FP 27**, LOCO pooled 0.510 / mean 0.492, 2.4 µs/pt. Per-detector q worth +0.16 in that config. NAB best stays 58.07 (results/best_nab_config.json).
 - eval.predict: any CSV folder → per-point predictions + events.csv + summary.json; on starter pack reproduces F1 0.481 with the then-best config. Fixed windows lookup for roots with "..".
 - Next: merge both branches via PR; L10/slides; try NAB-leader ideas (proportional cooldown, score smoothing, spatial extreme).
+
+## 2026-10-26 — One config for both metrics? (branch lokesh/joint-config)
+- Changed: eval/tune.py (`--objective f1|nab|joint`, `--nab-min`, joint grid, all configs stored), eval/figures.py (pareto_f1_nab.png), README.md (3 operating points, trade-off, table fix), TASKS.md (Next up: L11–L16, K9–K14), results/*
+- Result: 576 configs. Joint (max F1 s.t. NAB ≥ 52): F1 0.461 / NAB 53.1 (held-out pooled 0.399). New NAB best 59.06 (> earthgeckoSkyline 58.2). F1 best unchanged 0.563 / NAB 42.8.
+- Notes: no single config wins both — NAB rewards recall (FP weight 0.11), event-F1 counts every FP. Decision: submit the event-F1 config; quote NAB config for leaderboard.

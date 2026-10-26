@@ -7,11 +7,19 @@
   "seasonal",
   "cusum"
  ],
- "fusion": "max",
- "vote_k": 1,
- "spot.q": 1e-06,
+ "fusion": "vote",
+ "vote_k": 2,
+ "spot.q_per_detector": {
+  "LastW": 0.001,
+  "LaggedResidual": 0.0001
+ },
+ "detector_thresholds": {
+  "LastW": 2.0,
+  "LaggedResidual": 2.0
+ },
  "thr_scale": 0.75,
- "debounce": 1,
  "events.cooldown": 200,
- "events.merge_gap": 64
+ "debounce": 2,
+ "events.merge_gap": 16,
+ "spot.q": 1e-06
 }

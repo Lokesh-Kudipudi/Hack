@@ -52,6 +52,35 @@ Owns: `sentinel/**`, `tests/test_detectors.py`, `tests/test_spot.py`, `tests/tes
 
 ---
 
+## Next up — 2026-10-26 (after per-detector q + joint tuning)
+
+Current best (global configs, full NAB corpus): **event-F1 0.563** (P 0.675, R 0.483; held-out pooled 0.510) with
+`results/best_config.json`; **NAB 59.06** with `results/best_nab_config.json`; joint (F1 0.461, NAB 53.1) with
+`results/best_joint_config.json`. 2.4–5.7 µs/pt. F1 and NAB trade off (see `results/figures/pareto_f1_nab.png`).
+Work on branches `<name>/<topic>` (AGENTS §9).
+
+### Lokesh
+
+| ID | Task | Why | Done when | Status |
+|---|---|---|---|---|
+| L11 | Ask organisers for the hidden-test **submission format** (file layout, columns, one file vs many, labels format, is `n_total` known per stream); adapt `eval.predict` output to it. | 40% of the score is hidden data; we can't submit without it | `eval.predict` writes the exact required file(s) | Not started |
+| L12 | Experiment harness for recall/delay ideas from NAB leaders: proportional cooldown, score smoothing, spatial-extreme flag — tune each via `eval.tune` with LOCO once Likhit exposes the config keys (K11–K12). | Recall 0.48 and detection at ~50% of the window are our weakest metrics | Held-out pooled F1 > 0.510 or documented as no gain | Not started |
+| L13 | Slide deck: problem, architecture, threshold design (EVT + per-detector risk), ablation story (+0.16 from per-detector q), F1-vs-NAB trade-off, leaderboard, runtime, demo screenshots; Q&A prep sheet. | Presentation is 15% | Deck reviewed by both | Not started |
+| L14 | Dashboard: re-verify on final engine; add an operating-point selector (F1 / joint / NAB config) and show the active config. | Demo is 10% | Demo run-through without errors | Not started |
+| L15 | Final README / figures / leaderboard pass after K10 lands (badges, tables, ADR links). | Numbers must match the submitted engine | README numbers = latest runs | Not started |
+| L16 | *Stretch* (old L10): Chronos-Bolt-small vs Last-3 on ~10 files (F1 + runtime) for the "foundation model = one-liner" slide. | Story, not score | Comparison table | Not started |
+
+### Likhit
+
+| ID | Task | Why | Done when | Status |
+|---|---|---|---|---|
+| K9 | Review Lokesh's engine change now on `main` (`spot.q_per_detector`, deep-merge config in `sentinel/pipeline.py`, 2 tests). | Your files; root cause of "inactive" LastW/LaggedResidual | Approved or follow-up fix | Not started |
+| K10 | Make `results/best_config.json` the built-in default in `sentinel/config.py` (RobustZ + LaggedResidual, MAX, q 1e-6 / 1e-4 for LaggedResidual, debounce 2, cooldown 600, merge gap 64) so `Sentinel()` gives F1 0.563 with no overrides; update tests. | Hidden-test runs and judges' demo use defaults | `python -m eval.run --detector sentinel` → F1 0.563 | Not started |
+| K11 | Proportional cooldown option (`events.cooldown_frac`: cooldown = frac × probation length or × n_total, as CAD OSE's rest period) + spatial-extreme flag (value beyond running min/max ± 5% of range ⇒ alarm, as Numenta) — both configurable, default off. | Earlier detection / recall on short vs long files | Config keys + tests; Lokesh tunes (L12) | Not started |
+| K12 | Score smoothing before thresholding (short moving average of detector scores, Numenta anomaly-likelihood style), configurable. | Fewer single-point false alarms → room to loosen q for recall | Config key + tests | Not started |
+| K13 | Evidence quality: `deviation_sigma` uses the top detector's raw score (e.g. "792σ" for VarRatio); compute σ-deviation vs RobustZ scale/expected value instead, and keep `text` readable. | Interpretable evidence is a PS requirement and a judging point | No absurd σ values on the corpus | Not started |
+| K14 | Honour or remove ignored config keys (`use_events`); update ADR-001 wording (50 µs is our own budget, ≈ windowedGaussian cost, not an industry requirement); add an ADR for per-detector SPOT risk. | Correctness of docs/claims in Q&A | ADRs consistent with code and results | Not started |
+
 ## Hand-off points
 
 - **K1 → L4/L5/L8**: Lokesh needs `Sentinel` importable. Until K1 lands, Lokesh works on L1–L3 and baselines.
