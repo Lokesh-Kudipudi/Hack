@@ -299,12 +299,15 @@ class Sentinel:
                 fired=fired,
             )
 
-        # Ensure scalar score is strictly consistent with categorical label
-        # Normal observations stay < 0.5; Confirmed anomalies map to [0.5, 1.0]
-        if is_anom:
-            final_score = float(max(0.5, min(1.0, fused_score)))
+        # Event-aligned continuous score:
+        # Event start points (actual alarms) receive the peak calibrated score in [0.6, 1.0].
+        # Non-alarm points remain strictly below the 0.5 decision boundary.
+        if is_event_start:
+            final_score = float(max(0.6, min(1.0, fused_score)))
+        elif is_anom:
+            final_score = float(min(0.48, fused_score * 0.45))
         else:
-            final_score = float(min(0.45, fused_score * 0.45))
+            final_score = float(min(0.30, fused_score * 0.30))
 
         return Result(
             timestamp=t,

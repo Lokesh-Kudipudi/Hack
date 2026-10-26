@@ -16,7 +16,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "probation": 300,  # Fallback when n_total is unknown
     "fixed_threshold": 6.0,  # Base fallback threshold
     "debounce": 2,  # Require 2 consecutive outliers (or 1 extreme spike) (ADR-003)
-    "detectors": ["robust_z", "last_w", "lagged_residual", "var_ratio", "seasonal", "cusum", "isolation_forest"],
+    "detectors": ["robust_z", "last_w", "lagged_residual", "var_ratio", "seasonal", "cusum"],
     "detector_thresholds": {
         "RobustZ": 6.0,
         "LastW": 6.0,
