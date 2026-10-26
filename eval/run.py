@@ -64,6 +64,7 @@ def evaluate(factory: Factory, root: Optional[Path] = None, categories: Optional
     windows = load_windows(windows_path(root))
     file_scores: List[scorer.FileScore] = []
     nab_runs: List[nab_score.Run] = []
+    nab_start_runs: List[nab_score.Run] = []
     total_s, total_n, events = 0.0, 0, 0
     for info, df, wins in iter_corpus(root, categories, windows):
         out, secs = run_file(factory, df, info.key)
@@ -73,11 +74,16 @@ def evaluate(factory: Factory, root: Optional[Path] = None, categories: Optional
         fs = scorer.score_run(out, wins, info.key, info.category)
         file_scores.append(fs)
         nab_runs.append((info.key, out["timestamp"], out["score"].clip(0, 1)))
+        nab_start_runs.append((info.key, out["timestamp"], out["is_event_start"].astype(float)))
         if verbose:
             print(f"  {info.key:60s} tp={fs.tp} fp={fs.fp} fn={fs.fn}  {1e6 * secs / len(df):6.1f} µs/pt")
     result = scorer.aggregate(file_scores)
     result["nab"] = {p: {k: r[k] for k in ("score", "threshold")}
                      for p, r in nab_score.nab_score_all_profiles(nab_runs, windows).items()}
+    # NAB on the detector's actual decisions (score 1 at event starts, 0 elsewhere): penalises
+    # each extra event, not every point of a sustained alarm
+    result["nab_events"] = {k: v for k, v in nab_score.nab_score(nab_start_runs, windows, threshold=0.5).items()
+                            if k in ("score", "raw")}
     result["runtime"] = {
         "points": total_n,
         "update_seconds": total_s,
@@ -97,6 +103,15 @@ def _git_sha() -> str:
         return "unknown"
 
 
+def sentinel_source() -> str:
+    """'tracked' when sentinel/ is in git, else 'local-untracked' (e.g. Lokesh's local stand-in)."""
+    try:
+        out = subprocess.check_output(["git", "ls-files", "sentinel"], cwd=REPO_ROOT, text=True)
+        return "tracked" if out.strip() else "local-untracked"
+    except Exception:
+        return "unknown"
+
+
 def save_run(detector: str, tag: str, config: dict, categories, result: Dict) -> Path:
     now = datetime.now()
     slug = re.sub(r"[^A-Za-z0-9]+", "-", tag).strip("-")[:40] or "run"
@@ -106,6 +121,7 @@ def save_run(detector: str, tag: str, config: dict, categories, result: Dict) ->
         "run_id": path.stem, "created": now.isoformat(timespec="seconds"),
         "detector": detector, "tag": tag, "config": config, "categories": categories,
         "git_sha": _git_sha(), **result,
+        **({"sentinel_source": sentinel_source()} if detector == "sentinel" else {}),
     }
     path.write_text(json.dumps(record, indent=1, default=str))
     return path
@@ -135,7 +151,7 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict:
     o, rt = result["overall"], result["runtime"]
     print(f"{args.detector} [{args.tag}]  F1={_fmt(o['f1'])}  P={_fmt(o['precision'])}  R={_fmt(o['recall'])}  "
           f"TP={o['tp']} FP={o['fp']} FN={o['fn']}  delay_med={_fmt(o['delay_points_median'], 1)} pts  "
-          f"NAB={_fmt(result['nab']['standard']['score'], 2)}  {_fmt(rt['us_per_point'], 2)} µs/pt")
+          f"NAB={_fmt(result['nab']['standard']['score'], 2)}  NAB(starts)={_fmt(result['nab_events']['score'], 2)}  {_fmt(rt['us_per_point'], 2)} µs/pt")
     for cat, m in result["per_category"].items():
         print(f"  {cat:24s} F1={_fmt(m['f1'])}  TP={m['tp']} FP={m['fp']} FN={m['fn']}")
     if not args.no_save:

@@ -1,473 +1,248 @@
-"""Sentinel — Interactive Streaming Time-Series Anomaly Detection Dashboard.
+"""Sentinel live replay dashboard.
 
-Challenge 2: Online O(1) causal multi-detector ensemble with Extreme Value Theory (SPOT/EVT)
-calibration, debounce, event lifecycle management, and structured explainability.
+    streamlit run app/dashboard.py
+
+Pick a series, replay the stream point by point, and watch the value vs expected band,
+ground-truth windows, flagged events, fused + per-detector scores, evidence cards and
+running event metrics.
 """
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import streamlit as st
+from plotly.subplots import make_subplots
 
-# Ensure repository root is in python path
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from eval.data import (
-    FileInfo,
-    data_root,
-    list_files,
-    load_series,
-    load_windows,
-    probation_length,
-    windows_path,
-)
-from eval.scorer import score_file
-from sentinel.config import DEFAULT_CONFIG
-from sentinel.pipeline import Sentinel, run_series
+from eval import scorer  # noqa: E402
+from eval.data import data_root, list_files, load_series, load_windows, probation_length, window_indices, windows_path  # noqa: E402
+from eval.run import RUNS_DIR, make_factory  # noqa: E402
 
-# Page configuration
-st.set_page_config(
-    page_title="Sentinel • Adaptive Streaming Anomaly Detection",
-    page_icon="🛡️",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+st.set_page_config(page_title="Sentinel — streaming anomaly detection", layout="wide")
 
-# Custom Styling
-st.markdown(
-    """
-    <style>
-    .metric-card {
-        background-color: #1a1c24;
-        border-radius: 8px;
-        padding: 16px;
-        border-left: 4px solid #6366f1;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-    }
-    .metric-title {
-        color: #94a3b8;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 4px;
-    }
-    .metric-value {
-        color: #f8fafc;
-        font-size: 1.6rem;
-        font-weight: 700;
-    }
-    .metric-sub {
-        color: #10b981;
-        font-size: 0.8rem;
-        margin-top: 4px;
-    }
-    .badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-    .badge-spike { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
-    .badge-shift { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
-    .badge-var { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid #a855f7; }
-    .badge-pattern { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6; }
-    .badge-seq { background: rgba(20, 184, 166, 0.2); color: #2dd4bf; border: 1px solid #14b8a6; }
-    .badge-outlier { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid #ec4899; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+TYPE_ICON = {"spike": "⚡", "level_shift": "📶", "variance_change": "〰️", "pattern_break": "🔁", "sequence": "🧩", "multivariate_outlier": "🌲"}
 
 
-@st.cache_data
-def get_cached_files() -> Tuple[List[FileInfo], Dict[str, Any]]:
-    """Loads all NAB file metadata and ground-truth windows."""
-    files = list_files()
-    windows = load_windows()
-    return files, windows
+def tuned_config() -> dict:
+    """Best config from the latest eval.tune record, if any."""
+    recs = sorted(RUNS_DIR.glob("*_tune_*.json"))
+    for p in reversed(recs):
+        try:
+            return json.loads(p.read_text())["best_config"]
+        except Exception:
+            continue
+    return {}
+
+
+@st.cache_data(show_spinner=False)
+def corpus_index():
+    root = data_root()
+    files = list_files(root)
+    wp = windows_path(root)
+    return root, [(f.key, f.category, str(f.path)) for f in files], load_windows(wp) if wp else {}
+
+
+def _expected_and_sigma(det):
+    """Duck-typed: works with any Sentinel exposing .detectors with expected()/sigma()."""
+    dets = getattr(det, "detectors", None) or []
+    if isinstance(dets, dict):
+        dets = list(dets.values())
+    by = {getattr(d, "name", ""): d for d in dets}
+    exp, sig = None, None
+    for name in ("Seasonal", "LaggedResidual", "RobustZ"):
+        d = by.get(name)
+        if d is not None and hasattr(d, "expected") and d.expected() is not None:
+            exp = d.expected()
+            sig = d.sigma() if hasattr(d, "sigma") else None
+            break
+    if sig is None:
+        z = by.get("RobustZ")
+        sig = z.sigma() if z is not None and hasattr(z, "sigma") else None
+    return exp, sig
+
+
+@st.cache_data(show_spinner="Streaming the series through the detector…")
+def replay(path: str, key: str, detector: str, config_json: str) -> tuple:
+    df = load_series(Path(path))
+    factory = make_factory(detector, json.loads(config_json) if detector == "sentinel" else {})
+    det = factory(len(df), key)
+    rows, exp, sig, dscores = [], [], [], []
+    t0 = time.perf_counter()
+    for t, x in zip(df["timestamp"].tolist(), df["value"].tolist()):
+        r = det.update(t, x)
+        rows.append(r)
+        e, s = _expected_and_sigma(det)
+        exp.append(e)
+        sig.append(s)
+        dscores.append(getattr(r, "detector_scores", {}) or {})
+    elapsed = time.perf_counter() - t0
+    out = pd.DataFrame({
+        "timestamp": df["timestamp"], "value": df["value"],
+        "score": [r.score for r in rows], "label": [r.label for r in rows],
+        "is_event_start": [bool(r.is_event_start) for r in rows], "evidence": [r.evidence for r in rows],
+        "expected": pd.to_numeric(pd.Series(exp), errors="coerce"),
+        "sigma": pd.to_numeric(pd.Series(sig), errors="coerce"),
+    })
+    lanes = pd.DataFrame(dscores).astype(float)
+    return out, lanes, 1e6 * elapsed / len(df)
+
+
+def surprise(score) -> np.ndarray:
+    """-log10 of the tail probability (score = 1 - p): 4 means a 1-in-10,000 event."""
+    return -np.log10(np.clip(1.0 - np.asarray(score, dtype=float), 1e-12, 1.0))
+
+
+def make_figure(out: pd.DataFrame, lanes: pd.DataFrame, upto: int, wins_idx, probation: int, band_k: float,
+                alarm_line: float = None):
+    o = out.iloc[:upto]
+    has_lanes = not lanes.empty
+    fig = make_subplots(rows=3 if has_lanes else 2, cols=1, shared_xaxes=True, vertical_spacing=0.04,
+                        row_heights=[0.6, 0.15, 0.25] if has_lanes else [0.8, 0.2])
+    ts = out["timestamp"]
+    if o["expected"].notna().any():
+        e, s = o["expected"], o["sigma"].fillna(0) * band_k
+        fig.add_trace(go.Scatter(x=o["timestamp"], y=e + s, line=dict(width=0), showlegend=False, hoverinfo="skip"), 1, 1)
+        fig.add_trace(go.Scatter(x=o["timestamp"], y=e - s, fill="tonexty", fillcolor="rgba(26,115,232,0.12)",
+                                 line=dict(width=0), name=f"expected ±{band_k:g}σ", hoverinfo="skip"), 1, 1)
+        fig.add_trace(go.Scatter(x=o["timestamp"], y=e, line=dict(color="#1a73e8", width=1, dash="dot"),
+                                 name="expected"), 1, 1)
+    fig.add_trace(go.Scatter(x=o["timestamp"], y=o["value"], line=dict(color="#202124", width=1), name="value"), 1, 1)
+    an = o[o["label"] == "ANOMALOUS"]
+    fig.add_trace(go.Scatter(x=an["timestamp"], y=an["value"], mode="markers", marker=dict(color="#fbbc04", size=4),
+                             name="anomalous point"), 1, 1)
+    ev = o[o["is_event_start"]]
+    fig.add_trace(go.Scatter(x=ev["timestamp"], y=ev["value"], mode="markers",
+                             marker=dict(color="#d93025", size=11, symbol="triangle-down", line=dict(color="white", width=1)),
+                             name="event start",
+                             text=[(e or {}).get("text", "") for e in ev["evidence"]], hoverinfo="text+x"), 1, 1)
+    fig.add_trace(go.Scatter(x=o["timestamp"], y=surprise(o["score"]), line=dict(color="#d93025", width=1),
+                             name="fused surprise", showlegend=False, customdata=o["score"],
+                             hovertemplate="score %{customdata:.6f}<extra></extra>"), 2, 1)
+    if alarm_line:
+        fig.add_hline(y=alarm_line, line=dict(color="#d93025", dash="dash", width=1), row=2, col=1)
+    fig.update_yaxes(title_text="−log₁₀ p", row=2, col=1)
+    if has_lanes:
+        lz = lanes.iloc[:upto]
+        fig.add_trace(go.Heatmap(x=o["timestamp"], y=list(lz.columns), z=surprise(lz.T.values), colorscale="Reds",
+                                 zmin=1, zmax=alarm_line or 6, showscale=False,
+                                 hovertemplate="%{y}: −log₁₀ p = %{z:.1f}<extra></extra>"), 3, 1)
+        fig.update_yaxes(title_text="detectors", row=3, col=1)
+    # probation + ground-truth windows (added after traces: plotly skips empty subplots)
+    fig.add_vrect(x0=ts.iloc[0], x1=ts.iloc[min(probation, len(ts) - 1)], fillcolor="#9aa0a6", opacity=0.15,
+                  line_width=0, row="all", col=1, exclude_empty_subplots=False)
+    for i, j in wins_idx:
+        fig.add_vrect(x0=ts.iloc[i], x1=ts.iloc[j], fillcolor="#34a853", opacity=0.18, line_width=0, row="all", col=1,
+                      exclude_empty_subplots=False, layer="below")
+    for name, color in (("GT anomaly window", "rgba(52,168,83,0.35)"), ("probation", "rgba(154,160,166,0.35)")):
+        fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", name=name,
+                                 marker=dict(symbol="square", size=12, color=color)), 1, 1)
+    fig.update_xaxes(range=[ts.iloc[0], ts.iloc[-1]])
+    fig.update_layout(height=720, margin=dict(l=10, r=10, t=30, b=10), legend=dict(orientation="h", y=1.04),
+                      hovermode="x unified" if upto < 6000 else "closest", plot_bgcolor="white")
+    return fig
+
+
+def live_metrics(out, windows, upto, probation):
+    ts = out["timestamp"].iloc[:upto]
+    t_now = ts.iloc[-1]
+    started = [(a, b) for a, b in windows if a <= t_now]
+    fs = scorer.score_file(ts, out["is_event_start"].iloc[:upto], started, probation=probation)
+    pending = sum(1 for a, b in started if b > t_now)
+    return fs, pending
 
 
 def main():
-    st.title("🛡️ Sentinel — Adaptive Streaming Anomaly Detection")
-    st.caption(
-        "Challenge 2 • Online O(1) Causal Multi-Detector Ensemble • Extreme Value Theory (EVT/SPOT) Calibration • Explainable Evidence"
-    )
+    root, files, windows = corpus_index()
+    st.sidebar.title("🛰️ Sentinel")
+    st.sidebar.caption(f"data: `{root}`")
+    cats = sorted({c for _, c, _ in files})
+    default_cat = cats.index("realKnownCause") if "realKnownCause" in cats else 0
+    cat = st.sidebar.selectbox("Category", cats, index=default_cat)
+    keys = [(k, p) for k, c, p in files if c == cat]
+    names = [k.split("/", 1)[1] for k, _ in keys]
+    default_file = names.index("nyc_taxi.csv") if "nyc_taxi.csv" in names else 0
+    name = st.sidebar.selectbox("Series", names, index=default_file)
+    key, path = keys[names.index(name)]
 
-    files, windows = get_cached_files()
-    if not files:
-        st.error("No NAB files discovered in `data/`. Please verify the dataset location.")
+    detector = st.sidebar.radio("Detector", ["sentinel", "windowed_gaussian"], horizontal=True)
+    cfg_text = st.sidebar.text_area("Sentinel config overrides (JSON)", json.dumps(tuned_config(), indent=1), height=150,
+                                    disabled=detector != "sentinel")
+    try:
+        cfg = json.loads(cfg_text or "{}")
+    except json.JSONDecodeError as e:
+        st.sidebar.error(f"bad JSON: {e}")
+        cfg = {}
+    band_k = st.sidebar.slider("Band width (σ)", 1.0, 6.0, 3.0, 0.5)
+
+    try:
+        out, lanes, us = replay(path, key, detector, json.dumps(cfg, sort_keys=True))
+    except ImportError:
+        st.error("`sentinel` package not found — run with the baseline detector or pull Likhit's engine.")
         return
+    n = len(out)
+    probation = probation_length(n)
+    wins = windows.get(key, [])
+    wins_idx = window_indices(out["timestamp"], wins)
 
-    # Top Global Leaderboard Metrics Banner
-    m1, m2, m3, m4, m5 = st.columns(5)
-    with m1:
-        st.markdown(
-            """<div class="metric-card">
-            <div class="metric-title">NAB Leaderboard</div>
-            <div class="metric-value">#1 Rank</div>
-            <div class="metric-sub">Event-F1: 0.324 (vs 0.302)</div>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-    with m2:
-        st.markdown(
-            """<div class="metric-card">
-            <div class="metric-title">Max Recall</div>
-            <div class="metric-value">75.9%</div>
-            <div class="metric-sub">88 / 116 Windows Caught</div>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-    with m3:
-        st.markdown(
-            """<div class="metric-card">
-            <div class="metric-title">Inference Latency</div>
-            <div class="metric-value">15.4 µs</div>
-            <div class="metric-sub">Budget: &lt; 50 µs/point (3.2x faster)</div>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-    with m4:
-        st.markdown(
-            """<div class="metric-card">
-            <div class="metric-title">Throughput</div>
-            <div class="metric-value">65,000</div>
-            <div class="metric-sub">points / second / core</div>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-    with m5:
-        st.markdown(
-            """<div class="metric-card">
-            <div class="metric-title">Streaming Constraint</div>
-            <div class="metric-value">Strict O(1)</div>
-            <div class="metric-sub">Causal: Zero Lookahead</div>
-            </div>""",
-            unsafe_allow_html=True,
-        )
+    st.title(f"{key}")
+    if "upto" not in st.session_state or st.session_state.get("key") != key:
+        st.session_state.upto, st.session_state.key = n, key
+    c1, c2, c3 = st.columns([6, 1, 1])
+    step = max(n // 60, 50)
+    with c2:
+        play = st.button("▶ Replay", width="stretch")
+    with c3:
+        if st.button("⏭ End", width="stretch"):
+            st.session_state.upto = n
+    with c1:
+        upto = st.slider("Stream position", min_value=min(probation + 1, n), max_value=n, value=st.session_state.upto,
+                         step=1, label_visibility="collapsed")
+    st.session_state.upto = upto
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    metrics_ph, chart_ph = st.empty(), st.empty()
 
-    # Sidebar: File selection and detector configuration
-    with st.sidebar:
-        st.header("⚙️ Stream Selection")
+    def render(u):
+        fs, pending = live_metrics(out, wins, u, probation)
+        m = scorer.metrics([fs])
+        with metrics_ph.container():
+            k = st.columns(7)
+            k[0].metric("Points streamed", f"{100 * u / n:.0f}%", help=f"{u:,} of {n:,}")
+            k[1].metric("Events flagged", int(out["is_event_start"].iloc[probation:u].sum()))
+            k[2].metric("TP windows", fs.tp)
+            k[3].metric("FP events", fs.fp)
+            k[4].metric("Missed windows", fs.fn, help=f"{pending} window(s) still open")
+            k[5].metric("Event-F1 so far", "—" if m["f1"] is None else f"{m['f1']:.2f}")
+            k[6].metric("µs / point", f"{us:.1f}")
+        alarm = -np.log10(cfg.get("spot_q", 1e-4)) if detector == "sentinel" else None
+        chart_ph.plotly_chart(make_figure(out, lanes, u, wins_idx, probation, band_k, alarm), width="stretch")
 
-        categories = sorted(list({f.category for f in files}))
-        default_cat = "realAWSCloudwatch" if "realAWSCloudwatch" in categories else categories[0]
-        selected_category = st.selectbox("Category", categories, index=categories.index(default_cat))
+    if play:
+        for u in range(min(probation + step, n), n + 1, step):
+            render(u)
+            time.sleep(0.05)
+        upto = st.session_state.upto = n
+    render(upto)
 
-        category_files = [f for f in files if f.category == selected_category]
-        file_names = [f.name for f in category_files]
-        selected_file_name = st.selectbox("Stream File", file_names)
-
-        selected_file = next(f for f in category_files if f.name == selected_file_name)
-
-        st.markdown("---")
-        st.header("🎛️ Pipeline Parameters")
-
-        use_spot = st.toggle("Dynamic EVT (SPOT) Tail Thresholding", value=True)
-        fusion_mode = st.selectbox("Fusion Strategy", ["max", "vote"], index=0)
-        vote_k = 2
-        if fusion_mode == "vote":
-            vote_k = st.slider("Consensus vote threshold (k)", 1, 6, 2)
-
-        debounce = st.slider("Debounce Window (points)", 1, 4, 2)
-        use_events = st.toggle("Event Lifecycle Manager (Merge & Cooldown)", value=True)
-
-        st.markdown("#### Active Detectors")
-        d_robust_z = st.checkbox("D1: RobustZ (Spike)", value=True)
-        d_last_w = st.checkbox("D2: LastW (Point jump)", value=True)
-        d_lagged = st.checkbox("D3: LaggedResidual (Sequence)", value=True)
-        d_var = st.checkbox("D4: VarRatio (Volatility)", value=True)
-        d_seasonal = st.checkbox("D5: Seasonal (Diurnal profile)", value=True)
-        d_cusum = st.checkbox("D6: CUSUM (Level shift)", value=True)
-        d_iforest = st.checkbox("D7: StreamingIsolationForest", value=True)
-
-        active_detectors = []
-        if d_robust_z: active_detectors.append("robust_z")
-        if d_last_w: active_detectors.append("last_w")
-        if d_lagged: active_detectors.append("lagged_residual")
-        if d_var: active_detectors.append("var_ratio")
-        if d_seasonal: active_detectors.append("seasonal")
-        if d_cusum: active_detectors.append("cusum")
-        if d_iforest: active_detectors.append("isolation_forest")
-
-    # Load file data
-    df = load_series(selected_file.path)
-    gt_windows = windows.get(selected_file.key, [])
-    prob_limit = probation_length(len(df))
-
-    # Sidebar: Streaming Simulation / Slider
-    with st.sidebar:
-        st.markdown("---")
-        st.header("⏱️ Streaming Simulation")
-        simulate_all = st.checkbox("Process Entire Series", value=True)
-        if not simulate_all:
-            max_points = st.slider("Stream Up To Point", min_value=prob_limit + 10, max_value=len(df), value=min(len(df), prob_limit + 400))
-            df = df.iloc[:max_points].copy()
-
-    # Build Sentinel configuration
-    custom_config = dict(DEFAULT_CONFIG)
-    custom_config["use_spot"] = use_spot
-    custom_config["fusion"] = fusion_mode
-    custom_config["vote_k"] = vote_k
-    custom_config["debounce"] = debounce
-    custom_config["use_events"] = use_events
-    custom_config["detectors"] = active_detectors
-
-    # Run Sentinel streaming inference
-    t_start = time.perf_counter()
-    res_df = run_series(df, config=custom_config)
-    elapsed = time.perf_counter() - t_start
-    per_pt_us = (elapsed / len(df)) * 1e6
-
-    # Score against Ground Truth
-    file_score = score_file(
-        timestamps=res_df["timestamp"],
-        is_event_start=res_df["is_event_start"],
-        windows=gt_windows,
-        key=selected_file.key,
-        category=selected_file.category,
-        probation=prob_limit,
-    )
-
-    # Main KPI display for this file
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Points Processed", f"{len(df):,}")
-    c2.metric("True Positives", f"{file_score.tp} / {len(gt_windows)}")
-    c3.metric("False Positives", f"{file_score.fp}")
-    delay_str = f"{file_score.delay_points[0]} pts" if file_score.delay_points else "N/A"
-    c4.metric("Earliest Delay", delay_str)
-    c5.metric("Latency", f"{per_pt_us:.1f} µs/pt", delta=f"{int(1e6/per_pt_us):,} pts/s")
-
-    # Plotting: Multi-Lane Interactive Figure
-    fig = make_subplots(
-        rows=3,
-        cols=1,
-        shared_xaxes=True,
-        vertical_spacing=0.06,
-        subplot_titles=(
-            f"<b>{selected_file.key}</b> — Value Stream with Ground Truth Windows & Detected Events",
-            "<b>Ensemble Anomaly Score & Decision Boundary</b>",
-            "<b>Decomposed Multi-Detector Score Breakdown</b>",
-        ),
-        row_heights=[0.50, 0.25, 0.25],
-    )
-
-    ts = pd.to_datetime(res_df["timestamp"])
-    vals = res_df["value"]
-    scores = res_df["score"]
-    starts = res_df["is_event_start"]
-    anom_mask = res_df["label"] == "ANOMALOUS"
-
-    # Row 1: Primary Stream
-    fig.add_trace(
-        go.Scatter(x=ts, y=vals, mode="lines", name="Raw Value", line=dict(color="#38bdf8", width=1.5)),
-        row=1,
-        col=1,
-    )
-
-    # Shaded Probation Region
-    prob_ts_end = ts.iloc[min(prob_limit - 1, len(ts) - 1)]
-    fig.add_vrect(
-        x0=ts.iloc[0],
-        x1=prob_ts_end,
-        fillcolor="rgba(148, 163, 184, 0.15)",
-        layer="below",
-        line_width=1,
-        line_dash="dot",
-        line_color="#94a3b8",
-        annotation_text="Probation (Warmup)",
-        annotation_position="top left",
-        row=1,
-        col=1,
-    )
-
-    # Shaded Ground Truth Anomaly Windows
-    for w_idx, (w_start, w_end) in enumerate(gt_windows):
-        fig.add_vrect(
-            x0=w_start,
-            x1=w_end,
-            fillcolor="rgba(34, 197, 94, 0.18)",
-            layer="below",
-            line_width=1,
-            line_color="#22c55e",
-            annotation_text=f"GT Window {w_idx+1}",
-            annotation_position="top right",
-            row=1,
-            col=1,
-        )
-
-    # Anomalous Points Scatter
-    if anom_mask.any():
-        fig.add_trace(
-            go.Scatter(
-                x=ts[anom_mask],
-                y=vals[anom_mask],
-                mode="markers",
-                name="Anomalous Point",
-                marker=dict(color="#ef4444", size=5, opacity=0.8),
-            ),
-            row=1,
-            col=1,
-        )
-
-    # Event Starts (Diamonds)
-    if starts.any():
-        fig.add_trace(
-            go.Scatter(
-                x=ts[starts],
-                y=vals[starts],
-                mode="markers",
-                name="Event Start (Alarm)",
-                marker=dict(color="#f59e0b", size=10, symbol="diamond", line=dict(color="#ffffff", width=1)),
-            ),
-            row=1,
-            col=1,
-        )
-
-    # Row 2: Ensemble Score & Threshold
-    fig.add_trace(
-        go.Scatter(x=ts, y=scores, mode="lines", name="Sentinel Score", line=dict(color="#f97316", width=1.5)),
-        row=2,
-        col=1,
-    )
-    fig.add_hline(
-        y=0.50,
-        line_dash="dash",
-        line_color="#ef4444",
-        annotation_text="Anomaly Threshold (0.50)",
-        row=2,
-        col=1,
-    )
-
-    # Row 3: Per-detector decomposed scores
-    detector_scores_list = res_df["detector_scores"].tolist()
-    all_det_names = sorted(list(detector_scores_list[0].keys())) if detector_scores_list and detector_scores_list[0] else []
-    colors = ["#a855f7", "#ec4899", "#14b8a6", "#eab308", "#6366f1", "#06b6d4", "#84cc16"]
-
-    for i, det_name in enumerate(all_det_names):
-        det_series = [d.get(det_name, 0.0) for d in detector_scores_list]
-        fig.add_trace(
-            go.Scatter(
-                x=ts,
-                y=det_series,
-                mode="lines",
-                name=f"{det_name}",
-                line=dict(color=colors[i % len(colors)], width=1.2),
-            ),
-            row=3,
-            col=1,
-        )
-
-    fig.update_layout(
-        height=720,
-        margin=dict(l=40, r=40, t=50, b=40),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        template="plotly_dark",
-        hovermode="x unified",
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Evidence & Explainability Deep-Dive
-    st.markdown("---")
-    st.subheader("🔍 Explainable Evidence & Incident Diagnostics")
-
-    # Find all event starts with evidence
-    event_indices = np.flatnonzero(starts.values)
-    if len(event_indices) == 0:
-        st.info("No anomalies detected in this stream with the current threshold settings.")
-    else:
-        st.write(f"Detected **{len(event_indices)}** distinct anomaly events. Select an incident to inspect the causal evidence:")
-
-        event_options = []
-        for idx in event_indices:
-            ev = res_df["evidence"].iloc[idx]
-            ev_type = ev.get("type", "unknown") if isinstance(ev, dict) else "unknown"
-            event_options.append(f"Event @ {ts.iloc[idx].strftime('%Y-%m-%d %H:%M:%S')} (Type: {ev_type})")
-
-        selected_event_str = st.selectbox("Inspect Event", event_options)
-        selected_event_idx = event_indices[event_options.index(selected_event_str)]
-
-        ev = res_df["evidence"].iloc[selected_event_idx]
-        if isinstance(ev, dict):
-            col_left, col_right = st.columns([1.2, 1])
-
-            with col_left:
-                ev_type = ev.get("type", "spike")
-                badge_class = {
-                    "spike": "badge-spike",
-                    "level_shift": "badge-shift",
-                    "variance_change": "badge-var",
-                    "pattern_break": "badge-pattern",
-                    "sequence": "badge-seq",
-                    "multivariate_outlier": "badge-outlier",
-                }.get(ev_type, "badge-spike")
-
-                st.markdown(
-                    f"""
-                    <div style="background-color: #1e293b; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
-                        <span class="badge {badge_class}">{ev_type}</span>
-                        <h4 style="margin-top: 10px; color: #f8fafc;">Diagnostic Narrative</h4>
-                        <p style="color: #cbd5e1; font-size: 1.05rem; line-height: 1.5;">{ev.get('text', 'No text generated.')}</p>
-                        <hr style="border-color: #334155;">
-                        <div style="display: flex; gap: 24px;">
-                            <div>
-                                <div style="color: #94a3b8; font-size: 0.8rem;">OBSERVED</div>
-                                <div style="font-size: 1.3rem; font-weight: bold; color: #f87171;">{ev.get('observed', 0.0):.2f}</div>
-                            </div>
-                            <div>
-                                <div style="color: #94a3b8; font-size: 0.8rem;">EXPECTED</div>
-                                <div style="font-size: 1.3rem; font-weight: bold; color: #38bdf8;">{ev.get('expected', 0.0):.2f}</div>
-                            </div>
-                            <div>
-                                <div style="color: #94a3b8; font-size: 0.8rem;">DEVIATION</div>
-                                <div style="font-size: 1.3rem; font-weight: bold; color: #fbbf24;">{ev.get('deviation_sigma', 0.0):.1f} σ</div>
-                            </div>
-                            <div>
-                                <div style="color: #94a3b8; font-size: 0.8rem;">PRIMARY DETECTOR</div>
-                                <div style="font-size: 1.3rem; font-weight: bold; color: #c084fc;">{ev.get('top_detector', 'N/A')}</div>
-                            </div>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-            with col_right:
-                # Detector contributions at this event point
-                det_scores = res_df["detector_scores"].iloc[selected_event_idx]
-                if isinstance(det_scores, dict) and det_scores:
-                    bar_fig = go.Figure(
-                        go.Bar(
-                            x=list(det_scores.values()),
-                            y=list(det_scores.keys()),
-                            orientation="h",
-                            marker=dict(color="#6366f1"),
-                        )
-                    )
-                    bar_fig.update_layout(
-                        title="<b>Detector Normalized Anomaly Scores</b>",
-                        xaxis_title="Normalized Score",
-                        margin=dict(l=20, r=20, t=40, b=30),
-                        height=240,
-                        template="plotly_dark",
-                    )
-                    st.plotly_chart(bar_fig, use_container_width=True)
+    st.subheader("Evidence")
+    ev = out.iloc[:upto]
+    ev = ev[ev["is_event_start"]]
+    if ev.empty:
+        st.info("No events flagged yet.")
+    for idx, r in ev.iloc[::-1].iterrows():
+        e = r["evidence"] or {}
+        in_win = any(i <= idx <= j for i, j in wins_idx)
+        badge = "✅ inside an anomaly window" if in_win else "❌ outside all anomaly windows"
+        with st.expander(f"{TYPE_ICON.get(e.get('type'), '•')} {r['timestamp']} — {e.get('type', 'anomaly')} · "
+                         f"score {r['score']:.6f} · {badge}", expanded=False):
+            st.write(e.get("text", ""))
+            st.json({k: v for k, v in e.items() if k != "text"})
 
 
-if __name__ == "__main__":
-    main()
+main()

@@ -82,3 +82,31 @@ def test_windowed_gaussian_matches_nab_reference():
     ours = np.array([d.update(t, x).score for t, x in zip(df["timestamp"], df["value"])])
     ref = pd.read_csv(NAB / "results" / "windowedGaussian" / key.replace("/", "/windowedGaussian_"))
     np.testing.assert_allclose(ours, ref["anomaly_score"].values, atol=1e-9)
+
+
+def test_benchmark_on_tiny_series():
+    from eval.benchmark import bench_detector
+    series = [("c/a.csv", list(TS), list(_series(300)["value"]))]
+    r = bench_detector("windowed_gaussian", series)
+    assert r["points"] == N and r["us_per_point_mean"] > 0 and r["points_per_sec"] > 0
+
+
+def test_tune_grid_and_loco():
+    from eval import tune
+    from eval.scorer import FileScore
+    cfgs = tune.expand({"fusion": [("max", 1), ("vote", 2)], "spot_q": [1e-4]})
+    assert cfgs == [{"fusion": "max", "vote_k": 1, "spot_q": 1e-4}, {"fusion": "vote", "vote_k": 2, "spot_q": 1e-4}]
+    # config 0 wins on A, config 1 wins on B: each held-out category gets the other's winner
+    per_cfg = [[FileScore("A/x", "A", tp=1), FileScore("B/y", "B", fp=3, fn=1)],
+               [FileScore("A/x", "A", fn=1), FileScore("B/y", "B", tp=1)]]
+    lo = tune.loco(cfgs, per_cfg)
+    assert lo["per_category"]["A"]["config_index"] == 1 and lo["per_category"]["A"]["held_out_f1"] == 0.0
+    assert lo["per_category"]["B"]["config_index"] == 0 and lo["per_category"]["B"]["held_out_f1"] == 0.0
+    assert lo["mean_held_out_f1"] == 0.0
+
+
+def test_ablation_configs_use_handoff_flags():
+    from eval.ablation import configs
+    allowed = {"detectors", "use_spot", "use_events", "fusion", "vote_k", "threshold"}
+    for _, _, _, cfg in configs():
+        assert set(cfg) <= allowed

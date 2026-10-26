@@ -8,7 +8,8 @@ Status values: `Not started` · `In progress` · `Done` · `Blocked (<reason>)`
 ## Status so far
 
 - 2026-10-26 — Planning complete: PS analysed, NAB repo explored, ICLR 2026 one-liners paper reviewed, `target.md` / `AGENTS.md` / `TASKS.md` written. TinyEdge CNN notebook rejected (see AGENTS.md §2).
-- 2026-10-26 — Lokesh: L0–L2 done. GitHub remote `Lokesh-Kudipudi/Hack` live. `eval/data.py` loads all 58 NAB files + 116 windows (NAB clone or starter-pack layout); `eval/scorer.py` event-F1/P/R/delay per §5 (oracle sanity check → F1 1.0). L3 done: `eval/nab_score.py` reproduces published NAB standard scores exactly (windowedGaussian 39.65, numenta 70.10, null 0.00); tests in `tests/test_nab_score.py`. L4 done: `python -m eval.run --detector {sentinel,null,random,windowed_gaussian} --tag ...` + `python -m eval.leaderboard`; baselines on leaderboard (windowedGaussian event-F1 0.107 @thr .9999 / 0.302 @thr 1.0, NAB 40.1). `eval.run` imports `sentinel.pipeline.Sentinel` lazily — works as soon as K1 lands. Env: `uv venv -p 3.11 .venv`; `pytest.ini` limits pytest to `tests/`.
+- 2026-10-26 — Lokesh: L0–L2 done. GitHub remote `Lokesh-Kudipudi/Hack` live. `eval/data.py` loads all 58 NAB files + 116 windows (NAB clone or starter-pack layout); `eval/scorer.py` event-F1/P/R/delay per §5 (oracle sanity check → F1 1.0). L3 done: `eval/nab_score.py` reproduces published NAB standard scores exactly (windowedGaussian 39.65, numenta 70.10, null 0.00); tests in `tests/test_nab_score.py`. L4 done: `python -m eval.run --detector {sentinel,null,random,windowed_gaussian} --tag ...` + `python -m eval.leaderboard`; baselines on leaderboard (windowedGaussian event-F1 0.107 @thr .9999 / 0.302 @thr 1.0, NAB 40.1). `eval.run` imports `sentinel.pipeline.Sentinel` lazily — works as soon as K1 lands.
+- 2026-10-26 — Lokesh: L5–L9 done against a **local, git-excluded stand-in** `sentinel/` (Lokesh's machine only; never pushed; follows AGENTS §4 contract). Stand-in tuned: event-F1 0.538 (P 0.654, R 0.457, FP 28), LOCO held-out mean 0.507, 4.9 µs/pt. Runs from it are tagged `sentinel_source: local-untracked`. Dashboard: `streamlit run app/dashboard.py`. **Re-run `eval.tune`, `eval.ablation`, `eval.figures` once Likhit's engine lands.** Env: `uv venv -p 3.11 .venv`; `pytest.ini` limits pytest to `tests/`.
 
 ---
 
@@ -23,9 +24,9 @@ Owns: `eval/**`, `app/**`, `tests/test_scorer.py`, `tests/test_data.py`, `requir
 | L2 | `eval/scorer.py`: event-F1, P, R, delay (points, minutes, fraction of window), per file / category / corpus — exactly per AGENTS.md §5. `tests/test_scorer.py` with hand-made toy cases (TP, FP, FN, duplicate-in-window, probation exclusion, no-anomaly file). | L1 | All toy cases pass | Done |
 | L3 | `eval/nab_score.py`: wrapper around `data/NAB/nab/sweeper.py` to get official NAB standard score from per-point scores. Validate: null detector → 0, compare windowedGaussian vs published 39.6. | L1 | Reproduces published baseline within a few points | Done |
 | L4 | `eval/baselines.py` (windowedGaussian, null, random) + `eval/run.py` CLI (runs any detector over the corpus, writes `results/runs/*.json`) + `eval/leaderboard.py` → `results/leaderboard.md`. | L2, L3 | **First baseline numbers on the leaderboard** | Done |
-| L5 | `eval/benchmark.py`: µs/point and points/sec for any detector (single core, no I/O). | L4, K1 | Numbers in leaderboard | Not started |
+| L5 | `eval/benchmark.py`: µs/point and points/sec for any detector (single core, no I/O). | L4, K1 | Numbers in leaderboard | Done |
 | L6 | `eval/ablation.py`: baseline → +each detector → +SPOT → +fusion → +events; table + bar chart to `results/figures/`. | L4, K2–K5 | Ablation table committed | Done |
-| L7 | `eval/tune.py`: global hyperparameter search with leave-one-category-out validation; writes best config proposal to `results/runs/` and a Request to Likhit to adopt it in `sentinel/config.py`. | L6 | Held-out F1 reported | Not started |
+| L7 | `eval/tune.py`: global hyperparameter search with leave-one-category-out validation; writes best config proposal to `results/runs/` and a Request to Likhit to adopt it in `sentinel/config.py`. | L6 | Held-out F1 reported | Done |
 | L8 | `app/dashboard.py` (Streamlit): pick file → replay stream, plot value + expected band + GT windows + flags, per-detector score lanes, evidence card per event, live metrics. | K1, K6 | Demo runs end-to-end | Done |
 | L9 | `README.md` (problem, approach, how to run, results, ablation) + slide figures in `results/figures/`. | L6 | README complete | Done |
 | L10 | *Stretch*: Chronos-Bolt-small vs `Last-3` on ~10 NAB files (F1 + runtime) for the "foundation model = one-liner" slide. Isolated in `eval/stretch_tsfm.py`, heavy deps not in main requirements. | L4 | Comparison table | Done |
@@ -61,4 +62,5 @@ Owns: `sentinel/**`, `tests/test_detectors.py`, `tests/test_spot.py`, `tests/tes
 ## Requests (cross-owner change requests)
 
 <!-- Format: - [from → to] YYYY-MM-DD: request — status -->
-- (none)
+- [lokesh → likhit] 2026-10-26: adopt tuned global config `results/best_config.json` in `sentinel/config.py` (LOCO-validated, see `results/tuning.md`). Found with Lokesh's local stand-in engine — please re-run `python -m eval.tune` on your real engine before adopting. Key finding: MAX fusion over 6 SPOT detectors multiplies false alarms; 2-of-n vote is much better. — open
+- [lokesh → likhit] 2026-10-26: eval/ablation/tune/dashboard rely on config keys `detectors` (names RobustZ, LastW, LaggedResidual, VarRatio, Seasonal, CUSUM), `use_spot`, `fusion` (`max`|`vote`), `vote_k`, `use_events`, `spot_q`, `cooldown`, `merge_gap`, `lag_h`; dashboard optionally uses `Sentinel.detectors[i].expected()` / `.sigma()` for the band. — open

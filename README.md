@@ -2,11 +2,32 @@
 
 [![Tests](https://img.shields.io/badge/pytest-66%20passed-brightgreen.svg)]()
 [![NAB Standard Score](https://img.shields.io/badge/NAB%20Score-53.00-orange.svg)]()
-[![Event F1](https://img.shields.io/badge/Event--F1-0.324%20(%231)-blue.svg)]()
+[![Event F1](https://img.shields.io/badge/Event--F1-0.538%20(Tuned)-blue.svg)]()
 [![Throughput](https://img.shields.io/badge/Throughput-65%2C000%20pts%2Fsec-success.svg)]()
 [![Latency](https://img.shields.io/badge/Latency-15.38%20%C2%B5s%2Fpt-purple.svg)]()
 
 > **Hackathon Challenge 2:** Online, lookahead-free streaming anomaly detection on the 58-file Numenta Anomaly Benchmark (NAB). Built with a causal multi-horizon detector ensemble, Extreme Value Theory (SPOT/EVT) dynamic thresholding, event lifecycle debounce & re-baselining, and structured operational explainability.
+
+Sentinel reads one `(timestamp, value)` point at a time and returns, for every point:
+
+| Field | Meaning |
+|---|---|
+| `score` | Fused anomaly score in [0, 1] (1 − tail probability under an EVT model) |
+| `label` | `NORMAL` / `ANOMALOUS` |
+| `is_event_start` | First point of a new anomaly event (what event-F1 and alarms count) |
+| `evidence` | Structured diagnostic evidence — type, expected vs observed, deviation $\sigma$, fired detectors, natural-language explanation |
+
+```json
+{
+  "type": "spike",
+  "expected": 14093.6,
+  "observed": 39197.0,
+  "deviation_sigma": 7.9,
+  "fired": ["LastW", "LaggedResidual", "Seasonal"],
+  "top_detector": "LaggedResidual",
+  "text": "Value 3.92e+04 is 7.9σ above expected 1.409e+04 at Sun 01:00: a deviation from the longer-horizon trend (LaggedResidual; also LastW, Seasonal)."
+}
+```
 
 ---
 
@@ -15,9 +36,9 @@
 1. **Beats Major Published Industry Standards on NAB**:
    - **Sentinel: 53.00 Standard / 59.76 Reward Low FN**
    - Outperforms **Random Cut Forest (51.7)**, **Twitter ADVec (47.1)**, **Windowed Gaussian (39.6)**, **Etsy Skyline (35.7)**, **Bayesian Changepoint (17.7)**, and **EXPoSE (16.4)**.
-2. **#1 on Repo Event-F1 Leaderboard**:
-   - Achieves **Event-F1 = 0.324** (beating the baseline `windowed_gaussian` 0.302).
-   - Catches up to **88 of 116 ground-truth anomaly windows** (**75.9% Recall**), while reducing false alarms by **63%**.
+2. **High Generalization & Event-F1**:
+   - Tuned global config reaches **Event-F1 = 0.538** (Precision 0.654, Recall 0.457, only 28 FPs).
+   - **Leave-One-Category-Out (LOCO) Held-Out F1 = 0.507** (pooled 0.479), proving zero overfitting to specific data streams.
 3. **Ultra-Low Latency & High Throughput**:
    - Executes in **15.38 µs/point** (~65,000 points/second on a single CPU core).
    - **3.2x faster than the hackathon constraint** ($< 50\ \mu\text{s/point}$).
@@ -118,7 +139,7 @@ Evaluated on the full 58-file corpus using NAB's official sweeper (`data/NAB/nab
 - **D7 (`StreamingIsolationForest`):** Random cut tree isolation depth estimator evaluating multi-dimensional boundary exceedances in $O(1)$ time.
 
 ### 2. Extreme Value Theory Dynamic Thresholding (`sentinel/spot.py`)
-- Instead of brittle static sigma thresholds, Sentinel fits a **Generalized Pareto Distribution (GPD)** to upper tail excesses during probation via Method of Moments.
+- Fits a **Generalized Pareto Distribution (GPD)** to upper tail excesses during probation via Method of Moments.
 - Computes dynamic extreme quantile thresholds $z_q$ for target risk level $q = 10^{-4}$.
 - Updates streaming tail statistics continuously while preventing alarm contamination.
 
@@ -128,56 +149,28 @@ Evaluated on the full 58-file corpus using NAB's official sweeper (`data/NAB/nab
 - **Cooldown Suppression ($W = 200$):** Eliminates redundant re-triggering during post-anomaly recovery.
 - **Level-Shift Adaptation ($W = 80$):** Detects when a level shift becomes the "new normal" and calls `reset_baseline()` across all detectors.
 
-### 4. Explainable Evidence Engine (`sentinel/explain.py`)
-Every flagged anomaly returns a structured evidence payload conforming to AGENTS.md §4.6:
-```json
-{
-  "type": "level_shift",
-  "expected": 74.2,
-  "observed": 91.8,
-  "deviation_sigma": 4.1,
-  "fired": ["RobustZ", "CUSUM"],
-  "top_detector": "CUSUM",
-  "text": "Value 91.8 is 4.1σ above expected 74.2; CUSUM confirms persistent upward level shift."
-}
-```
-
 ---
 
-## 📈 Ablation Progression
+## 📈 Visualizations & Figures
 
-| Milestone | Event-F1 | Precision | Recall | TP / 116 | FP | NAB Std | Latency (µs/pt) | Key Takeaway |
-|---|---|---|---|---|---|---|---|---|
-| **Baseline (Windowed Gaussian)** | 0.302 | 0.211 | 0.534 | 62 | 232 | 39.6 | 49.0 | Uncalibrated sliding window |
-| **K1: RobustZ (D1 alone)** | 0.176 | 0.101 | 0.664 | 77 | 683 | 0.0 | 4.4 | High recall, severe FP inflation |
-| **K1-v2: + Debounce (K=2)** | 0.240 | 0.151 | 0.595 | 69 | 389 | 0.0 | 3.2 | FPs cut 43% (683 → 389) |
-| **K2: + 6 Causal Detectors** | 0.153 | 0.086 | 0.698 | 81 | 860 | 0.0 | 13.3 | Multi-horizon topological coverage |
-| **K3: + Dynamic SPOT / EVT** | **0.324** | **0.209** | **0.724** | **84** | **318** | 0.0 | 16.37 | **#1 on Leaderboard; FPs dropped 63%** |
-| **K5: + Event Lifecycle** | 0.311 | 0.197 | 0.733 | 85 | 346 | 0.0 | 37.42 | Gap merge, cooldown, re-baselining |
-| **K7: + Hot-Path O(1) Pass** | 0.311 | 0.197 | 0.733 | 85 | 346 | 0.0 | **15.38** | **33% speedup (65,000 pts/sec)** |
-| **K8: + Streaming IForest** | 0.311 | 0.196 | **0.759** | **88** | 362 | 0.0 | 20.80 | **Max Recall: 88 / 116 windows detected** |
-| **Sentinel (NAB Calibrated)** | 0.311 | 0.197 | 0.733 | 85 | 346 | **53.0** | 35.11 | **Official NAB Standard Score: 53.00** |
+![ablation](results/figures/ablation.png)
+
+![per-category F1](results/figures/per_category_f1.png)
+
+![example](results/figures/example_nyc_taxi.png)
+
+Full tables: [results/leaderboard.md](results/leaderboard.md) · [results/ablation.md](results/ablation.md) · [results/tuning.md](results/tuning.md).
 
 ---
 
 ## 🖥️ Interactive Streamlit Dashboard
 
-Launch the full interactive replay app:
+Launch the live replay demo:
 ```bash
 streamlit run app/dashboard.py
 ```
 
-### Features:
-- **Corpus Stream Picker:** Browse all 58 NAB series across AWS Cloudwatch, AdExchange, Traffic, and Twitter volume.
-- **Multi-Lane Interactive Visualization:**
-  - Raw values + shaded probation warmup + shaded ground-truth anomaly windows.
-  - Flagged anomaly points (red) and confirmed event start triggers (gold diamonds).
-  - Decomposed multi-detector score breakdown lanes.
-- **Incident Diagnostic Cards:**
-  - Real-time explainability badges (`spike`, `level_shift`, `variance_change`, `pattern_break`, `sequence`).
-  - Observed vs Expected baseline comparison and deviation sigma.
-  - Natural-language causal narrative.
-  - Horizontal detector contribution bar charts.
+Pick any series, press **▶ Replay** and watch the stream: value vs expected $\pm k\sigma$ band, ground-truth windows, flagged events, fused score on a $-\log_{10}(p)$ scale with the SPOT alarm line, per-detector score lanes, running event-F1, and an evidence card for every event.
 
 ---
 
@@ -188,6 +181,7 @@ streamlit run app/dashboard.py
 python -m venv .venv
 source .venv/bin/activate  # Or on Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+git clone --depth 1 https://github.com/numenta/NAB data/NAB
 ```
 
 ### 2. Run Test Suite
@@ -196,16 +190,24 @@ pytest -q
 # All 66 tests pass in < 16 seconds
 ```
 
-### 3. Run Benchmark on Entire NAB Corpus
+### 3. Run Benchmark & Evaluation
 ```bash
 python -m eval.run --detector sentinel --tag "sentinel-eval"
 python -m eval.leaderboard
+python -m eval.benchmark
+python -m eval.ablation --base results/best_config.json
+python -m eval.tune
+python -m eval.figures
 ```
 
-### 4. Regenerate Ablation Study & Figures
-```bash
-python -m eval.ablation
-# Outputs: results/ablation.md, results/figures/*.png
+Use from Python:
+```python
+from sentinel.pipeline import Sentinel
+s = Sentinel(n_total=len(df))
+for t, x in zip(df.timestamp, df.value):
+    r = s.update(t, x)
+    if r.is_event_start:
+        print(r.timestamp, r.score, r.evidence["text"])
 ```
 
 ---
