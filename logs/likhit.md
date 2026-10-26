@@ -63,7 +63,13 @@
 - Changed: `sentinel/detectors.py`, `tests/test_detectors.py`, `sentinel/config.py`, `sentinel/explain.py`, `sentinel/pipeline.py`
 - Result: Implemented `StreamingIsolationForest` using fast rolling random cut trees in strictly $O(1)$ time ($< 4$ µs per point overhead). All 66 tests pass.
 - Benchmark: Recall jumped to **0.759** (88/116 windows detected — all-time high, catching 3 additional anomaly windows). Event-F1 = **0.311**, inference runtime = **20.80 µs/pt** (well within < 50 µs/pt budget).
-- Notes: All core tasks K1 through K8 complete and benchmarked.
+## 2026-10-26 21:08 — ADR Cards, Pitch README, Ablation Engine & Figures
+- Changed: `ARCHITECTURE_DECISIONS.md`, `README.md`, `eval/ablation.py`, `results/ablation.md`, `results/figures/*.png`, `TASKS.md`
+- Result:
+  - Formally documented all architecture decision records: ADR-001 (Streaming Invariant), ADR-002 (Ensemble), ADR-003 (Debounce), ADR-004 (Fusion), ADR-005 (SPOT/EVT), ADR-006 (Lifecycle), ADR-007 (Explainability), ADR-008 (NAB Continuous Calibration).
+  - Generated slide-ready figures: `results/figures/ablation_progression.png` and `results/figures/published_comparison.png`.
+  - Created complete submission pitch `README.md` with benchmark tables, architecture diagrams, and quickstart commands.
+  - Tasks L6, L8, L9 complete.
 
 
 

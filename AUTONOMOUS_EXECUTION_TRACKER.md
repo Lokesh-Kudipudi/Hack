@@ -100,9 +100,24 @@
 
 ---
 
-## 3. Autonomous Execution Protocol & Guardrails
+## 4. Architecture Decision Records (ADR Cards)
+
+All key design choices are documented in [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md):
+- **ADR-001:** Strict Streaming & Causal Invariant ($O(1)$ memory & time, $< 50\ \mu\text{s/pt}$)
+- **ADR-002:** Causal Multi-Horizon Detector Ensemble (D1 to D7)
+- **ADR-003:** Event Debounce and Confirmation Protocol ($K=2$ / 1.5x extreme bypass)
+- **ADR-004:** Multi-Detector Fusion Engine (MAX vs consensus voting)
+- **ADR-005:** Dynamic Tail Thresholding via Extreme Value Theory (SPOT/DSPOT GPD fit)
+- **ADR-006:** Event Lifecycle Management (gap merge $W=16$, cooldown $W=200$, rebaseline $W=80$)
+- **ADR-007:** Structured Evidence & Explainability Schema (AGENTS.md §4.6)
+- **ADR-008:** Event-Aligned Continuous Scoring for Official NAB Calibration (53.00 score)
+
+---
+
+## 5. Autonomous Execution Protocol & Guardrails
 
 1. **Safety First**: NEVER push to `origin/main`. Keep all commits local.
 2. **File Boundaries**: Edit only `sentinel/**`, `tests/test_*.py`, `TASKS.md`, `logs/likhit.md`, and docs. Do not touch `eval/**` or `app/**`.
 3. **Always Verify**: After writing any component, run `py -m pytest -q` and `py -m eval.run --detector sentinel --tag <tag>`.
 4. **Self-Document**: Update `TASKS.md` status, log entry in `logs/likhit.md`, and make a clean local git commit after each task.
+
