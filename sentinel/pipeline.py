@@ -28,7 +28,8 @@ class Sentinel:
         else:
             self.probation_limit = int(self.config.get("probation", 300))
 
-        self.threshold = float(self.config.get("fixed_threshold", 4.5))
+        self.threshold = float(self.config.get("fixed_threshold", 6.0))
+        self.debounce = int(self.config.get("debounce", 2))
         self.alpha = float(self.config.get("baseline_alpha", 0.01))
 
         # Probation buffer
@@ -41,9 +42,10 @@ class Sentinel:
 
         # Event management state
         self.in_event: bool = False
+        self.consecutive_anom: int = 0
         self.cooldown_remaining: int = 0
-        self.cooldown_duration: int = int(self.config.get("events", {}).get("cooldown", 150))
-        self.merge_gap: int = int(self.config.get("events", {}).get("merge_gap", 12))
+        self.cooldown_duration: int = int(self.config.get("events", {}).get("cooldown", 200))
+        self.merge_gap: int = int(self.config.get("events", {}).get("merge_gap", 16))
         self.gap_count: int = 0
 
     def _finish_probation(self):
@@ -90,27 +92,33 @@ class Sentinel:
         residual = abs(x - self.median)
         raw_z = residual / (self.scale + 1e-9)
 
-        # Calibrated score in [0, 1] using smooth sigmoid-like scaling
-        # Exactly 0.5 at threshold, approaching 1.0 for large deviations
-        score = 1.0 - math.exp(-0.6931 * (raw_z / max(1e-6, self.threshold)))
-        score = max(0.0, min(1.0, float(score)))
+        # Continuous CDF score in [0, 1] using erf (smooth mapping for NAB sweeper)
+        score = float(math.erf(raw_z / math.sqrt(2.0)))
+        score = max(0.0, min(1.0, score))
 
         is_anom = raw_z > self.threshold
         label = "ANOMALOUS" if is_anom else "NORMAL"
 
-        # Event manager logic
+        # Event manager logic with debounce (ADR-003)
         is_event_start = False
         if self.cooldown_remaining > 0:
             self.cooldown_remaining -= 1
 
         if is_anom:
-            if not self.in_event:
-                if self.cooldown_remaining == 0:
+            self.consecutive_anom += 1
+            # Trigger event start if:
+            # (1) Not already in an ongoing event
+            # (2) Cooldown expired
+            # (3) EITHER consecutive count >= debounce OR extreme single spike >= 1.5 * threshold
+            if not self.in_event and self.cooldown_remaining == 0:
+                if self.consecutive_anom >= self.debounce or raw_z >= (self.threshold * 1.5):
                     is_event_start = True
+                    self.in_event = True
                     self.cooldown_remaining = self.cooldown_duration
-                self.in_event = True
+
             self.gap_count = 0
         else:
+            self.consecutive_anom = 0
             if self.in_event:
                 self.gap_count += 1
                 if self.gap_count >= self.merge_gap:

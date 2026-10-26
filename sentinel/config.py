@@ -14,7 +14,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "probation_fraction": PROBATION_FRACTION,
     "probation_max": PROBATION_MAX,
     "probation": 300,  # Fallback when n_total is unknown
-    "fixed_threshold": 4.5,  # Robust Z-score threshold for K1 baseline
+    "fixed_threshold": 6.0,  # Calibrated Robust Z-score threshold (ADR-003)
+    "debounce": 2,  # Require 2 consecutive outliers (or 1 extreme spike) (ADR-003)
     "detectors": ["robust_z"],
     "last_w": {"w": 3},
     "lagged_residual": {"w": 16, "h": 64},
@@ -27,5 +28,5 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "fusion": "max",
     "vote_k": 2,
     "use_events": True,
-    "events": {"merge_gap": 12, "cooldown": 150, "rebaseline_after": 80},
+    "events": {"merge_gap": 16, "cooldown": 200, "rebaseline_after": 80},
 }

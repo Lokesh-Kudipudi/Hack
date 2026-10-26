@@ -11,7 +11,7 @@ def test_sentinel_initialization():
     s = Sentinel(n_total=1000)
     # min(floor(0.15 * 1000), 750) = 150
     assert s.probation_limit == 150
-    assert s.threshold == 4.5
+    assert s.threshold == 6.0
 
 
 def test_probation_suppression():
