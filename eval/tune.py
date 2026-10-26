@@ -9,7 +9,8 @@ The final proposal is the best config on all 7 categories.
 
     python -m eval.tune [--grid small|default] [--jobs 8] [--tag name]
 
-Writes results/runs/<ts>_tune_<tag>.json and results/tuning.md.
+Writes results/runs/<ts>_tune_<tag>.json, results/tuning.md and results/best_config.json (proposal for
+sentinel/config.py).
 """
 from __future__ import annotations
 
@@ -133,13 +134,14 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict:
     path = RUNS_DIR / f"{now:%Y%m%d-%H%M%S}_tune_{args.tag}.json"
     path.write_text(json.dumps(record, indent=1))
     (REPO_ROOT / "results" / "tuning.md").write_text(render_md(record))
+    (REPO_ROOT / "results" / "best_config.json").write_text(json.dumps(cfgs[best], indent=1) + "\n")
 
     print(f"best (all categories): F1={full[best]['f1']:.3f}  {cfgs[best]}")
     print(f"LOCO mean held-out F1={lo['mean_held_out_f1']:.3f}  pooled held-out F1={lo['pooled_held_out']['f1']:.3f}")
     for c, v in lo["per_category"].items():
         print(f"  {c:24s} held-out F1={v['held_out_f1'] if v['held_out_f1'] is not None else float('nan'):.3f}  "
               f"(train {v['train_f1']:.3f})  fp={v['fp']}")
-    print("saved", path.relative_to(REPO_ROOT), "and results/tuning.md")
+    print("saved", path.relative_to(REPO_ROOT), "results/tuning.md, results/best_config.json")
     return record
 
 
