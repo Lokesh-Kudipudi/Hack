@@ -32,8 +32,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     },
     "last_w": {"w": 3},
     "lagged_residual": {"w": 16, "h": 64},
-    "var_ratio": {"w": 24},
-    "seasonal": {"by": "hour", "alpha": 0.05, "min_count": 3},
+    "var_ratio": {"w": 24, "two_sided": False},  # two_sided: also flag variance collapse / flatlines (K19)
+    "seasonal": {"by": "hour", "alpha": 0.05, "min_count": 3, "weekly": False, "auto_period": False},
     "cusum": {"k": 0.5},
     "baseline_alpha": 0.01,
     "use_spot": True,  # Task K3: EVT Extreme Value Theory tail calibration
@@ -71,8 +71,8 @@ ORIGINAL_DEFAULT_CONFIG: Dict[str, Any] = {
     },
     "last_w": {"w": 3},
     "lagged_residual": {"w": 16, "h": 64},
-    "var_ratio": {"w": 24},
-    "seasonal": {"by": "hour", "alpha": 0.05, "min_count": 3},
+    "var_ratio": {"w": 24, "two_sided": False},  # two_sided: also flag variance collapse / flatlines (K19)
+    "seasonal": {"by": "hour", "alpha": 0.05, "min_count": 3, "weekly": False, "auto_period": False},
     "cusum": {"k": 0.5},
     "baseline_alpha": 0.01,
     "use_spot": True,  # Task K3: EVT Extreme Value Theory tail calibration

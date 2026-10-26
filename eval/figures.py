@@ -41,9 +41,9 @@ HEADLINE = {
     ("random", "baseline"): "random",
     ("windowed_gaussian", "baseline thr=1.0"): "windowedGaussian (NAB baseline)",
     ("sentinel", "likhit default"): "Sentinel — original K1-K8 defaults",
-    ("sentinel", "tuned for NAB (phase 3)"): "Sentinel — NAB operating point",
+    ("sentinel", "NAB operating point (final)"): "Sentinel — NAB operating point",
     ("sentinel", "tuned for event-F1 (LOCO, RobustZ+LaggedResidual)"): "Sentinel — phase 2 (per-detector risk)",
-    ("sentinel", "engine default (phase 3, final)"): "Sentinel — engine default (phase 3)",
+    ("sentinel", "engine default (final)"): "Sentinel — engine default (submitted)",
 }
 
 
@@ -144,8 +144,8 @@ def pareto(runs: List[Dict], path: Path) -> None:
         ax.text(0.005, y + 0.4, name, fontsize=7, color="#5f6368", transform=ax.get_yaxis_transform())
     marks = [(("windowed_gaussian", "baseline thr=1.0"), "windowedGaussian baseline", "#202124", "x"),
              (("sentinel", "likhit default"), "original K1-K8 defaults", ORANGE, "s"),
-             (("sentinel", "tuned for NAB (phase 3)"), "NAB operating point", ORANGE, "D"),
-             (("sentinel", "engine default (phase 3, final)"), "engine default (submitted)", RED, "*")]
+             (("sentinel", "NAB operating point (final)"), "NAB operating point", ORANGE, "D"),
+             (("sentinel", "engine default (final)"), "engine default (submitted)", RED, "*")]
     latest = {}
     for r in runs:
         if "overall" in r and not r.get("categories") and r.get("sentinel_source") != "local-untracked":

@@ -57,6 +57,12 @@ def configs() -> List[Tuple[str, str, str, dict]]:
     out += [("alone", f"RobustZ + {NAMES[d]} (MAX)" if d != "robust_z" else "RobustZ only (MAX)", "sentinel",
              {"detectors": [d], **mx, **P2}) for d in ALL]
     out += [("added", "default + Seasonal", "sentinel", {"detectors": ["robust_z", "lagged_residual", "seasonal"]}),
+            ("added", "default + Seasonal (auto period, thr 40)", "sentinel",
+             {"detectors": ["robust_z", "lagged_residual", "seasonal"], "seasonal": {"auto_period": True},
+              "detector_thresholds": {"Seasonal": 40.0}}),
+            ("added", "default + VarRatio two-sided (flatlines, thr x2)", "sentinel",
+             {"detectors": ["robust_z", "lagged_residual", "var_ratio"], "var_ratio": {"two_sided": True},
+              "detector_thresholds": {"VarRatio": 3.0}}),
             ("added", "default + IsolationForest (D7)", "sentinel",
              {"detectors": ["robust_z", "lagged_residual", "isolation_forest"]})]
     return out

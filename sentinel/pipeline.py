@@ -91,12 +91,14 @@ class Sentinel:
                 w=int(cfg_lag.get("w", 16)), h=int(cfg_lag.get("h", 64))
             )
         if "var_ratio" in active_names:
-            w_var = int(self.config.get("var_ratio", {}).get("w", 24))
-            self.detectors["VarRatio"] = VarRatio(w=w_var)
+            cfg_v = self.config.get("var_ratio", {})
+            self.detectors["VarRatio"] = VarRatio(w=int(cfg_v.get("w", 24)),
+                                                  two_sided=bool(cfg_v.get("two_sided", False)))
         if "seasonal" in active_names:
             cfg_s = self.config.get("seasonal", {})
             self.detectors["Seasonal"] = Seasonal(
-                alpha=float(cfg_s.get("alpha", 0.05)), min_count=int(cfg_s.get("min_count", 3))
+                alpha=float(cfg_s.get("alpha", 0.05)), min_count=int(cfg_s.get("min_count", 3)),
+                weekly=bool(cfg_s.get("weekly", False)), auto_period=bool(cfg_s.get("auto_period", False)),
             )
         if "cusum" in active_names:
             k = float(self.config.get("cusum", {}).get("k", 0.5))
