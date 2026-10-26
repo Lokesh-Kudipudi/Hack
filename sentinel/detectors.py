@@ -113,9 +113,9 @@ class LaggedResidual(Detector):
     def __init__(self, w: int = 16, h: int = 64):
         self.w = max(1, w)
         self.h = max(1, h)
-        self.total_len = self.h + self.w
-        self.buffer = collections.deque(maxlen=self.total_len)
-        self.lagged_sum: float = 0.0
+        self.ref_buffer = collections.deque(maxlen=self.w)
+        self.delay_buffer = collections.deque(maxlen=self.h)
+        self.ref_sum: float = 0.0
         self.scale: float = 1.0
 
     def init_scale(self, scale: float):
@@ -123,25 +123,30 @@ class LaggedResidual(Detector):
 
     def update(self, t: pd.Timestamp, x: float) -> float:
         raw_score = 0.0
-        # If we have at least h + 1 points, we have an un-contaminated lagged reference
-        if len(self.buffer) > self.h:
-            lagged_count = min(self.w, len(self.buffer) - self.h)
-            # Slice oldest lagged_count elements from buffer
-            # Since buffer is small (max ~80), summing is O(w) <= 16 operations
-            lagged_mean = sum(self.buffer[i] for i in range(lagged_count)) / lagged_count
-            raw_score = abs(x - lagged_mean) / (self.scale + 1e-9)
+        if len(self.ref_buffer) > 0:
+            mean = self.ref_sum / len(self.ref_buffer)
+            raw_score = abs(x - mean) / (self.scale + 1e-9)
 
-        self.buffer.append(x)
+        # The element exiting delay_buffer (arrived h steps ago) enters reference buffer
+        if len(self.delay_buffer) == self.h:
+            oldest_delayed = self.delay_buffer[0]
+            if len(self.ref_buffer) == self.w:
+                self.ref_sum -= self.ref_buffer[0]
+            self.ref_buffer.append(oldest_delayed)
+            self.ref_sum += oldest_delayed
+
+        self.delay_buffer.append(x)
         return float(raw_score)
 
     def expected(self) -> Optional[float]:
-        if len(self.buffer) > self.h:
-            lagged_count = min(self.w, len(self.buffer) - self.h)
-            return float(sum(self.buffer[i] for i in range(lagged_count)) / lagged_count)
+        if len(self.ref_buffer) > 0:
+            return float(self.ref_sum / len(self.ref_buffer))
         return None
 
     def reset_baseline(self):
-        self.buffer.clear()
+        self.ref_buffer.clear()
+        self.delay_buffer.clear()
+        self.ref_sum = 0.0
 
 
 class VarRatio(Detector):

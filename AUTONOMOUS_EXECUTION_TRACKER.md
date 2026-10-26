@@ -44,15 +44,15 @@
   - Verified: All 3 explain tests pass. Full test suite: 65 passed.
   - Benchmark: Event-F1 = 0.311, Recall = **0.733** (85/116 windows), runtime = **23.04 µs/pt**.
 
-- [ ] **Task K7: Performance & Tuning Pass**
-  - Hot-path optimization: eliminate generator expressions in `LaggedResidual`, pre-allocate per-point dicts in `Sentinel.update`.
-  - Maintain runtime well below the 50 µs/point budget (target < 20 µs/pt).
-  - Status: *In progress*.
+- [x] **Task K7: Performance & Tuning Pass**
+  - Hot-path optimization: eliminated generator expressions in `LaggedResidual`, pre-allocated and reused per-point dicts in `Sentinel.update`.
+  - Result: Inference runtime improved from **23.04 µs/pt → 15.38 µs/pt** (33% speedup, 65,000 points/sec).
+  - Verified: All 65 unit tests pass.
 
 - [ ] **Task K8: Stretch Detector (D7 Streaming Isolation Forest / Fast Random Projection)**
   - Streaming windowed tree estimator on rolling lag features.
   - Evaluate whether it adds value to the ensemble in ablation.
-  - Status: *Not started*.
+  - Status: *In progress*.
 
 ---
 
@@ -66,7 +66,8 @@
 | `k2-v3 consensus-fusion` | 0.153 | 0.086 | 0.698 | 81 / 116 | 860 | 84.0 | 13.3 | 6 detectors, high recall |
 | **`k3 spot-calibrated`** | **0.324** | **0.209** | **0.724** | **84 / 116** | **318** | **100.0** | **16.37** | **#1 on Leaderboard!** FP dropped 63% |
 | `k5 event-lifecycle` | 0.311 | 0.197 | **0.733** | **85 / 116** | 346 | 100.0 | 37.42 | Highest Recall (85 windows caught) |
-| `k6 explain-engine` | 0.311 | 0.197 | **0.733** | **85 / 116** | 346 | 100.0 | **23.04** | Full explainability evidence schema |
+| `k6 explain-engine` | 0.311 | 0.197 | **0.733** | **85 / 116** | 346 | 100.0 | 23.04 | Full explainability evidence schema |
+| **`k7 performance-pass`** | 0.311 | 0.197 | **0.733** | **85 / 116** | 346 | 100.0 | **15.38** | **33% faster (65k pts/sec), strictly O(1)** |
 
 ---
 

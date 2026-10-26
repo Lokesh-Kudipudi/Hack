@@ -132,6 +132,12 @@ class Sentinel:
         # Explain Engine (Task K6)
         self.explain_engine = ExplainEngine()
 
+        # Hot-path pre-allocated buffers (Task K7 Performance)
+        self._raw_scores: Dict[str, float] = {}
+        self._norm_ratios: Dict[str, float] = {}
+        self._calibrated_scores: Dict[str, float] = {}
+        self._alarms: Dict[str, bool] = {}
+
         # Probation buffers
         self.count: int = 0
         self.probation_timestamps: List[pd.Timestamp] = []
@@ -212,10 +218,14 @@ class Sentinel:
             )
 
         # Phase 2: Post-probation detection across all active detectors
-        raw_scores: Dict[str, float] = {}
-        norm_ratios: Dict[str, float] = {}
-        calibrated_scores: Dict[str, float] = {}
-        alarms: Dict[str, bool] = {}
+        raw_scores = self._raw_scores
+        raw_scores.clear()
+        norm_ratios = self._norm_ratios
+        norm_ratios.clear()
+        calibrated_scores = self._calibrated_scores
+        calibrated_scores.clear()
+        alarms = self._alarms
+        alarms.clear()
 
         for name, det in self.detectors.items():
             raw = det.update(t, x)
@@ -297,7 +307,7 @@ class Sentinel:
             label=label,
             is_event_start=is_event_start,
             evidence=evidence,
-            detector_scores=calibrated_scores,
+            detector_scores=dict(calibrated_scores),
         )
 
 

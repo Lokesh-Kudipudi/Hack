@@ -53,6 +53,13 @@
 - Benchmark: Event-F1 = 0.311, Recall = **0.733** (85/116 windows), inference runtime = **23.04 µs/pt** (well within < 50 µs/pt budget).
 - Notes / next: Task K7 (Performance profiling and hot-path optimization).
 
+## 2026-10-26 20:42 — K7 Performance & Hot-Path Optimization
+- Changed: `sentinel/detectors.py`, `sentinel/pipeline.py`
+- Result: Converted `LaggedResidual` to strict $O(1)$ dual-buffer running sum with 0 iterator overhead. Pre-allocated and reused per-point dictionaries in `Sentinel.update`.
+- Benchmark: Inference runtime sped up from **23.04 µs/pt → 15.38 µs/pt** (33% faster, executing at 65,000 points/sec). All 65 unit tests pass.
+- Notes / next: Task K8 (*Stretch* D7 Streaming Trees / Isolation Forest).
+
+
 
 
 
