@@ -1,0 +1,828 @@
+{
+ "kind": "ablation",
+ "created": "2026-10-26T20:00:07",
+ "tag": "tuned-base",
+ "git_sha": "f5144fb",
+ "sentinel_source": "local-untracked",
+ "categories": null,
+ "base": {
+  "detectors": [
+   "RobustZ",
+   "LastW",
+   "LaggedResidual",
+   "VarRatio",
+   "Seasonal",
+   "CUSUM"
+  ],
+  "fusion": "vote",
+  "vote_k": 2,
+  "spot_q": 1e-05,
+  "cooldown": 600,
+  "merge_gap": 50,
+  "lag_h": 32
+ },
+ "rows": [
+  {
+   "group": "baseline",
+   "name": "windowedGaussian (thr 1.0)",
+   "detector": "windowed_gaussian",
+   "config": {
+    "threshold": 1.0
+   },
+   "f1": 0.3024390243902439,
+   "precision": 0.2108843537414966,
+   "recall": 0.5344827586206896,
+   "tp": 62,
+   "fp": 232,
+   "fn": 54,
+   "delay_points_median": 100.0,
+   "delay_fraction_median": 0.4895424836601307,
+   "nab": 40.134874445708434,
+   "nab_events": 39.30919391654409,
+   "us_per_point": 48.93031030736104,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.125,
+    "realAWSCloudwatch": 0.24113475177304963,
+    "realAdExchange": 0.5806451612903226,
+    "realKnownCause": 0.125,
+    "realTraffic": 0.5833333333333334,
+    "realTweets": 0.3132530120481928
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "RobustZ, static thr, no events",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ"
+    ],
+    "fusion": "max",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32,
+    "use_spot": false,
+    "use_events": false
+   },
+   "f1": 0.18535127055306427,
+   "precision": 0.11211573236889692,
+   "recall": 0.5344827586206896,
+   "tp": 62,
+   "fp": 491,
+   "fn": 54,
+   "delay_points_median": 100.0,
+   "delay_fraction_median": 0.4909090909090909,
+   "nab": 13.37769232851577,
+   "nab_events": 27.2850119757343,
+   "us_per_point": 1.2842914183844825,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.03125,
+    "realAWSCloudwatch": 0.25742574257425743,
+    "realAdExchange": 0.4117647058823529,
+    "realKnownCause": 0.10869565217391304,
+    "realTraffic": 0.7407407407407407,
+    "realTweets": 0.14814814814814814
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "RobustZ + SPOT",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ"
+    ],
+    "fusion": "max",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32,
+    "use_events": false
+   },
+   "f1": 0.3315508021390374,
+   "precision": 0.43661971830985913,
+   "recall": 0.2672413793103448,
+   "tp": 31,
+   "fp": 40,
+   "fn": 85,
+   "delay_points_median": 140.0,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 30.26788249712626,
+   "nab_events": 22.88958488749428,
+   "us_per_point": 1.4401343395456818,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.0,
+    "realAWSCloudwatch": 0.4888888888888889,
+    "realAdExchange": 0.2222222222222222,
+    "realKnownCause": 0.32,
+    "realTraffic": 0.25,
+    "realTweets": 0.39344262295081966
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "RobustZ + SPOT + events",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ"
+    ],
+    "fusion": "max",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.3624161073825503,
+   "precision": 0.8181818181818182,
+   "recall": 0.23275862068965517,
+   "tp": 27,
+   "fp": 6,
+   "fn": 89,
+   "delay_points_median": 156.0,
+   "delay_fraction_median": 0.49810366624525915,
+   "nab": 30.26788249712626,
+   "nab_events": 21.172604119584584,
+   "us_per_point": 1.4987503244346387,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.0,
+    "realAWSCloudwatch": 0.4878048780487805,
+    "realAdExchange": 0.25,
+    "realKnownCause": 0.2608695652173913,
+    "realTraffic": 0.13333333333333333,
+    "realTweets": 0.4782608695652174
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "all 6, static thr + events (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ",
+     "LastW",
+     "LaggedResidual",
+     "VarRatio",
+     "Seasonal",
+     "CUSUM"
+    ],
+    "fusion": "max",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32,
+    "use_spot": false
+   },
+   "f1": 0.2842377260981912,
+   "precision": 0.2029520295202952,
+   "recall": 0.47413793103448276,
+   "tp": 55,
+   "fp": 216,
+   "fn": 61,
+   "delay_points_median": 116.0,
+   "delay_fraction_median": 0.4080338266384778,
+   "nab": 0.0,
+   "nab_events": 34.67735568217961,
+   "us_per_point": 5.05798978004837,
+   "per_category_f1": {
+    "artificialNoAnomaly": 0.0,
+    "artificialWithAnomaly": 0.2,
+    "realAWSCloudwatch": 0.22784810126582278,
+    "realAdExchange": 0.32,
+    "realKnownCause": 0.3125,
+    "realTraffic": 0.3076923076923077,
+    "realTweets": 0.32679738562091504
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "all 6 + SPOT, no events (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ",
+     "LastW",
+     "LaggedResidual",
+     "VarRatio",
+     "Seasonal",
+     "CUSUM"
+    ],
+    "fusion": "max",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32,
+    "use_events": false
+   },
+   "f1": 0.2886178861788618,
+   "precision": 0.18882978723404256,
+   "recall": 0.6120689655172413,
+   "tp": 71,
+   "fp": 305,
+   "fn": 45,
+   "delay_points_median": 112.0,
+   "delay_fraction_median": 0.49382716049382713,
+   "nab": 0.0,
+   "nab_events": 43.271901759045555,
+   "us_per_point": 5.428545535509384,
+   "per_category_f1": {
+    "artificialNoAnomaly": 0.0,
+    "artificialWithAnomaly": 0.0784313725490196,
+    "realAWSCloudwatch": 0.1889763779527559,
+    "realAdExchange": 0.3333333333333333,
+    "realKnownCause": 0.3880597014925373,
+    "realTraffic": 0.46808510638297873,
+    "realTweets": 0.33766233766233766
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "all 6 + SPOT + events (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ",
+     "LastW",
+     "LaggedResidual",
+     "VarRatio",
+     "Seasonal",
+     "CUSUM"
+    ],
+    "fusion": "max",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.37037037037037035,
+   "precision": 0.3246753246753247,
+   "recall": 0.43103448275862066,
+   "tp": 50,
+   "fp": 104,
+   "fn": 66,
+   "delay_points_median": 148.5,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 0.0,
+   "nab_events": 34.64818215973424,
+   "us_per_point": 5.134036417916969,
+   "per_category_f1": {
+    "artificialNoAnomaly": 0.0,
+    "artificialWithAnomaly": 0.2,
+    "realAWSCloudwatch": 0.32786885245901637,
+    "realAdExchange": 0.4166666666666667,
+    "realKnownCause": 0.38095238095238093,
+    "realTraffic": 0.48,
+    "realTweets": 0.40425531914893614
+   }
+  },
+  {
+   "group": "fusion",
+   "name": "all 6 + SPOT + events, vote k=2",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ",
+     "LastW",
+     "LaggedResidual",
+     "VarRatio",
+     "Seasonal",
+     "CUSUM"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.5380710659898477,
+   "precision": 0.654320987654321,
+   "recall": 0.45689655172413796,
+   "tp": 53,
+   "fp": 28,
+   "fn": 63,
+   "delay_points_median": 156.0,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 0.0,
+   "nab_events": 40.053446999912794,
+   "us_per_point": 4.655715268648351,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.8,
+    "realAWSCloudwatch": 0.509090909090909,
+    "realAdExchange": 0.6,
+    "realKnownCause": 0.3888888888888889,
+    "realTraffic": 0.3,
+    "realTweets": 0.6785714285714286
+   }
+  },
+  {
+   "group": "fusion",
+   "name": "all 6 + SPOT + events, vote k=3",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ",
+     "LastW",
+     "LaggedResidual",
+     "VarRatio",
+     "Seasonal",
+     "CUSUM"
+    ],
+    "fusion": "vote",
+    "vote_k": 3,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.43870967741935485,
+   "precision": 0.8717948717948718,
+   "recall": 0.29310344827586204,
+   "tp": 34,
+   "fp": 5,
+   "fn": 82,
+   "delay_points_median": 100.5,
+   "delay_fraction_median": 0.4978080520281022,
+   "nab": 0.0,
+   "nab_events": 26.697698239432775,
+   "us_per_point": 4.697730934294364,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.5454545454545454,
+    "realAdExchange": 0.4444444444444444,
+    "realKnownCause": 0.25,
+    "realTraffic": 0.25,
+    "realTweets": 0.5217391304347826
+   }
+  },
+  {
+   "group": "alone",
+   "name": "RobustZ only",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.3624161073825503,
+   "precision": 0.8181818181818182,
+   "recall": 0.23275862068965517,
+   "tp": 27,
+   "fp": 6,
+   "fn": 89,
+   "delay_points_median": 156.0,
+   "delay_fraction_median": 0.49810366624525915,
+   "nab": 30.26788249712626,
+   "nab_events": 21.172604119584584,
+   "us_per_point": 1.440267915680423,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.0,
+    "realAWSCloudwatch": 0.4878048780487805,
+    "realAdExchange": 0.25,
+    "realKnownCause": 0.2608695652173913,
+    "realTraffic": 0.13333333333333333,
+    "realTweets": 0.4782608695652174
+   }
+  },
+  {
+   "group": "alone",
+   "name": "LastW only",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "LastW"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.4656084656084656,
+   "precision": 0.6027397260273972,
+   "recall": 0.3793103448275862,
+   "tp": 44,
+   "fp": 29,
+   "fn": 72,
+   "delay_points_median": 101.0,
+   "delay_fraction_median": 0.4973437895269416,
+   "nab": 46.27161517088401,
+   "nab_events": 33.1737408503644,
+   "us_per_point": 1.1423914524690897,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.425531914893617,
+    "realAdExchange": 0.6666666666666666,
+    "realKnownCause": 0.42424242424242425,
+    "realTraffic": 0.42105263157894735,
+    "realTweets": 0.4838709677419355
+   }
+  },
+  {
+   "group": "alone",
+   "name": "LaggedResidual only",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "LaggedResidual"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.5257142857142857,
+   "precision": 0.7796610169491526,
+   "recall": 0.39655172413793105,
+   "tp": 46,
+   "fp": 13,
+   "fn": 70,
+   "delay_points_median": 120.0,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 9.085684509226388,
+   "nab_events": 35.54339955468191,
+   "us_per_point": 1.0690514063449723,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.5106382978723404,
+    "realAdExchange": 0.6086956521739131,
+    "realKnownCause": 0.5161290322580645,
+    "realTraffic": 0.25,
+    "realTweets": 0.6274509803921569
+   }
+  },
+  {
+   "group": "alone",
+   "name": "VarRatio only",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "VarRatio"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.3024390243902439,
+   "precision": 0.34831460674157305,
+   "recall": 0.2672413793103448,
+   "tp": 31,
+   "fp": 58,
+   "fn": 85,
+   "delay_points_median": 201.0,
+   "delay_fraction_median": 0.499054820415879,
+   "nab": 0.0,
+   "nab_events": 21.371056585322084,
+   "us_per_point": 1.4044603272053993,
+   "per_category_f1": {
+    "artificialNoAnomaly": 0.0,
+    "artificialWithAnomaly": 0.3333333333333333,
+    "realAWSCloudwatch": 0.28,
+    "realAdExchange": 0.125,
+    "realKnownCause": 0.21052631578947367,
+    "realTraffic": 0.2727272727272727,
+    "realTweets": 0.42424242424242425
+   }
+  },
+  {
+   "group": "alone",
+   "name": "Seasonal only",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "Seasonal"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.23357664233576642,
+   "precision": 0.7619047619047619,
+   "recall": 0.13793103448275862,
+   "tp": 16,
+   "fp": 5,
+   "fn": 100,
+   "delay_points_median": 148.5,
+   "delay_fraction_median": 0.4978080520281022,
+   "nab": 34.918789588482305,
+   "nab_events": 12.656724012934227,
+   "us_per_point": 1.320814471393973,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.6666666666666666,
+    "realAWSCloudwatch": 0.16216216216216217,
+    "realAdExchange": 0.4444444444444444,
+    "realKnownCause": 0.0,
+    "realTraffic": 0.13333333333333333,
+    "realTweets": 0.2564102564102564
+   }
+  },
+  {
+   "group": "alone",
+   "name": "CUSUM only",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "CUSUM"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.2617801047120419,
+   "precision": 0.3333333333333333,
+   "recall": 0.21551724137931033,
+   "tp": 25,
+   "fp": 50,
+   "fn": 91,
+   "delay_points_median": 115.0,
+   "delay_fraction_median": 0.504708097928437,
+   "nab": 0.0,
+   "nab_events": 17.441088956804983,
+   "us_per_point": 1.9888228055355832,
+   "per_category_f1": {
+    "artificialNoAnomaly": 0.0,
+    "artificialWithAnomaly": 0.13333333333333333,
+    "realAWSCloudwatch": 0.37735849056603776,
+    "realAdExchange": 0.0,
+    "realKnownCause": 0.0,
+    "realTraffic": 0.42105263157894735,
+    "realTweets": 0.3389830508474576
+   }
+  },
+  {
+   "group": "removed",
+   "name": "all \u2212 RobustZ",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "LastW",
+     "LaggedResidual",
+     "VarRatio",
+     "Seasonal",
+     "CUSUM"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.5151515151515151,
+   "precision": 0.6219512195121951,
+   "recall": 0.4396551724137931,
+   "tp": 51,
+   "fp": 31,
+   "fn": 65,
+   "delay_points_median": 140.0,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 0.0,
+   "nab_events": 38.35229401636772,
+   "us_per_point": 3.731108348414427,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.8,
+    "realAWSCloudwatch": 0.4727272727272727,
+    "realAdExchange": 0.6,
+    "realKnownCause": 0.4,
+    "realTraffic": 0.3,
+    "realTweets": 0.6206896551724138
+   }
+  },
+  {
+   "group": "removed",
+   "name": "all \u2212 LastW",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ",
+     "LaggedResidual",
+     "VarRatio",
+     "Seasonal",
+     "CUSUM"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.4891304347826087,
+   "precision": 0.6617647058823529,
+   "recall": 0.3879310344827586,
+   "tp": 45,
+   "fp": 23,
+   "fn": 71,
+   "delay_points_median": 156.0,
+   "delay_fraction_median": 0.49842271293375395,
+   "nab": 0.0,
+   "nab_events": 33.88830537942022,
+   "us_per_point": 4.112909927208407,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.8,
+    "realAWSCloudwatch": 0.5283018867924528,
+    "realAdExchange": 0.5263157894736842,
+    "realKnownCause": 0.3125,
+    "realTraffic": 0.2222222222222222,
+    "realTweets": 0.5769230769230769
+   }
+  },
+  {
+   "group": "removed",
+   "name": "all \u2212 LaggedResidual",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ",
+     "LastW",
+     "VarRatio",
+     "Seasonal",
+     "CUSUM"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.45989304812834225,
+   "precision": 0.6056338028169014,
+   "recall": 0.3706896551724138,
+   "tp": 43,
+   "fp": 28,
+   "fn": 73,
+   "delay_points_median": 156.0,
+   "delay_fraction_median": 0.49810366624525915,
+   "nab": 0.0,
+   "nab_events": 32.54377748910099,
+   "us_per_point": 4.011251518234623,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.8,
+    "realAWSCloudwatch": 0.48148148148148145,
+    "realAdExchange": 0.4444444444444444,
+    "realKnownCause": 0.25,
+    "realTraffic": 0.3,
+    "realTweets": 0.5660377358490566
+   }
+  },
+  {
+   "group": "removed",
+   "name": "all \u2212 VarRatio",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ",
+     "LastW",
+     "LaggedResidual",
+     "Seasonal",
+     "CUSUM"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.5454545454545454,
+   "precision": 0.7183098591549296,
+   "recall": 0.4396551724137931,
+   "tp": 51,
+   "fp": 20,
+   "fn": 65,
+   "delay_points_median": 115.0,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 0.0,
+   "nab_events": 39.20184186141105,
+   "us_per_point": 4.031004086492372,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.6666666666666666,
+    "realAWSCloudwatch": 0.5,
+    "realAdExchange": 0.6,
+    "realKnownCause": 0.3870967741935484,
+    "realTraffic": 0.4444444444444444,
+    "realTweets": 0.6666666666666666
+   }
+  },
+  {
+   "group": "removed",
+   "name": "all \u2212 Seasonal",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ",
+     "LastW",
+     "LaggedResidual",
+     "VarRatio",
+     "CUSUM"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.5360824742268041,
+   "precision": 0.6666666666666666,
+   "recall": 0.4482758620689655,
+   "tp": 52,
+   "fp": 26,
+   "fn": 64,
+   "delay_points_median": 148.0,
+   "delay_fraction_median": 0.4978080520281022,
+   "nab": 0.0,
+   "nab_events": 38.988454244965425,
+   "us_per_point": 3.8568741592213187,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.6666666666666666,
+    "realAWSCloudwatch": 0.5283018867924528,
+    "realAdExchange": 0.6,
+    "realKnownCause": 0.3888888888888889,
+    "realTraffic": 0.3,
+    "realTweets": 0.6785714285714286
+   }
+  },
+  {
+   "group": "removed",
+   "name": "all \u2212 CUSUM",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "RobustZ",
+     "LastW",
+     "LaggedResidual",
+     "VarRatio",
+     "Seasonal"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot_q": 1e-05,
+    "cooldown": 600,
+    "merge_gap": 50,
+    "lag_h": 32
+   },
+   "f1": 0.5119047619047619,
+   "precision": 0.8269230769230769,
+   "recall": 0.3706896551724138,
+   "tp": 43,
+   "fp": 9,
+   "fn": 73,
+   "delay_points_median": 102.0,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 0.0,
+   "nab_events": 33.332644012352176,
+   "us_per_point": 3.569701653626319,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.5531914893617021,
+    "realAdExchange": 0.6,
+    "realKnownCause": 0.42857142857142855,
+    "realTraffic": 0.25,
+    "realTweets": 0.6
+   }
+  }
+ ]
+}

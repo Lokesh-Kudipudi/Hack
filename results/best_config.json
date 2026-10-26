@@ -1,0 +1,16 @@
+{
+ "detectors": [
+  "RobustZ",
+  "LastW",
+  "LaggedResidual",
+  "VarRatio",
+  "Seasonal",
+  "CUSUM"
+ ],
+ "fusion": "vote",
+ "vote_k": 2,
+ "spot_q": 1e-05,
+ "cooldown": 600,
+ "merge_gap": 50,
+ "lag_h": 32
+}
