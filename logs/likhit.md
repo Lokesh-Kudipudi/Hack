@@ -47,5 +47,12 @@
 - Benchmark: Recall reached **0.733** (85/116 windows), Event-F1 = 0.311, runtime = **37.42 µs/pt**.
 - Notes / next: Task K6 (Explainability engine in `sentinel/explain.py`).
 
+## 2026-10-26 20:36 — K6 Explainability Engine
+- Changed: `sentinel/explain.py`, `tests/test_explain.py`, `sentinel/pipeline.py`
+- Result: Modular `ExplainEngine` generating structured evidence dictionaries and contextual narrative text for all flagged anomalies conforming to AGENTS.md §4.6. All 65 tests pass.
+- Benchmark: Event-F1 = 0.311, Recall = **0.733** (85/116 windows), inference runtime = **23.04 µs/pt** (well within < 50 µs/pt budget).
+- Notes / next: Task K7 (Performance profiling and hot-path optimization).
+
+
 
 

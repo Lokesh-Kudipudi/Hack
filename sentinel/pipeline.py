@@ -21,6 +21,7 @@ from sentinel.detectors import (
     CUSUM,
 )
 from sentinel.events import EventManager
+from sentinel.explain import ExplainEngine
 from sentinel.fusion import FusionEngine
 from sentinel.spot import SPOT, DSPOT
 from sentinel.types import Detector, Result
@@ -127,6 +128,9 @@ class Sentinel:
             rebaseline_after=int(evt_cfg.get("rebaseline_after", 80)),
             extreme_ratio=1.5,
         )
+
+        # Explain Engine (Task K6)
+        self.explain_engine = ExplainEngine()
 
         # Probation buffers
         self.count: int = 0
@@ -262,7 +266,7 @@ class Sentinel:
             if "Seasonal" in self.detectors:
                 self.detectors["Seasonal"].update_baseline(t, x)  # type: ignore
 
-        # Evidence generation
+        # Evidence generation (Task K6)
         evidence = None
         if label == "ANOMALOUS":
             top_det = self.detectors[top_name]
@@ -270,17 +274,14 @@ class Sentinel:
             if expected_val is None:
                 expected_val = self.detectors["RobustZ"].expected() or 0.0
 
-            anom_type = TYPE_MAP.get(top_name, "anomaly")
-            direction = "above" if x >= expected_val else "below"
-            evidence = {
-                "type": anom_type,
-                "expected": round(float(expected_val), 3),
-                "observed": round(x, 3),
-                "deviation_sigma": round(top_score, 2),
-                "fired": fired if fired else [top_name],
-                "top_detector": top_name,
-                "text": f"Value {x:.2f} is {top_score:.1f}σ {direction} expected {expected_val:.2f} ({top_name} detected {anom_type}).",
-            }
+            evidence = self.explain_engine.explain(
+                t=t,
+                observed=x,
+                expected=expected_val,
+                deviation_sigma=top_score,
+                top_detector=top_name,
+                fired=fired,
+            )
 
         # Ensure scalar score is strictly consistent with categorical label
         # Normal observations stay < 0.5; Confirmed anomalies map to [0.5, 1.0]
