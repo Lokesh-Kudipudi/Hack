@@ -33,7 +33,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "cusum": {"k": 0.5},
     "baseline_alpha": 0.01,
     "use_spot": True,  # Task K3: EVT Extreme Value Theory tail calibration
-    "spot": {"init_level": 0.98, "q": 1e-4, "min_excesses": 10, "dspot_depth": 0},
+    "spot": {"init_level": 0.98, "q": 1e-4, "min_excesses": 10, "dspot_depth": 0,
+             "q_per_detector": {}},  # e.g. {"LastW": 1e-4, "LaggedResidual": 1e-4}
     "fusion": "max",
     "vote_k": 2,
     "use_events": True,

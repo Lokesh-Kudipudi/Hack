@@ -101,3 +101,20 @@ def test_pipeline_with_spot():
     assert spike_r.score >= 0.95
     assert spike_r.is_event_start is True
 
+
+
+def test_partial_nested_config_keeps_defaults():
+    from sentinel.config import DEFAULT_CONFIG
+    s = Sentinel(n_total=1000, config={"spot": {"q": 1e-6}, "events": {"cooldown": 7}})
+    assert s.spot_q == 1e-6
+    assert s.spot_init_level == DEFAULT_CONFIG["spot"]["init_level"]
+    assert s.event_manager.cooldown_duration == 7
+    assert s.event_manager.merge_gap == DEFAULT_CONFIG["events"]["merge_gap"]
+    assert DEFAULT_CONFIG["spot"]["q"] == 1e-4  # defaults not mutated
+
+
+def test_per_detector_spot_q():
+    s = Sentinel(n_total=1000, config={"spot": {"q": 1e-6, "q_per_detector": {"LastW": 1e-3}},
+                                       "detectors": ["robust_z", "last_w"]})
+    assert s.spot_models["LastW"].q == 1e-3
+    assert s.spot_models["RobustZ"].q == 1e-6

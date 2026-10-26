@@ -5,6 +5,7 @@ event management, and explainability.
 """
 from __future__ import annotations
 
+import copy
 import math
 from typing import Any, Dict, List, Optional
 import numpy as np
@@ -27,6 +28,17 @@ from sentinel.fusion import FusionEngine
 from sentinel.spot import SPOT, DSPOT
 from sentinel.types import Detector, Result
 
+def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    """Copy of base with override applied; nested dicts merge instead of being replaced."""
+    out = copy.deepcopy(base)
+    for k, v in override.items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = _deep_merge(out[k], v)
+        else:
+            out[k] = copy.deepcopy(v)
+    return out
+
+
 TYPE_MAP = {
     "RobustZ": "spike",
     "LastW": "spike",
@@ -41,10 +53,7 @@ class Sentinel:
     """Lightweight streaming anomaly detector registering D1-D6 detectors."""
 
     def __init__(self, n_total: Optional[int] = None, config: Optional[Dict[str, Any]] = None):
-        cfg = dict(DEFAULT_CONFIG)
-        if config:
-            cfg.update(config)
-        self.config = cfg
+        self.config = _deep_merge(DEFAULT_CONFIG, config or {})
 
         if n_total is not None:
             self.probation_limit = probation_length(n_total)
@@ -99,6 +108,11 @@ class Sentinel:
         self.use_spot: bool = bool(self.config.get("use_spot", False))
         spot_cfg = self.config.get("spot", {})
         self.spot_q: float = float(spot_cfg.get("q", 1e-4))
+        # Optional per-detector risk level: clean detectors (LastW, LaggedResidual) need a looser q
+        # than noisy ones (VarRatio, Seasonal) to fire at all; missing names fall back to spot.q.
+        self.spot_q_per_detector: Dict[str, float] = {
+            k: float(v) for k, v in (spot_cfg.get("q_per_detector") or {}).items()
+        }
         self.spot_init_level: float = float(spot_cfg.get("init_level", 0.98))
         self.spot_min_excesses: int = int(spot_cfg.get("min_excesses", 8))
         self.dspot_depth: int = int(spot_cfg.get("dspot_depth", 0))
@@ -108,11 +122,12 @@ class Sentinel:
             for name in self.detectors:
                 if self.dspot_depth > 0:
                     self.spot_models[name] = DSPOT(
-                        depth=self.dspot_depth, q=self.spot_q, init_level=self.spot_init_level
+                        depth=self.dspot_depth, q=self.spot_q_per_detector.get(name, self.spot_q),
+                        init_level=self.spot_init_level
                     )
                 else:
                     self.spot_models[name] = SPOT(
-                        q=self.spot_q,
+                        q=self.spot_q_per_detector.get(name, self.spot_q),
                         init_level=self.spot_init_level,
                         min_excesses=self.spot_min_excesses,
                     )

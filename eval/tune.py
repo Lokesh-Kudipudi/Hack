@@ -41,6 +41,18 @@ GRIDS = {
         "events.cooldown": [200, 600],
         "events.merge_gap": [16, 64],
     },
+    # per-detector SPOT risk + base thresholds for the short/long-horizon detectors (LastW, LaggedResidual)
+    "perdet": {
+        "spot.q_per_detector": [{}, {"LastW": 1e-4, "LaggedResidual": 1e-4}, {"LastW": 1e-3, "LaggedResidual": 1e-4},
+                                {"LastW": 1e-4, "LaggedResidual": 1e-4, "VarRatio": 1e-7, "Seasonal": 1e-7}],
+        "detector_thresholds": [{}, {"LastW": 2.0, "LaggedResidual": 2.0}, {"LastW": 4.0, "LaggedResidual": 4.0}],
+        "fusion": [("max", 1), ("vote", 2), ("vote", 3)],
+        "thr_scale": [1.0, 1.5],
+        "debounce": [1, 2],
+        "events.cooldown": [400, 600, 1000],
+        "spot.q": [1e-6],
+        "events.merge_gap": [64],
+    },
 }
 
 
