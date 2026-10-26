@@ -52,6 +52,16 @@ GRIDS = {
         "detector_thresholds": [{"Seasonal": 15.0}, {"Seasonal": 25.0}],
         "extreme_ratio": [1.5, 2.0],
     },
+    # phase-3 refinement: with the spatial flag supplying recall, re-open per-detector risk and global q
+    "recall2": {
+        "spot.q_per_detector": [{"LastW": 1e-4, "LaggedResidual": 1e-4}, {}, {"LaggedResidual": 1e-5}],
+        "spot.q": [1e-6, 1e-5],
+        "spatial": [{"enabled": True, "tol": 0.05}, {"enabled": True, "tol": 0.1}, {"enabled": True, "tol": 0.15}],
+        "debounce": [2, 3],
+        "events.cooldown_frac": [0.25, 0.5, 1.0],
+        "extreme_ratio": [1.5, 2.0],
+        "detectors": [["robust_z", "lagged_residual"], ["robust_z", "lagged_residual", "last_w"]],
+    },
     # one config for both metrics: union of the F1-optimal and NAB-optimal regions
     "joint": {
         "detectors": [["robust_z", "lagged_residual"], ["robust_z", "last_w", "lagged_residual"],
