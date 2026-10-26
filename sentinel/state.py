@@ -139,6 +139,19 @@ def pipeline_to_dict(pipeline: Any) -> Dict[str, Any]:
             for attr in dir(pipeline.event_manager)
             if not attr.startswith("_") and not callable(getattr(pipeline.event_manager, attr))
         },
+        "spatial": {
+            "n": pipeline.spatial.n,
+            "lo": pipeline.spatial.lo,
+            "hi": pipeline.spatial.hi,
+            "tol": pipeline.spatial.tol,
+            "min_seed": pipeline.spatial.min_seed,
+        } if getattr(pipeline, "spatial", None) is not None else None,
+        "smoother": {
+            "window": pipeline.smoother.window,
+            "only": list(pipeline.smoother.only) if pipeline.smoother.only else None,
+            "buf": {name: list(buf) for name, buf in pipeline.smoother._buf.items()},
+            "sum": dict(pipeline.smoother._sum),
+        } if getattr(pipeline, "smoother", None) is not None else None,
     }
     return state
 
@@ -177,5 +190,20 @@ def pipeline_from_dict(pipeline_class: Any, state: Dict[str, Any]) -> Any:
     for attr, val in em_state.items():
         if hasattr(pipeline.event_manager, attr):
             setattr(pipeline.event_manager, attr, val)
+
+    # Restore SpatialExtreme
+    if state.get("spatial") and getattr(pipeline, "spatial", None) is not None:
+        for k, v in state["spatial"].items():
+            setattr(pipeline.spatial, k, v)
+
+    # Restore ScoreSmoother
+    if state.get("smoother") and getattr(pipeline, "smoother", None) is not None:
+        sm_state = state["smoother"]
+        pipeline.smoother.window = sm_state.get("window", pipeline.smoother.window)
+        pipeline.smoother._sum = dict(sm_state.get("sum", {}))
+        pipeline.smoother._buf = {
+            name: collections.deque(buf, maxlen=pipeline.smoother.window)
+            for name, buf in sm_state.get("buf", {}).items()
+        }
 
     return pipeline
