@@ -1,0 +1,25 @@
+# Data — never pushed; each person keeps a local copy
+data/
+*.csv
+!results/**/*.csv
+*.parquet
+*.pkl
+*.npz
+*.npy
+*.h5
+*.tflite
+*.pt
+*.ckpt
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
