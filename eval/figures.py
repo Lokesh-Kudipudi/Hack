@@ -41,8 +41,9 @@ HEADLINE = {
     ("random", "baseline"): "random",
     ("windowed_gaussian", "baseline thr=1.0"): "windowedGaussian (NAB baseline)",
     ("sentinel", "likhit default"): "Sentinel — original K1-K8 defaults",
-    ("sentinel", "tuned for NAB"): "Sentinel — tuned for NAB score",
-    ("sentinel", "tuned for event-F1 (LOCO, RobustZ+LaggedResidual)"): "Sentinel — tuned for event-F1",
+    ("sentinel", "tuned for NAB (phase 3)"): "Sentinel — NAB operating point",
+    ("sentinel", "tuned for event-F1 (LOCO, RobustZ+LaggedResidual)"): "Sentinel — phase 2 (per-detector risk)",
+    ("sentinel", "engine default (phase 3, final)"): "Sentinel — engine default (phase 3)",
 }
 
 

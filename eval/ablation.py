@@ -24,7 +24,8 @@ FIG_DIR = REPO_ROOT / "results" / "figures"
 
 
 # phase-2 state (before the recall mechanisms of ADR-010): used so the build-up runs step by step
-P2 = {"spatial": {"enabled": False}, "events.cooldown_frac": 0.0, "extreme_ratio": 1.5, "debounce": 2}
+P2 = {"spatial": {"enabled": False}, "events.cooldown_frac": 0.0, "extreme_ratio": 1.5, "debounce": 2,
+      "spot.q_per_detector": {"LastW": 1e-4, "LaggedResidual": 1e-4}}
 SPATIAL = {"spatial": {"enabled": True, "tol": 0.05}}
 
 
@@ -45,7 +46,8 @@ def configs() -> List[Tuple[str, str, str, dict]]:
            ("build-up", "+ spatial-extreme flag", "sentinel", {**P2, **SPATIAL}),
            ("build-up", "+ debounce 3, extreme ratio 2.0", "sentinel", {**P2, **SPATIAL, "debounce": 3,
                                                                       "extreme_ratio": 2.0}),
-           ("tuned", "+ cooldown 0.5 x probation = engine default (ADR-010)", "sentinel", {})]
+           ("build-up", "+ cooldown 0.5 x probation", "sentinel", {"spot.q_per_detector": {"LaggedResidual": 1e-4}}),
+           ("tuned", "+ LaggedResidual risk 1e-5 = engine default (ADR-010)", "sentinel", {})]
     out += [("removed", "default − spatial flag", "sentinel", {"spatial": {"enabled": False}}),
             ("removed", "default − debounce 3 (→ 2)", "sentinel", {"debounce": 2}),
             ("removed", "default − extreme ratio 2.0 (→ 1.5)", "sentinel", {"extreme_ratio": 1.5}),
