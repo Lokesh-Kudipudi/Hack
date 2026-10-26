@@ -165,6 +165,91 @@ def pareto(runs: List[Dict], path: Path) -> None:
     plt.close(fig)
 
 
+NAB_NAMES = {"ARTime": "ARTime", "numenta": "Numenta HTM", "contextOSE": "CAD OSE", "htmjava": "HTM Java",
+             "numentaTM": "Numenta TM", "earthgeckoSkyline": "earthgecko Skyline", "knncad": "KNN CAD",
+             "relativeEntropy": "Relative Entropy", "randomCutForest": "Random Cut Forest",
+             "twitterADVec": "Twitter ADVec", "windowedGaussian": "Windowed Gaussian", "skyline": "Etsy Skyline",
+             "bayesChangePt": "Bayesian Changepoint", "random": "Random", "expose": "EXPoSE", "null": "Null"}
+
+
+def published_comparison(runs: List[Dict], bench: Optional[Dict], path: Path) -> None:
+    """Left: NAB standard score, published detectors (final_results.json) + our measured operating points.
+    Right: µs/point measured on this machine (only detectors we actually ran)."""
+    pub_file = REPO_ROOT / "data" / "NAB" / "results" / "final_results.json"
+    if not pub_file.is_file():
+        return
+    pub = json.loads(pub_file.read_text())
+    rows = [(NAB_NAMES.get(k, k), v["standard"], False) for k, v in pub.items()]
+    latest = {(r["detector"], r.get("tag")): r for r in runs if "overall" in r and not r.get("categories")}
+    for tag, lab in (("NAB operating point (final)", "Sentinel — NAB operating point"),
+                     ("engine default (final)", "Sentinel — engine default")):
+        r = latest.get(("sentinel", tag))
+        if r:
+            rows.append((lab, r["nab"]["standard"]["score"], True))
+    rows.sort(key=lambda x: x[1])
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(12, 5.2), gridspec_kw={"width_ratios": [1.5, 1]})
+    a1.barh([r[0] for r in rows], [r[1] for r in rows], color=[RED if r[2] else GREY for r in rows])
+    for i, r in enumerate(rows):
+        a1.text(r[1] + 0.8, i, f"{r[1]:.1f}", va="center", fontsize=8, fontweight="bold" if r[2] else None)
+    a1.set_xlabel("NAB standard profile score (published leaderboard + ours)")
+    a1.set_xlim(0, 85)
+    if bench:
+        b = sorted(bench["results"], key=lambda r: r["us_per_point_mean"])
+        names = [{"windowed_gaussian": "Windowed Gaussian"}.get(r["detector"], r["detector"]) for r in b]
+        names = ["Sentinel (engine default)" if n == "sentinel" else n.capitalize() if n in ("null", "random") else n
+                 for n in names]
+        vals = [r["us_per_point_mean"] for r in b]
+        a2.barh(names, vals, color=[RED if n.startswith("Sentinel") else GREY for n in names])
+        for i, v in enumerate(vals):
+            a2.text(v * 1.15, i, f"{v:.2f} µs", va="center", fontsize=8)
+        a2.set_xscale("log")
+        a2.axvline(50, color="#202124", ls=":", lw=1)
+        a2.text(52, len(vals) - 0.6, "our 50 µs budget", fontsize=7)
+        a2.set_xlabel("µs per point, measured on this machine (log scale)")
+    for a in (a1, a2):
+        _style(a)
+        a.grid(axis="x", alpha=0.25)
+        a.grid(axis="y", visible=False)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+def ablation_progression(runs: List[Dict], path: Path) -> None:
+    """Event-F1 / recall / precision along the ablation build-up (latest ablation record)."""
+    abls = [r for r in runs if r.get("kind") == "ablation"]
+    if not abls:
+        return
+    rows = [r for r in abls[-1]["rows"] if r["group"] in ("baseline", "build-up", "tuned")]
+    short = {"windowedGaussian (thr 1.0)": "windowed\nGaussian", "RobustZ, static thr, no event logic": "RobustZ\nstatic thr",
+             "RobustZ + SPOT": "+ SPOT\n(EVT)", "RobustZ + SPOT + events": "+ event\nlifecycle",
+             "all 6 + SPOT + events (MAX)": "6 detectors\nMAX", "all 6, vote k=2": "6 detectors\nvote k=2",
+             "per-detector SPOT risk: RobustZ + LaggedResidual (ADR-009)": "per-detector\nrisk (2 det.)",
+             "+ spatial-extreme flag": "+ spatial\nextreme", "+ debounce 3, extreme ratio 2.0": "+ debounce 3\nextreme 2.0",
+             "+ cooldown 0.5 x probation": "+ proportional\ncooldown",
+             "+ LaggedResidual risk 1e-5 = engine default (ADR-010)": "+ LR risk 1e-5\n= default"}
+    labels = [short.get(r["name"], r["name"]) for r in rows]
+    x = range(len(rows))
+    fig, ax = plt.subplots(figsize=(12, 4.6))
+    for key, col, lab, lw in (("f1", BLUE, "Event-F1", 2.5), ("precision", GREY, "Precision", 1.2),
+                              ("recall", ORANGE, "Recall", 1.2)):
+        ys = [r[key] or 0 for r in rows]
+        ax.plot(list(x), ys, marker="o", color=col, lw=lw, label=lab)
+        if key == "f1":
+            for i, v in zip(x, ys):
+                ax.text(i, v + 0.045, f"{v:.3f}", ha="center", fontsize=8, color=BLUE, fontweight="bold",
+                        bbox=dict(facecolor="white", edgecolor="none", pad=0.5))
+    ax.axhline(rows[0]["f1"], color="#202124", ls=":", lw=0.8)
+    ax.set_xticks(list(x), labels, fontsize=7)
+    ax.set_ylim(0, 1)
+    ax.set_title("Event-F1 along the build-up (full NAB corpus)")
+    ax.legend(frameon=False, fontsize=8, loc="upper left")
+    _style(ax)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
 def example(key: str, config: dict, windows: Dict, path: Path) -> None:
     paths = {f.key: f.path for f in list_files()}
     if key not in paths:
@@ -217,6 +302,8 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     if benches:
         runtime(benches[-1], FIG / "runtime.png")
     pareto(runs, FIG / "pareto_f1_nab.png")
+    published_comparison(runs, benches[-1] if benches else None, FIG / "published_comparison.png")
+    ablation_progression(runs, FIG / "ablation_progression.png")
     windows = load_windows(windows_path())
     for key in EXAMPLES:
         example(key, config, windows, FIG / f"example_{Path(key).stem}.png")

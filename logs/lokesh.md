@@ -63,3 +63,9 @@
 - Single-factor: spatial flag +0.03, debounce 3 / agree +0.01–0.02, cooldown_frac alone ≈0, smoothing hurts.
 - L22: recall grid (480) → 0.640 / LOCO pooled 0.623; recall2 grid (432, per-detector risk re-opened) → **0.673 / LOCO pooled 0.654 / mean 0.593**, NAB 54.9; NAB point 60.00. Adopted as default. 2.6 µs/pt. 85 tests pass.
 - Bug fixed: deep merge could not clear a nested dict ({} now replaces) — had made an ablation row silently equal to default.
+
+## 2026-10-27 — Final: review Likhit's phase 3, finalise leaderboard & figures (branch lokesh/finalize)
+- Likhit's findings (PR #1: validation, state, pool, CLI, packaging, K19 detector options, explain v2, causality tests): 107 tests pass. His "event-F1 0.563" benchmark was on sha b6343e1 (pre-merge); on main the default is 0.673 — no accuracy regression.
+- Fixed: input-validation overhead (fast path in validate.py + lazy slow path in pipeline: 4.74 → 2.7 µs/pt, identical output); pandas `dayofweek` deprecation (6,401 warnings → 0); K19 options were unreachable from config → `var_ratio.two_sided`, `seasonal.weekly`, `seasonal.auto_period` (default off).
+- K19 evaluation: on the default they cost precision (F1 0.51–0.60) → default unchanged; two-sided VarRatio in the NAB point → NAB 60.0 → **60.58**.
+- Final: engine default F1 0.673 / P 0.747 / R 0.612 / FP 24, LOCO pooled 0.654, NAB 54.90, 2.7 µs/pt; NAB point 60.58. Leaderboard "Final results" section; regenerated all figures (published_comparison and ablation_progression rebuilt from real data — the old ones had stale/incorrect numbers); README + JUDGES_COMPREHENSIVE_REPORT.md updated.

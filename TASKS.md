@@ -60,6 +60,13 @@ SPOT risk): **event-F1 0.563** (P 0.675, R 0.483, FP 27; held-out pooled 0.510),
 Weakest metrics: **recall 0.48 (60 of 116 windows missed)** and **detection delay (median ~50% into the window)**.
 
 **Update (Lokesh, L17–L22 done):** engine default now **event-F1 0.673** (P 0.747, R 0.612, FP 24; held-out pooled 0.654), NAB 54.9; NAB operating point 60.00. Detection is at the labelled anomaly point (median +0 points). See ADR-010.
+
+**Final (2026-10-27, Lokesh, after Likhit's K9/K15–K21 merge):** reviewed and verified Likhit's phase-3 work (107 tests
+pass; his "event-F1 0.563" run was on a pre-merge commit — on `main` the engine default is unchanged at **0.673**).
+Fixed a runtime regression from input validation (4.74 → 2.7 µs/pt, identical results) and a pandas deprecation
+(6,401 test warnings → 0); wired K19 options as config keys. K19 options lower event-F1 on the default (0.51–0.60) but
+two-sided VarRatio lifts the NAB operating point to **60.58**. Leaderboard has a curated "Final results" table; all
+figures regenerated (published comparison and progression rebuilt from real data); README and judges' report updated.
 Work on branches `<name>/<topic>` (AGENTS §9).
 
 **File boundaries for this phase** (so the two lists never collide):

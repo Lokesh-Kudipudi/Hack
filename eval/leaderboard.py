@@ -17,6 +17,17 @@ NAB_PUBLISHED = [("ARTime", 74.9), ("Numenta HTM", 70.1), ("contextOSE", 69.9), 
                  ("randomCutForest", 51.7), ("windowedGaussian", 39.6), ("random", 16.8), ("null", 0.0)]
 
 
+# (detector, tag) -> label for the curated "Final results" table
+FINAL = [(("null", "baseline"), "null"),
+         (("random", "baseline"), "random"),
+         (("windowed_gaussian", "baseline thr=1.0"), "windowedGaussian (NAB baseline, best threshold)"),
+         (("sentinel", "likhit default"), "Sentinel — original K1–K8 defaults"),
+         (("sentinel", "tuned for event-F1 (LOCO, RobustZ+LaggedResidual)"), "Sentinel — phase 2 (per-detector risk)"),
+         (("sentinel", "NAB operating point (final)"), "**Sentinel — NAB operating point**"),
+         (("sentinel", "engine default (final)"), "**Sentinel — engine default (submitted)**")]
+FINAL_TUNE = "loco-recall2"
+
+
 def load_runs(runs_dir: Path = RUNS_DIR) -> List[Dict]:
     runs = []
     for p in sorted(runs_dir.glob("*.json")):
@@ -41,6 +52,7 @@ def _key(r: Dict):
 
 
 def render(runs: Sequence[Dict]) -> str:
+    runs_all = list(runs)
     benches = [r for r in runs if r.get("kind") == "benchmark"]
     runs = [r for r in runs if "overall" in r]
     full = [r for r in runs if not r.get("categories")]
@@ -65,7 +77,29 @@ def render(runs: Sequence[Dict]) -> str:
                 f"{r.get('git_sha', '')} |")
         lines.append("")
 
-    lines += ["## Full corpus", ""]
+    final = [(t, lab) for t, lab in FINAL if any(r.get("tag") == t[1] and r["detector"] == t[0] for r in full)]
+    if final:
+        latest = {(r["detector"], r.get("tag")): r for r in full}
+        lines += ["## Final results", "",
+                  "Headline runs (latest of each). Engine default = `Sentinel()` with no config (submitted). "
+                  "Held-out F1 = leave-one-category-out (tune on 6 categories, test on the 7th), see `results/tuning.md`.", "",
+                  "| Detector | Event-F1 | P | R | TP | FP | FN | NAB std | NAB low-FP | NAB low-FN | µs/pt |",
+                  "|---|---|---|---|---|---|---|---|---|---|---|"]
+        for key, lab in final:
+            r = latest[key]
+            o, nab, rt = r["overall"], r.get("nab", {}), r.get("runtime", {})
+            lines.append(f"| {lab} | **{_f(o['f1'])}** | {_f(o['precision'])} | {_f(o['recall'])} | {o['tp']} | {o['fp']} | "
+                         f"{o['fn']} | {_f(nab.get('standard', {}).get('score'), 1)} | "
+                         f"{_f(nab.get('reward_low_FP_rate', {}).get('score'), 1)} | "
+                         f"{_f(nab.get('reward_low_FN_rate', {}).get('score'), 1)} | {_f(rt.get('us_per_point'), 1)} |")
+        tunes = [r for r in runs_all if r.get("kind") == "tune" and r.get("tag") == FINAL_TUNE]
+        if tunes:
+            lo = tunes[-1]["loco"]
+            lines += ["", f"Engine default, held-out F1: **pooled {_f(lo['pooled_held_out']['f1'])}, "
+                          f"mean {_f(lo['mean_held_out_f1'])}** over the 7 held-out categories."]
+        lines.append("")
+
+    lines += ["## All full-corpus runs", ""]
     table(full)
 
     if full:
