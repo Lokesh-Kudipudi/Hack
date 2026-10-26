@@ -39,3 +39,10 @@
 - Changed: eval/run.py (sentinel_config deep merge, dotted keys, thr_scale), eval/tune.py (grid on Likhit's schema, NAB per config, best_nab), eval/ablation.py (Likhit's schema), eval/figures.py (headline runs only, real engine only), app/dashboard.py (sigma fallback), README.md (numbers corrected), results/*
 - Result: default 0.311 F1 / NAB 53.0 → tuned-for-F1 0.481 (LOCO held-out 0.451, pooled 0.412) and tuned-for-NAB 58.07 (F1 0.353, R 0.759). 5.5 µs/pt. 648-config grid. Extreme-bypass what-if: ≤ +0.013 F1. Ablation: RobustZ+VarRatio alone 0.488; LastW/LaggedResidual ~0 contribution on Likhit's engine. 70 tests pass.
 - Notes: README previously showed stand-in numbers (0.538, 15.38 µs) as Likhit's — corrected. Requests to Likhit updated in TASKS. Stand-in removed (`.git/info/exclude` entries deleted).
+
+## 2026-10-26 — Re-activate LastW/LaggedResidual (branch lokesh/engine-d2-d3-fix) + eval.predict (branch lokesh/predict)
+- Diagnosis: not the 6σ base floor (SPOT z_q dominates in most files) and not scaling (adaptive-scale prototype 0.453). Alone (others masked) LastW/LaggedResidual had P≈0.9, R≈0.15 → global q=1e-6 too strict for clean detectors.
+- Changed: sentinel/pipeline.py + sentinel/config.py (`spot.q_per_detector`, deep-merge config), tests/test_pipeline.py (+2), eval/tune.py (perdet, subsets grids), eval/ablation.py (alone rows MAX), eval/figures.py, README.md, results/*
+- Result: perdet grid 0.502 (LOCO mean 0.491); subsets grid → RobustZ + LaggedResidual, MAX, q_LR=1e-4: **F1 0.563, P 0.675, R 0.483, FP 27**, LOCO pooled 0.510 / mean 0.492, 2.4 µs/pt. Per-detector q worth +0.16 in that config. NAB best stays 58.07 (results/best_nab_config.json).
+- eval.predict: any CSV folder → per-point predictions + events.csv + summary.json; on starter pack reproduces F1 0.481 with the then-best config. Fixed windows lookup for roots with "..".
+- Next: merge both branches via PR; L10/slides; try NAB-leader ideas (proportional cooldown, score smoothing, spatial extreme).

@@ -1,10 +1,10 @@
 # Sentinel — Adaptive Streaming Time-Series Anomaly Detection
 
-[![Tests](https://img.shields.io/badge/pytest-70%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/pytest-72%20passed-brightgreen.svg)]()
 [![NAB Standard Score](https://img.shields.io/badge/NAB%20Score-58.07-orange.svg)]()
-[![Event F1](https://img.shields.io/badge/Event--F1-0.481%20(LOCO%200.451)-blue.svg)]()
-[![Throughput](https://img.shields.io/badge/Throughput-182%2C000%20pts%2Fsec-success.svg)]()
-[![Latency](https://img.shields.io/badge/Latency-5.5%20%C2%B5s%2Fpt-purple.svg)]()
+[![Event F1](https://img.shields.io/badge/Event--F1-0.563%20(LOCO%200.510)-blue.svg)]()
+[![Throughput](https://img.shields.io/badge/Throughput-180k--420k%20pts%2Fsec-success.svg)]()
+[![Latency](https://img.shields.io/badge/Latency-2.4--5.5%20%C2%B5s%2Fpt-purple.svg)]()
 
 > **Hackathon Challenge 2:** Online, lookahead-free streaming anomaly detection on the 58-file Numenta Anomaly Benchmark (NAB). Built with a causal multi-horizon detector ensemble, Extreme Value Theory (SPOT/EVT) dynamic thresholding, event lifecycle debounce & re-baselining, and structured operational explainability.
 
@@ -37,8 +37,9 @@ Sentinel reads one `(timestamp, value)` point at a time and returns, for every p
    - **Sentinel (NAB-tuned config): 58.07 Standard / 45.10 Reward Low FP / 64.00 Reward Low FN** (default config: 53.00)
    - Level with **earthgecko Skyline (58.2)** and **KNN CAD (58.0)**; outperforms **Relative Entropy (54.6)**, **Random Cut Forest (51.7)**, **Twitter ADVec (47.1)**, **Windowed Gaussian (39.6)**, **Etsy Skyline (35.7)**, **Bayesian Changepoint (17.7)**, and **EXPoSE (16.4)**.
 2. **High Generalization & Event-F1**:
-   - Event-F1-tuned global config reaches **Event-F1 = 0.481** (Precision 0.464, Recall 0.500, 67 FP events) vs **0.302** for the windowedGaussian baseline and 0.311 for the default config.
-   - **Leave-One-Category-Out (LOCO) held-out F1 = 0.451** (pooled 0.412): tuning on 6 categories and testing on the unseen 7th loses only 0.03 F1 — the global config transfers.
+   - Event-F1-tuned global config reaches **Event-F1 = 0.563** (Precision 0.675, Recall 0.483, only 27 FP events) vs **0.302** for the windowedGaussian baseline and 0.311 for the default config.
+   - **Leave-One-Category-Out (LOCO) held-out F1: pooled 0.510, mean 0.492** — tuned on 6 categories, tested on the unseen 7th.
+   - Key engine change: a **per-detector SPOT risk level** (`spot.q_per_detector`). One global q silenced the clean short/long-horizon detectors; giving them a looser q is worth +0.16 F1 on its own.
 3. **Ultra-Low Latency & High Throughput**:
    - Executes in **5.5 µs/point** (~182,000 points/second on a single CPU core; p99 10.3 µs).
    - **9x faster than the < 50 µs/point target** and 9x faster than windowedGaussian (48.7 µs).
@@ -83,14 +84,15 @@ Two global operating points, both found by the leave-one-category-out search in 
 |---|---|---|---|---|---|---|---|
 | windowedGaussian (NAB baseline, best thr) | 0.302 | 0.211 | 0.534 | 232 | 54 | 39.6 | 48.7 |
 | Sentinel — default config | 0.311 | 0.197 | 0.733 | 346 | 31 | 53.0 | 5.5 |
-| **Sentinel — tuned for event-F1** (`results/best_config.json`) | **0.481** | **0.464** | 0.500 | **67** | 58 | 42.6 | 5.5 |
+| **Sentinel — tuned for event-F1** (`results/best_config.json`) | **0.563** | **0.675** | 0.483 | **27** | 60 | 42.8 | **2.4** |
 | **Sentinel — tuned for NAB** (`results/best_nab_config.json`) | 0.353 | 0.230 | **0.759** | 294 | **28** | **58.1** | 5.5 |
 
-- Event-F1 config: 2-of-n vote fusion, SPOT q = 1e-6, detector thresholds ×1.5, debounce 2, cooldown 600, merge gap 64.
+- Event-F1 config: **RobustZ + LaggedResidual only**, MAX fusion, SPOT q = 1e-6 (1e-4 for LaggedResidual), debounce 2, cooldown 600, merge gap 64. Chosen from 720 configs (detector subsets × per-detector risk) by leave-one-category-out search.
 - NAB config: MAX fusion, SPOT q = 1e-6, thresholds ×0.75, debounce 1, cooldown 200 — NAB rewards early detection and recall more than event-F1 does.
-- **Ablation** ([results/ablation.md](results/ablation.md)): SPOT turns a static robust-z (F1 0.044, 3545 FPs) into 0.360; event
-  lifecycle → 0.387; all 6 detectors with MAX fusion 0.379; **2-of-n voting 0.481** (FP 115 → 67). VarRatio is the most
-  valuable second detector (RobustZ + VarRatio alone: 0.488); the D7 isolation forest raises recall but costs precision (0.457).
+- **Ablation** ([results/ablation.md](results/ablation.md)): SPOT turns a static robust-z (F1 0.040, 4519 FPs) into 0.376;
+  event lifecycle → 0.392; all 6 detectors with MAX fusion 0.404, with 2-of-n voting 0.470. Once the clean detectors can
+  fire (per-detector q), **RobustZ + LaggedResidual alone reaches 0.563** — the long-horizon residual (ICLR one-liner) is
+  the single most valuable detector; adding noisier detectors (VarRatio, Seasonal, CUSUM, isolation forest) costs precision.
 
 ---
 

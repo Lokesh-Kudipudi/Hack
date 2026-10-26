@@ -1,0 +1,1150 @@
+{
+ "kind": "ablation",
+ "created": "2026-10-26T22:18:12",
+ "tag": "subsets-base",
+ "git_sha": "8f38623",
+ "sentinel_source": "tracked",
+ "categories": null,
+ "base": {
+  "detectors": [
+   "robust_z",
+   "lagged_residual"
+  ],
+  "fusion": "max",
+  "vote_k": 1,
+  "spot.q_per_detector": {
+   "LastW": 0.0001,
+   "LaggedResidual": 0.0001
+  },
+  "detector_thresholds": {
+   "LastW": 2.0,
+   "LaggedResidual": 2.0
+  },
+  "thr_scale": 1.0,
+  "events.cooldown": 600,
+  "debounce": 2,
+  "spot.q": 1e-06,
+  "events.merge_gap": 64
+ },
+ "rows": [
+  {
+   "group": "baseline",
+   "name": "windowedGaussian (thr 1.0)",
+   "detector": "windowed_gaussian",
+   "config": {
+    "threshold": 1.0
+   },
+   "f1": 0.3024390243902439,
+   "precision": 0.2108843537414966,
+   "recall": 0.5344827586206896,
+   "tp": 62,
+   "fp": 232,
+   "fn": 54,
+   "delay_points_median": 100.0,
+   "delay_fraction_median": 0.4895424836601307,
+   "nab": 40.134874445708434,
+   "nab_events": 39.30919391654409,
+   "us_per_point": 48.904245933708026,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.125,
+    "realAWSCloudwatch": 0.24113475177304963,
+    "realAdExchange": 0.5806451612903226,
+    "realKnownCause": 0.125,
+    "realTraffic": 0.5833333333333334,
+    "realTweets": 0.3132530120481928
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "RobustZ, static thr, no event logic",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 0,
+    "debounce": 1,
+    "spot.q": 1e-06,
+    "events.merge_gap": 1,
+    "use_spot": false
+   },
+   "f1": 0.039754705011630365,
+   "precision": 0.02037719488402341,
+   "recall": 0.8103448275862069,
+   "tp": 94,
+   "fp": 4519,
+   "fn": 22,
+   "delay_points_median": 63.5,
+   "delay_fraction_median": 0.45958613653030644,
+   "nab": 3.854519047333288,
+   "nab_events": -131.9001357409678,
+   "us_per_point": 1.7645131871556097,
+   "per_category_f1": {
+    "artificialNoAnomaly": 0.0,
+    "artificialWithAnomaly": 0.09345794392523364,
+    "realAWSCloudwatch": 0.029213483146067417,
+    "realAdExchange": 0.3225806451612903,
+    "realKnownCause": 0.015193370165745856,
+    "realTraffic": 0.4,
+    "realTweets": 0.049019607843137254
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "RobustZ + SPOT",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 0,
+    "debounce": 1,
+    "spot.q": 1e-06,
+    "events.merge_gap": 1,
+    "use_spot": true
+   },
+   "f1": 0.37606837606837606,
+   "precision": 0.3728813559322034,
+   "recall": 0.3793103448275862,
+   "tp": 44,
+   "fp": 74,
+   "fn": 72,
+   "delay_points_median": 100.0,
+   "delay_fraction_median": 0.496,
+   "nab": 35.25063145554759,
+   "nab_events": 31.730182331280442,
+   "us_per_point": 1.812171276943257,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.2857142857142857,
+    "realAdExchange": 0.6428571428571429,
+    "realKnownCause": 0.4,
+    "realTraffic": 0.5,
+    "realTweets": 0.3492063492063492
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "RobustZ + SPOT + events",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64,
+    "use_spot": true
+   },
+   "f1": 0.39215686274509803,
+   "precision": 0.8108108108108109,
+   "recall": 0.25862068965517243,
+   "tp": 30,
+   "fp": 7,
+   "fn": 86,
+   "delay_points_median": 107.0,
+   "delay_fraction_median": 0.4969535836933644,
+   "nab": 30.59813979659078,
+   "nab_events": 23.283200336148173,
+   "us_per_point": 1.7386095440195726,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.35,
+    "realAdExchange": 0.5263157894736842,
+    "realKnownCause": 0.34782608695652173,
+    "realTraffic": 0.4444444444444444,
+    "realTweets": 0.391304347826087
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "all 6, static thr + events (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "last_w",
+     "lagged_residual",
+     "var_ratio",
+     "seasonal",
+     "cusum"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64,
+    "use_spot": false
+   },
+   "f1": 0.18209408194233687,
+   "precision": 0.11049723756906077,
+   "recall": 0.5172413793103449,
+   "tp": 60,
+   "fp": 483,
+   "fn": 56,
+   "delay_points_median": 194.0,
+   "delay_fraction_median": 0.5537130726345654,
+   "nab": 24.045474374987077,
+   "nab_events": 23.279664396131643,
+   "us_per_point": 5.712399037597671,
+   "per_category_f1": {
+    "artificialNoAnomaly": 0.0,
+    "artificialWithAnomaly": 0.19047619047619047,
+    "realAWSCloudwatch": 0.20967741935483872,
+    "realAdExchange": 0.12903225806451613,
+    "realKnownCause": 0.15873015873015872,
+    "realTraffic": 0.20512820512820512,
+    "realTweets": 0.1935483870967742
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "all 6 + SPOT, no event logic (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "last_w",
+     "lagged_residual",
+     "var_ratio",
+     "seasonal",
+     "cusum"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 0,
+    "debounce": 1,
+    "spot.q": 1e-06,
+    "events.merge_gap": 1,
+    "use_spot": true
+   },
+   "f1": 0.1352405721716515,
+   "precision": 0.07313642756680731,
+   "recall": 0.896551724137931,
+   "tp": 104,
+   "fp": 1318,
+   "fn": 12,
+   "delay_points_median": 85.0,
+   "delay_fraction_median": 0.46887052341597796,
+   "nab": 25.61348812570149,
+   "nab_events": 25.074944636971644,
+   "us_per_point": 5.496224381772161,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.0625,
+    "realAWSCloudwatch": 0.10526315789473684,
+    "realAdExchange": 0.39285714285714285,
+    "realKnownCause": 0.09302325581395349,
+    "realTraffic": 0.4406779661016949,
+    "realTweets": 0.16901408450704225
+   }
+  },
+  {
+   "group": "build-up",
+   "name": "all 6 + SPOT + events (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "last_w",
+     "lagged_residual",
+     "var_ratio",
+     "seasonal",
+     "cusum"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64,
+    "use_spot": true
+   },
+   "f1": 0.40372670807453415,
+   "precision": 0.3155339805825243,
+   "recall": 0.5603448275862069,
+   "tp": 65,
+   "fp": 141,
+   "fn": 51,
+   "delay_points_median": 138.0,
+   "delay_fraction_median": 0.4939759036144578,
+   "nab": 45.033757236538335,
+   "nab_events": 44.93892965033143,
+   "us_per_point": 5.724981297730091,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.4166666666666667,
+    "realAWSCloudwatch": 0.3488372093023256,
+    "realAdExchange": 0.5217391304347826,
+    "realKnownCause": 0.3448275862068966,
+    "realTraffic": 0.43478260869565216,
+    "realTweets": 0.4444444444444444
+   }
+  },
+  {
+   "group": "fusion",
+   "name": "all 6 + SPOT + events, vote k=2",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "last_w",
+     "lagged_residual",
+     "var_ratio",
+     "seasonal",
+     "cusum"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64,
+    "use_spot": true
+   },
+   "f1": 0.4697508896797153,
+   "precision": 0.4,
+   "recall": 0.5689655172413793,
+   "tp": 66,
+   "fp": 99,
+   "fn": 50,
+   "delay_points_median": 101.5,
+   "delay_fraction_median": 0.4973437895269416,
+   "nab": 47.321661530110106,
+   "nab_events": 47.321661530110106,
+   "us_per_point": 5.452338971883602,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.4166666666666667,
+    "realAWSCloudwatch": 0.4533333333333333,
+    "realAdExchange": 0.6363636363636364,
+    "realKnownCause": 0.5365853658536586,
+    "realTraffic": 0.5454545454545454,
+    "realTweets": 0.41237113402061853
+   }
+  },
+  {
+   "group": "fusion",
+   "name": "all 6 + SPOT + events, vote k=3",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "last_w",
+     "lagged_residual",
+     "var_ratio",
+     "seasonal",
+     "cusum"
+    ],
+    "fusion": "vote",
+    "vote_k": 3,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64,
+    "use_spot": true
+   },
+   "f1": 0.4697508896797153,
+   "precision": 0.4,
+   "recall": 0.5689655172413793,
+   "tp": 66,
+   "fp": 99,
+   "fn": 50,
+   "delay_points_median": 101.5,
+   "delay_fraction_median": 0.4973437895269416,
+   "nab": 47.32284640610954,
+   "nab_events": 47.32284640610954,
+   "us_per_point": 5.503628817307158,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.4166666666666667,
+    "realAWSCloudwatch": 0.4533333333333333,
+    "realAdExchange": 0.6363636363636364,
+    "realKnownCause": 0.5365853658536586,
+    "realTraffic": 0.5454545454545454,
+    "realTweets": 0.41237113402061853
+   }
+  },
+  {
+   "group": "tuned",
+   "name": "tuned config (base)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "lagged_residual"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.5628140703517588,
+   "precision": 0.6746987951807228,
+   "recall": 0.4827586206896552,
+   "tp": 56,
+   "fp": 27,
+   "fn": 60,
+   "delay_points_median": 132.5,
+   "delay_fraction_median": 0.4969746673956625,
+   "nab": 42.84486030317169,
+   "nab_events": 42.84486030317169,
+   "us_per_point": 2.4255941004397963,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.5,
+    "realAdExchange": 0.6666666666666666,
+    "realKnownCause": 0.46153846153846156,
+    "realTraffic": 0.5714285714285714,
+    "realTweets": 0.6567164179104478
+   }
+  },
+  {
+   "group": "alone",
+   "name": "RobustZ only (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.39215686274509803,
+   "precision": 0.8108108108108109,
+   "recall": 0.25862068965517243,
+   "tp": 30,
+   "fp": 7,
+   "fn": 86,
+   "delay_points_median": 107.0,
+   "delay_fraction_median": 0.4969535836933644,
+   "nab": 30.59813979659078,
+   "nab_events": 23.283200336148173,
+   "us_per_point": 1.7335260909955779,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.35,
+    "realAdExchange": 0.5263157894736842,
+    "realKnownCause": 0.34782608695652173,
+    "realTraffic": 0.4444444444444444,
+    "realTweets": 0.391304347826087
+   }
+  },
+  {
+   "group": "alone",
+   "name": "RobustZ + LastW (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "last_w"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.5181347150259067,
+   "precision": 0.6493506493506493,
+   "recall": 0.43103448275862066,
+   "tp": 50,
+   "fp": 27,
+   "fn": 66,
+   "delay_points_median": 131.0,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 37.73659430261866,
+   "nab_events": 37.736594302618656,
+   "us_per_point": 2.272473192093179,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.4888888888888889,
+    "realAdExchange": 0.6666666666666666,
+    "realKnownCause": 0.3870967741935484,
+    "realTraffic": 0.5263157894736842,
+    "realTweets": 0.5714285714285714
+   }
+  },
+  {
+   "group": "alone",
+   "name": "RobustZ + LaggedResidual (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "lagged_residual"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.5628140703517588,
+   "precision": 0.6746987951807228,
+   "recall": 0.4827586206896552,
+   "tp": 56,
+   "fp": 27,
+   "fn": 60,
+   "delay_points_median": 132.5,
+   "delay_fraction_median": 0.4969746673956625,
+   "nab": 42.84486030317169,
+   "nab_events": 42.84486030317169,
+   "us_per_point": 2.3238741708736534,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.5,
+    "realAdExchange": 0.6666666666666666,
+    "realKnownCause": 0.46153846153846156,
+    "realTraffic": 0.5714285714285714,
+    "realTweets": 0.6567164179104478
+   }
+  },
+  {
+   "group": "alone",
+   "name": "RobustZ + VarRatio (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "var_ratio"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.4413145539906103,
+   "precision": 0.4845360824742268,
+   "recall": 0.4051724137931034,
+   "tp": 47,
+   "fp": 50,
+   "fn": 69,
+   "delay_points_median": 179.0,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 34.863151896102245,
+   "nab_events": 34.81573810299879,
+   "us_per_point": 2.4827094178268463,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.25,
+    "realAWSCloudwatch": 0.425531914893617,
+    "realAdExchange": 0.5,
+    "realKnownCause": 0.2777777777777778,
+    "realTraffic": 0.5,
+    "realTweets": 0.5121951219512195
+   }
+  },
+  {
+   "group": "alone",
+   "name": "RobustZ + Seasonal (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "seasonal"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.475,
+   "precision": 0.4596774193548387,
+   "recall": 0.49137931034482757,
+   "tp": 57,
+   "fp": 67,
+   "fn": 59,
+   "delay_points_median": 100.0,
+   "delay_fraction_median": 0.4921135646687697,
+   "nab": 41.9193357298169,
+   "nab_events": 41.9193357298169,
+   "us_per_point": 2.5702507042872527,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.45454545454545453,
+    "realAWSCloudwatch": 0.3466666666666667,
+    "realAdExchange": 0.7272727272727273,
+    "realKnownCause": 0.5581395348837209,
+    "realTraffic": 0.5714285714285714,
+    "realTweets": 0.45614035087719296
+   }
+  },
+  {
+   "group": "alone",
+   "name": "RobustZ + CUSUM (MAX)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "cusum"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.36257309941520466,
+   "precision": 0.5636363636363636,
+   "recall": 0.2672413793103448,
+   "tp": 31,
+   "fp": 24,
+   "fn": 85,
+   "delay_points_median": 114.0,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 23.162873858439198,
+   "nab_events": 23.11546006533575,
+   "us_per_point": 2.4787405004796716,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.3829787234042553,
+    "realAdExchange": 0.47619047619047616,
+    "realKnownCause": 0.2222222222222222,
+    "realTraffic": 0.4,
+    "realTweets": 0.3673469387755102
+   }
+  },
+  {
+   "group": "fusion",
+   "name": "tuned, vote k=2",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "lagged_residual"
+    ],
+    "fusion": "vote",
+    "vote_k": 2,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.550561797752809,
+   "precision": 0.7903225806451613,
+   "recall": 0.4224137931034483,
+   "tp": 49,
+   "fp": 13,
+   "fn": 67,
+   "delay_points_median": 122.0,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 38.06987447503069,
+   "nab_events": 38.06987447503069,
+   "us_per_point": 2.3820743600964978,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.5116279069767442,
+    "realAdExchange": 0.6666666666666666,
+    "realKnownCause": 0.38461538461538464,
+    "realTraffic": 0.5263157894736842,
+    "realTweets": 0.6451612903225806
+   }
+  },
+  {
+   "group": "fusion",
+   "name": "tuned, no per-detector q",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "lagged_residual"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {},
+    "detector_thresholds": {},
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.4,
+   "precision": 0.7948717948717948,
+   "recall": 0.2672413793103448,
+   "tp": 31,
+   "fp": 8,
+   "fn": 85,
+   "delay_points_median": 114.0,
+   "delay_fraction_median": 0.4971751412429379,
+   "nab": 29.62772808342727,
+   "nab_events": 24.032588944764985,
+   "us_per_point": 2.303522396402861,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.2857142857142857,
+    "realAWSCloudwatch": 0.3902439024390244,
+    "realAdExchange": 0.5263157894736842,
+    "realKnownCause": 0.3333333333333333,
+    "realTraffic": 0.4444444444444444,
+    "realTweets": 0.391304347826087
+   }
+  },
+  {
+   "group": "removed",
+   "name": "all \u2212 LastW",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "lagged_residual",
+     "var_ratio",
+     "seasonal",
+     "cusum"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.40372670807453415,
+   "precision": 0.3155339805825243,
+   "recall": 0.5603448275862069,
+   "tp": 65,
+   "fp": 141,
+   "fn": 51,
+   "delay_points_median": 138.0,
+   "delay_fraction_median": 0.4939759036144578,
+   "nab": 44.994310070716836,
+   "nab_events": 44.89948248450994,
+   "us_per_point": 4.78453784133391,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.4166666666666667,
+    "realAWSCloudwatch": 0.3488372093023256,
+    "realAdExchange": 0.5217391304347826,
+    "realKnownCause": 0.3508771929824561,
+    "realTraffic": 0.43478260869565216,
+    "realTweets": 0.44036697247706424
+   }
+  },
+  {
+   "group": "removed",
+   "name": "all \u2212 LaggedResidual",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "last_w",
+     "var_ratio",
+     "seasonal",
+     "cusum"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.4064516129032258,
+   "precision": 0.3247422680412371,
+   "recall": 0.5431034482758621,
+   "tp": 63,
+   "fp": 131,
+   "fn": 53,
+   "delay_points_median": 122.0,
+   "delay_fraction_median": 0.4939759036144578,
+   "nab": 43.87852082721211,
+   "nab_events": 43.78369324100521,
+   "us_per_point": 4.730816541163811,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.4166666666666667,
+    "realAWSCloudwatch": 0.32941176470588235,
+    "realAdExchange": 0.5217391304347826,
+    "realKnownCause": 0.43137254901960786,
+    "realTraffic": 0.43478260869565216,
+    "realTweets": 0.4230769230769231
+   }
+  },
+  {
+   "group": "removed",
+   "name": "all \u2212 VarRatio",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "last_w",
+     "lagged_residual",
+     "seasonal",
+     "cusum"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.44666666666666666,
+   "precision": 0.3641304347826087,
+   "recall": 0.5775862068965517,
+   "tp": 67,
+   "fp": 117,
+   "fn": 49,
+   "delay_points_median": 115.0,
+   "delay_fraction_median": 0.49673202614379086,
+   "nab": 47.24008256426649,
+   "nab_events": 47.19266877116304,
+   "us_per_point": 4.6758275394806335,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.45454545454545453,
+    "realAWSCloudwatch": 0.3950617283950617,
+    "realAdExchange": 0.6086956521739131,
+    "realKnownCause": 0.37037037037037035,
+    "realTraffic": 0.43478260869565216,
+    "realTweets": 0.4948453608247423
+   }
+  },
+  {
+   "group": "removed",
+   "name": "all \u2212 Seasonal",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "last_w",
+     "lagged_residual",
+     "var_ratio",
+     "cusum"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.42585551330798477,
+   "precision": 0.38095238095238093,
+   "recall": 0.4827586206896552,
+   "tp": 56,
+   "fp": 91,
+   "fn": 60,
+   "delay_points_median": 144.5,
+   "delay_fraction_median": 0.4975124378109453,
+   "nab": 39.75989602561733,
+   "nab_events": 39.66506843941043,
+   "us_per_point": 4.484350081230815,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.25,
+    "realAWSCloudwatch": 0.49122807017543857,
+    "realAdExchange": 0.5217391304347826,
+    "realKnownCause": 0.2692307692307692,
+    "realTraffic": 0.45454545454545453,
+    "realTweets": 0.45544554455445546
+   }
+  },
+  {
+   "group": "removed",
+   "name": "all \u2212 CUSUM",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "last_w",
+     "lagged_residual",
+     "var_ratio",
+     "seasonal"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.4495114006514658,
+   "precision": 0.3612565445026178,
+   "recall": 0.5948275862068966,
+   "tp": 69,
+   "fp": 122,
+   "fn": 47,
+   "delay_points_median": 125.0,
+   "delay_fraction_median": 0.49382716049382713,
+   "nab": 49.23900232734625,
+   "nab_events": 49.1915885342428,
+   "us_per_point": 4.781017195807397,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.4166666666666667,
+    "realAWSCloudwatch": 0.3614457831325301,
+    "realAdExchange": 0.6363636363636364,
+    "realKnownCause": 0.42857142857142855,
+    "realTraffic": 0.5454545454545454,
+    "realTweets": 0.48
+   }
+  },
+  {
+   "group": "added",
+   "name": "all 6 + IsolationForest (D7)",
+   "detector": "sentinel",
+   "config": {
+    "detectors": [
+     "robust_z",
+     "last_w",
+     "lagged_residual",
+     "var_ratio",
+     "seasonal",
+     "cusum",
+     "isolation_forest"
+    ],
+    "fusion": "max",
+    "vote_k": 1,
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "thr_scale": 1.0,
+    "events.cooldown": 600,
+    "debounce": 2,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.382089552238806,
+   "precision": 0.2922374429223744,
+   "recall": 0.5517241379310345,
+   "tp": 64,
+   "fp": 155,
+   "fn": 52,
+   "delay_points_median": 139.0,
+   "delay_fraction_median": 0.49208599102291517,
+   "nab": 43.47738052162505,
+   "nab_events": 43.42996672852161,
+   "us_per_point": 7.3238315276176245,
+   "per_category_f1": {
+    "artificialNoAnomaly": null,
+    "artificialWithAnomaly": 0.4166666666666667,
+    "realAWSCloudwatch": 0.3409090909090909,
+    "realAdExchange": 0.43478260869565216,
+    "realKnownCause": 0.3448275862068966,
+    "realTraffic": 0.43478260869565216,
+    "realTweets": 0.40336134453781514
+   }
+  }
+ ]
+}
