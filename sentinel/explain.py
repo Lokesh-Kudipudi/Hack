@@ -43,6 +43,8 @@ class ExplainEngine:
         deviation_sigma: float,
         top_detector: str,
         fired: List[str],
+        detector_score: Optional[float] = None,
+        threshold_ratio: Optional[float] = None,
     ) -> Dict[str, Any]:
         """Constructs evidence dictionary conforming to AGENTS.md §4.6 schema."""
         observed = float(observed)
@@ -63,12 +65,18 @@ class ExplainEngine:
         desc = TYPE_DESCRIPTIONS.get(anom_type, anom_type)
         text = f"Value {observed:.2f} is {deviation_sigma:.1f}σ {direction} expected {expected:.2f}{time_str} ({top_detector} detected {desc})."
 
+        # Detector-specific context where the value deviation alone is misleading
+        if anom_type == "variance_change" and detector_score is not None:
+            text += f" Local volatility is {float(detector_score) + 1.0:.1f}x the baseline."
+        elif anom_type == "level_shift" and detector_score is not None:
+            text += f" Cumulative drift statistic {float(detector_score):.1f}."
+
         # Corroborating detector clause
         other_fired = [d for d in fired if d != top_detector]
         if other_fired:
             text += f" Corroborated by: {', '.join(other_fired)}."
 
-        return {
+        evidence = {
             "type": anom_type,
             "expected": round(expected, 3),
             "observed": round(observed, 3),
@@ -77,3 +85,9 @@ class ExplainEngine:
             "top_detector": top_detector,
             "text": text,
         }
+        # optional extras beyond the §4.6 schema, only when the caller supplies them
+        if detector_score is not None:
+            evidence["detector_score"] = round(float(detector_score), 3)
+        if threshold_ratio is not None:
+            evidence["threshold_ratio"] = round(float(threshold_ratio), 3)
+        return evidence

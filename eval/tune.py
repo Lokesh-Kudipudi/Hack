@@ -31,7 +31,7 @@ ALL6 = ["robust_z", "last_w", "lagged_residual", "var_ratio", "seasonal", "cusum
 # Keys follow sentinel/config.py; dotted keys set nested values, "thr_scale" scales detector_thresholds
 # (see eval.run.sentinel_config).
 GRIDS = {
-    "small": {"fusion": [("max", 1), ("vote", 2)], "spot.q": [1e-4, 1e-6], "events.cooldown": [200]},
+    "small": {"detectors": [ALL6], "fusion": [("max", 1), ("vote", 2)], "spot.q": [1e-4, 1e-6], "events.cooldown": [200]},
     "default": {
         "detectors": [ALL6, [d for d in ALL6 if d != "var_ratio"], ALL6 + ["isolation_forest"]],
         "fusion": [("max", 1), ("vote", 2), ("vote", 3)],
@@ -71,6 +71,7 @@ GRIDS = {
     },
     # per-detector SPOT risk + base thresholds for the short/long-horizon detectors (LastW, LaggedResidual)
     "perdet": {
+        "detectors": [ALL6],
         "spot.q_per_detector": [{}, {"LastW": 1e-4, "LaggedResidual": 1e-4}, {"LastW": 1e-3, "LaggedResidual": 1e-4},
                                 {"LastW": 1e-4, "LaggedResidual": 1e-4, "VarRatio": 1e-7, "Seasonal": 1e-7}],
         "detector_thresholds": [{}, {"LastW": 2.0, "LaggedResidual": 2.0}, {"LastW": 4.0, "LaggedResidual": 4.0}],

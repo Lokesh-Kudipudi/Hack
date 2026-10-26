@@ -9,12 +9,12 @@ This document captures the architectural rationale, technical trade-offs, and em
 - **Status:** Accepted & Implemented
 - **Date:** 2026-10-26
 - **Context:**
-  Many academic time-series anomaly detectors (including Centered-W windowing, bidirectional RNNs, and batch Transformers) leak future information by centering windows around point $t$ or calculating stats using $[t - w/2, t + w/2]$. In real-time production pipelines, only data up to point $t$ is causally available. Furthermore, cloud monitoring systems require processing hundreds of thousands of metrics per second under strict compute budgets ($< 50\ \mu\text{s/pt}$).
+  Many academic time-series anomaly detectors (including Centered-W windowing, bidirectional RNNs, and batch Transformers) leak future information by centering windows around point $t$ or calculating stats using $[t - w/2, t + w/2]$. In real-time production pipelines, only data up to point $t$ is causally available. Runtime is a judged metric, so we set ourselves a budget of $< 50\ \mu\text{s/pt}$ — roughly the cost of NAB's windowedGaussian baseline on our machine (48.7 µs/pt). It is our own target, not an external requirement.
 - **Decision:**
   1. Sentinel is strictly **causal**: all statistical estimators, rolling statistics, and anomaly scores at time $t$ depend solely on observations $x_\tau$ for $\tau \le t$.
   2. Every operation must execute in strictly **$O(1)$ time and $O(w)$ space** using fixed-size deques and entry/exit rolling sum buffers. No memory leaks, no unbounded lists, and no generator allocations in the inner loop.
 - **Consequences:**
-  - **Positive:** Zero data leakage; deterministic $O(1)$ memory footprint; blazingly fast inference ($15.38\ \mu\text{s/pt}$, 65,000 pts/sec on a single core).
+  - **Positive:** Zero data leakage; deterministic $O(1)$ memory footprint; fast inference: 2.4 µs/pt for the default (tuned) config, 5.5 µs/pt with all 6 detectors (180k–420k pts/sec on a single core; `python -m eval.benchmark`).
   - **Negative:** Lookahead-free detection makes sequence lag anomalies harder to confirm without historical buffering.
 
 ---
@@ -140,3 +140,27 @@ This document captures the architectural rationale, technical trade-offs, and em
   - **Normal Points:** Maintained strictly $\le 0.30$.
 - **Consequences:**
   - **Empirical Impact:** **Official NAB Standard Score skyrocketed from 0.00 to 53.00** (beating Random Cut Forest 51.7, Twitter ADVec 47.1, Windowed Gaussian 39.6, and Etsy Skyline 35.7).
+
+---
+
+## ADR-009: Per-Detector SPOT Risk Level and Tuned Defaults
+
+- **Status:** Accepted & Implemented
+- **Date:** 2026-10-26
+- **Context:**
+  With one global SPOT risk level (`spot.q`), the short- and long-horizon residual detectors (LastW, LaggedResidual) almost
+  never fired: alone they reached precision ≈ 0.9 but recall ≈ 0.15. The noisy detectors (VarRatio, Seasonal) need a strict
+  q, the clean residual detectors a looser one. Rescaling the detectors (adaptive local scale) did not help (F1 0.453).
+- **Decision:**
+  1. `spot.q_per_detector` sets SPOT's risk level per detector; missing names fall back to `spot.q`.
+  2. Nested config overrides deep-merge with the defaults (a partial `{"spot": {"q": ...}}` keeps the other keys).
+  3. The default config is the event-F1 operating point chosen by leave-one-category-out search over 720 global configs:
+     RobustZ + LaggedResidual, MAX fusion, q = 1e-6 (1e-4 for LaggedResidual), debounce 2, cooldown 600, merge gap 64.
+     The original K1–K8 defaults are kept as `ORIGINAL_DEFAULT_CONFIG`.
+- **Consequences:**
+  - **Empirical Impact:** event-F1 0.311 (original defaults) → **0.563** (P 0.675, R 0.483, FP 27); held-out pooled 0.510.
+    Removing per-detector q from that config drops it to 0.400.
+  - Event-F1 and the NAB score favour different settings (`results/figures/pareto_f1_nab.png`); the NAB operating point
+    (`results/best_nab_config.json`, NAB 59.06) uses all 6 detectors with 2-of-n voting.
+  - Recall (0.48) and detection delay (~50% into the window) remain the main weaknesses.
+

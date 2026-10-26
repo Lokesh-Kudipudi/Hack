@@ -139,13 +139,19 @@ class Sentinel:
 
         # Event Manager (Task K5)
         evt_cfg = self.config.get("events", {})
-        self.event_manager = EventManager(
-            debounce=int(self.config.get("debounce", 2)),
-            merge_gap=int(evt_cfg.get("merge_gap", 16)),
-            cooldown=int(evt_cfg.get("cooldown", 200)),
-            rebaseline_after=int(evt_cfg.get("rebaseline_after", 80)),
-            extreme_ratio=1.5,
-        )
+        if self.config.get("use_events", True):
+            self.event_manager = EventManager(
+                debounce=int(self.config.get("debounce", 2)),
+                merge_gap=int(evt_cfg.get("merge_gap", 16)),
+                cooldown=int(evt_cfg.get("cooldown", 200)),
+                rebaseline_after=int(evt_cfg.get("rebaseline_after", 80)),
+                extreme_ratio=1.5,
+            )
+        else:
+            # Ablation: no event lifecycle — every NORMAL->ANOMALOUS edge starts an event
+            self.event_manager = EventManager(debounce=1, merge_gap=1, cooldown=0,
+                                              rebaseline_after=int(evt_cfg.get("rebaseline_after", 80)),
+                                              extreme_ratio=1.5)
 
         # Explain Engine (Task K6)
         self.explain_engine = ExplainEngine()
@@ -305,13 +311,18 @@ class Sentinel:
             if expected_val is None:
                 expected_val = self.detectors["RobustZ"].expected() or 0.0
 
+            # σ-deviation of the value itself, on the robust (MAD) scale learned in probation; the raw
+            # detector score is reported separately (for VarRatio/CUSUM it is not a value deviation)
+            robust_scale = getattr(self.detectors["RobustZ"], "scale", 1.0) or 1.0
             evidence = self.explain_engine.explain(
                 t=t,
                 observed=x,
                 expected=expected_val,
-                deviation_sigma=top_score,
+                deviation_sigma=abs(x - expected_val) / max(robust_scale, 1e-9),
                 top_detector=top_name,
                 fired=fired,
+                detector_score=top_score,
+                threshold_ratio=top_ratio,
             )
 
         # Event-aligned continuous score:

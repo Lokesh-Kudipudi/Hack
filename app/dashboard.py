@@ -23,22 +23,33 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from eval import scorer  # noqa: E402
 from eval.data import data_root, list_files, load_series, load_windows, probation_length, window_indices, windows_path  # noqa: E402
-from eval.run import RUNS_DIR, make_factory  # noqa: E402
+from eval.run import RUNS_DIR, make_factory, sentinel_config  # noqa: E402
 
 st.set_page_config(page_title="Sentinel — streaming anomaly detection", layout="wide")
 
 TYPE_ICON = {"spike": "⚡", "level_shift": "📶", "variance_change": "〰️", "pattern_break": "🔁", "sequence": "🧩", "multivariate_outlier": "🌲"}
 
 
-def tuned_config() -> dict:
-    """Best config from the latest eval.tune record, if any."""
-    recs = sorted(RUNS_DIR.glob("*_tune_*.json"))
-    for p in reversed(recs):
-        try:
-            return json.loads(p.read_text())["best_config"]
-        except Exception:
-            continue
-    return {}
+RESULTS = Path(__file__).resolve().parent.parent / "results"
+# operating points: label -> settings file (None = engine defaults in sentinel/config.py)
+OPERATING_POINTS = {
+    "Engine default (tuned for event-F1)": None,
+    "Event-F1 (results/best_config.json)": "best_config.json",
+    "Joint: F1 with NAB >= 52": "best_joint_config.json",
+    "NAB score (results/best_nab_config.json)": "best_nab_config.json",
+    "Original K1-K8 defaults": "ORIGINAL",
+}
+
+
+def operating_point(label: str) -> dict:
+    src = OPERATING_POINTS[label]
+    if src is None:
+        return {}
+    if src == "ORIGINAL":
+        from sentinel.config import ORIGINAL_DEFAULT_CONFIG
+        return ORIGINAL_DEFAULT_CONFIG
+    f = RESULTS / src
+    return json.loads(f.read_text()) if f.is_file() else {}
 
 
 @st.cache_data(show_spinner=False)
@@ -179,8 +190,10 @@ def main():
     key, path = keys[names.index(name)]
 
     detector = st.sidebar.radio("Detector", ["sentinel", "windowed_gaussian"], horizontal=True)
-    cfg_text = st.sidebar.text_area("Sentinel config overrides (JSON)", json.dumps(tuned_config(), indent=1), height=150,
-                                    disabled=detector != "sentinel")
+    op = st.sidebar.selectbox("Operating point", list(OPERATING_POINTS), disabled=detector != "sentinel",
+                              help="Event-F1 and NAB favour different settings (results/figures/pareto_f1_nab.png)")
+    cfg_text = st.sidebar.text_area("Sentinel config overrides (JSON)", json.dumps(operating_point(op), indent=1),
+                                    height=150, disabled=detector != "sentinel", key=f"cfg_{op}")
     try:
         cfg = json.loads(cfg_text or "{}")
     except json.JSONDecodeError as e:
@@ -227,7 +240,7 @@ def main():
             k[4].metric("Missed windows", fs.fn, help=f"{pending} window(s) still open")
             k[5].metric("Event-F1 so far", "—" if m["f1"] is None else f"{m['f1']:.2f}")
             k[6].metric("µs / point", f"{us:.1f}")
-        alarm = -np.log10(cfg.get("spot_q", 1e-4)) if detector == "sentinel" else None
+        alarm = -np.log10(sentinel_config(cfg)["spot"]["q"]) if detector == "sentinel" else None
         chart_ph.plotly_chart(make_figure(out, lanes, u, wins_idx, probation, band_k, alarm), width="stretch")
 
     if play:

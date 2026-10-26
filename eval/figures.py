@@ -40,7 +40,7 @@ HEADLINE = {
     ("null", "baseline"): "null",
     ("random", "baseline"): "random",
     ("windowed_gaussian", "baseline thr=1.0"): "windowedGaussian (NAB baseline)",
-    ("sentinel", "likhit default"): "Sentinel — default config",
+    ("sentinel", "likhit default"): "Sentinel — original K1-K8 defaults",
     ("sentinel", "tuned for NAB"): "Sentinel — tuned for NAB score",
     ("sentinel", "tuned for event-F1 (LOCO, RobustZ+LaggedResidual)"): "Sentinel — tuned for event-F1",
 }

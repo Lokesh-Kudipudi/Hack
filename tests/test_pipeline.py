@@ -104,13 +104,15 @@ def test_pipeline_with_spot():
 
 
 def test_partial_nested_config_keeps_defaults():
+    import copy
     from sentinel.config import DEFAULT_CONFIG
-    s = Sentinel(n_total=1000, config={"spot": {"q": 1e-6}, "events": {"cooldown": 7}})
-    assert s.spot_q == 1e-6
+    before = copy.deepcopy(DEFAULT_CONFIG)
+    s = Sentinel(n_total=1000, config={"spot": {"q": 1e-3}, "events": {"cooldown": 7}})
+    assert s.spot_q == 1e-3
     assert s.spot_init_level == DEFAULT_CONFIG["spot"]["init_level"]
     assert s.event_manager.cooldown_duration == 7
     assert s.event_manager.merge_gap == DEFAULT_CONFIG["events"]["merge_gap"]
-    assert DEFAULT_CONFIG["spot"]["q"] == 1e-4  # defaults not mutated
+    assert DEFAULT_CONFIG == before  # defaults not mutated
 
 
 def test_per_detector_spot_q():
@@ -118,3 +120,21 @@ def test_per_detector_spot_q():
                                        "detectors": ["robust_z", "last_w"]})
     assert s.spot_models["LastW"].q == 1e-3
     assert s.spot_models["RobustZ"].q == 1e-6
+
+
+def test_use_events_false_gives_rising_edge_events():
+    s = Sentinel(n_total=1000, config={"use_events": False})
+    em = s.event_manager
+    assert (em.debounce, em.merge_gap, em.cooldown_duration) == (1, 1, 0)
+
+
+def test_evidence_sigma_is_value_deviation():
+    rng = np.random.default_rng(0)
+    n = 2000
+    ts = pd.date_range("2020-01-01", periods=n, freq="5min")
+    x = 10 + rng.normal(0, 1.0, n)
+    x[1500:1504] = 16.0  # ~6 sigma level change
+    out = run_series(pd.DataFrame({"timestamp": ts, "value": x}))
+    ev = [e for e in out["evidence"] if e]
+    assert ev, "the change should be flagged"
+    assert all(0 < e["deviation_sigma"] < 50 for e in ev)

@@ -1,6 +1,6 @@
 # Sentinel — Adaptive Streaming Time-Series Anomaly Detection
 
-[![Tests](https://img.shields.io/badge/pytest-72%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/pytest-77%20passed-brightgreen.svg)]()
 [![NAB Standard Score](https://img.shields.io/badge/NAB%20Score-59.06-orange.svg)]()
 [![Event F1](https://img.shields.io/badge/Event--F1-0.563%20(LOCO%200.510)-blue.svg)]()
 [![Throughput](https://img.shields.io/badge/Throughput-180k--420k%20pts%2Fsec-success.svg)]()
@@ -34,10 +34,10 @@ Sentinel reads one `(timestamp, value)` point at a time and returns, for every p
 ## Key Highlights & Achievements
 
 1. **Beats Major Published Industry Standards on NAB**:
-   - **Sentinel (NAB-tuned config): 59.06 Standard / 44.53 Reward Low FP / 65.81 Reward Low FN** (default config: 53.00)
+   - **Sentinel (NAB-tuned config): 59.06 Standard / 44.53 Reward Low FP / 65.81 Reward Low FN** (original K1–K8 defaults: 53.00)
    - Above **earthgecko Skyline (58.2)** and **KNN CAD (58.0)**; outperforms **Relative Entropy (54.6)**, **Random Cut Forest (51.7)**, **Twitter ADVec (47.1)**, **Windowed Gaussian (39.6)**, **Etsy Skyline (35.7)**, **Bayesian Changepoint (17.7)**, and **EXPoSE (16.4)**.
 2. **High Generalization & Event-F1**:
-   - Event-F1-tuned global config reaches **Event-F1 = 0.563** (Precision 0.675, Recall 0.483, only 27 FP events) vs **0.302** for the windowedGaussian baseline and 0.311 for the default config.
+   - Event-F1-tuned global config reaches **Event-F1 = 0.563** (Precision 0.675, Recall 0.483, only 27 FP events) vs **0.302** for the windowedGaussian baseline and 0.311 for the original K1–K8 defaults. **This is now the engine default** — `Sentinel()` uses it with no config.
    - **Leave-One-Category-Out (LOCO) held-out F1: pooled 0.510, mean 0.492** — tuned on 6 categories, tested on the unseen 7th.
    - Key engine change: a **per-detector SPOT risk level** (`spot.q_per_detector`). One global q silenced the clean short/long-horizon detectors; giving them a looser q is worth +0.16 F1 on its own.
 3. **Ultra-Low Latency & High Throughput**:
@@ -67,7 +67,7 @@ Evaluated on the full 58-file corpus using NAB's official sweeper (`data/NAB/nab
 | KNN CAD | 58.0 | 43.4 | 64.8 | High memory | $O(N)$ Nearest Neighbors |
 | Relative Entropy | 54.6 | 47.6 | 58.8 | High memory | Kernel Density |
 | Sentinel (Ours, joint config) | 53.10 | 47.19 | 56.67 | 5.7 µs/pt | Strict $O(1)$ Causal |
-| Sentinel (Ours, default config) | 53.00 | 37.27 | 59.76 | 5.5 µs/pt | Strict $O(1)$ Causal |
+| Sentinel (Ours, original K1–K8 defaults) | 53.00 | 37.27 | 59.76 | 5.5 µs/pt | Strict $O(1)$ Causal |
 | Random Cut Forest | 51.7 | 38.4 | 59.7 | ~200 µs/pt | Random Trees |
 | Twitter ADVec v1.0.0 | 47.1 | 33.6 | 53.5 | >1,000 µs/pt | Seasonal ESD |
 | Windowed Gaussian | 39.6 | 20.9 | 47.4 | 49.0 µs/pt | Sliding Window |
@@ -85,8 +85,8 @@ Three global operating points, all found by searching global configs only (see [
 | Detector | Event-F1 | Precision | Recall | FP events | Missed windows | NAB std | µs/pt |
 |---|---|---|---|---|---|---|---|
 | windowedGaussian (NAB baseline, best thr) | 0.302 | 0.211 | 0.534 | 232 | 54 | 39.6 | 48.7 |
-| Sentinel — default config | 0.311 | 0.197 | 0.733 | 346 | 31 | 53.0 | 5.5 |
-| **Sentinel — tuned for event-F1** (`results/best_config.json`) | **0.563** | **0.675** | 0.483 | **27** | 60 | 42.8 | **2.4** |
+| Sentinel — original K1–K8 defaults (`ORIGINAL_DEFAULT_CONFIG`) | 0.311 | 0.197 | 0.733 | 346 | 31 | 53.0 | 5.5 |
+| **Sentinel — tuned for event-F1 = engine default** (`results/best_config.json`) | **0.563** | **0.675** | 0.483 | **27** | 60 | 42.8 | **2.4** |
 | Sentinel — joint: max F1 with NAB ≥ 52 (`results/best_joint_config.json`) | 0.461 | 0.361 | 0.638 | 131 | 42 | 53.1 | 5.7 |
 | **Sentinel — tuned for NAB** (`results/best_nab_config.json`) | 0.347 | 0.222 | **0.793** | 322 | **24** | **59.1** | 5.7 |
 
@@ -199,7 +199,7 @@ Launch the live replay demo:
 streamlit run app/dashboard.py
 ```
 
-Pick any series, press **▶ Replay** and watch the stream: value vs expected $\pm k\sigma$ band, ground-truth windows, flagged events, fused score on a $-\log_{10}(p)$ scale with the SPOT alarm line, per-detector score lanes, running event-F1, and an evidence card for every event.
+Pick any series and an operating point (engine default / event-F1 / joint / NAB / original defaults), press **▶ Replay** and watch the stream: value vs expected $\pm k\sigma$ band, ground-truth windows, flagged events, fused score on a $-\log_{10}(p)$ scale with the SPOT alarm line, per-detector score lanes, running event-F1, and an evidence card for every event.
 
 ---
 
@@ -216,7 +216,7 @@ git clone --depth 1 https://github.com/numenta/NAB data/NAB
 ### 2. Run Test Suite
 ```bash
 pytest -q
-# All 70 tests pass in ~5 seconds
+# All 77 tests pass in ~5 seconds
 ```
 
 ### 3. Run Benchmark & Evaluation
@@ -240,7 +240,7 @@ per detected event (type, top detector, explanation), and `summary.json` (runtim
 Use from Python:
 ```python
 from sentinel.pipeline import Sentinel
-s = Sentinel(n_total=len(df))
+s = Sentinel(n_total=len(df))   # defaults = event-F1 operating point; config={...} overrides (nested keys merge)
 for t, x in zip(df.timestamp, df.value):
     r = s.update(t, x)
     if r.is_event_start:
@@ -260,3 +260,4 @@ All foundational architectural decisions, invariants, and empirical milestones a
 - `ADR-006`: Event Lifecycle Management (Gap Merging & Re-Baselining)
 - `ADR-007`: Structured Evidence & Explainability Schema
 - `ADR-008`: Event-Aligned Continuous Scoring for Official NAB Calibration
+- `ADR-009`: Per-Detector SPOT Risk Level and Tuned Defaults
