@@ -82,3 +82,22 @@ def test_run_series_dataframe():
     assert list(out.columns) == expected_cols
     assert len(out) == 100
     assert out["score"].between(0.0, 1.0).all()
+
+
+def test_pipeline_with_spot():
+    """Verify Sentinel operates end-to-end with dynamic SPOT thresholding."""
+    np.random.seed(42)
+    s = Sentinel(n_total=200, config={"use_spot": True, "spot": {"q": 1e-3}})
+    dates = pd.date_range("2026-01-01", periods=100, freq="5min")
+
+    for i in range(50):
+        val = 10.0 + np.random.normal(0, 0.5)
+        r = s.update(dates[i], val)
+        assert r.label == "NORMAL"
+
+    # Extreme spike post-probation
+    spike_r = s.update(dates[50], 90.0)
+    assert spike_r.label == "ANOMALOUS"
+    assert spike_r.score >= 0.95
+    assert spike_r.is_event_start is True
+

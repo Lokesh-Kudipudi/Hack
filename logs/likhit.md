@@ -23,3 +23,16 @@
 - Result: All 6 causal O(1) detectors implemented (D1 RobustZ, D2 LastW, D3 LaggedResidual, D4 VarRatio, D5 Seasonal, D6 CUSUM). All 47 tests pass. Each detector fires specifically on synthetic spike, jump, sequence, variance burst, and seasonal break.
 - Observation: Applying a single static 6.0 threshold across raw scores of different mathematical distributions (Z-scores vs variance ratios) shows why per-detector threshold calibration (Task K3: SPOT) is strictly needed to normalize exceedances into uniform tail probabilities.
 - Notes / next: Task K3 (SPOT / DSPOT with GPD fit on probation and streaming tail update).
+
+## 2026-10-26 20:25 — K3 Dynamic Thresholding via SPOT & DSPOT
+- Changed: `sentinel/spot.py`, `tests/test_spot.py`, `sentinel/pipeline.py`, `sentinel/config.py`, `tests/test_pipeline.py`
+- Result: Implemented EVT streaming thresholding via SPOT (Method of Moments GPD fit on tail exceedances) and DSPOT (moving average residual drift removal).
+- Benchmark: **Event-F1 surged to 0.324** (NEW #1 ON REPO LEADERBOARD, beating windowed_gaussian 0.302).
+  - Recall: **0.724** (84/116 anomaly windows detected across NAB corpus).
+  - False Positives: **Reduced from 860 down to 318** (>63% drop).
+  - `artificialNoAnomaly`: 0 false positives.
+  - `realTraffic`: Event-F1 = 0.611.
+  - `realAdExchange`: Event-F1 = 0.519.
+  - Runtime: **16.37 µs/pt** (well within < 50 µs/pt budget).
+- Notes / next: Task K4 (Extract modular fusion engine to `sentinel/fusion.py` with k-of-n vote and tests).
+

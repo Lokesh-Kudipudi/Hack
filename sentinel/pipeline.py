@@ -20,6 +20,7 @@ from sentinel.detectors import (
     Seasonal,
     CUSUM,
 )
+from sentinel.spot import SPOT, DSPOT
 from sentinel.types import Detector, Result
 
 TYPE_MAP = {
@@ -49,6 +50,14 @@ class Sentinel:
         self.threshold = float(self.config.get("fixed_threshold", 6.0))
         self.debounce = int(self.config.get("debounce", 2))
         self.alpha = float(self.config.get("baseline_alpha", 0.01))
+        self.detector_thresholds: Dict[str, float] = dict(self.config.get("detector_thresholds", {
+            "RobustZ": self.threshold,
+            "LastW": self.threshold,
+            "LaggedResidual": self.threshold,
+            "VarRatio": 1.5,
+            "Seasonal": 5.0,
+            "CUSUM": 8.0,
+        }))
 
         # Instantiate detectors
         active_names = self.config.get("detectors", ["robust_z"])
@@ -80,6 +89,28 @@ class Sentinel:
         if "RobustZ" not in self.detectors:
             self.detectors["RobustZ"] = RobustZ(alpha=self.alpha)
 
+        # SPOT EVT configuration
+        self.use_spot: bool = bool(self.config.get("use_spot", False))
+        spot_cfg = self.config.get("spot", {})
+        self.spot_q: float = float(spot_cfg.get("q", 1e-4))
+        self.spot_init_level: float = float(spot_cfg.get("init_level", 0.98))
+        self.spot_min_excesses: int = int(spot_cfg.get("min_excesses", 8))
+        self.dspot_depth: int = int(spot_cfg.get("dspot_depth", 0))
+
+        self.spot_models: Dict[str, Any] = {}
+        if self.use_spot:
+            for name in self.detectors:
+                if self.dspot_depth > 0:
+                    self.spot_models[name] = DSPOT(
+                        depth=self.dspot_depth, q=self.spot_q, init_level=self.spot_init_level
+                    )
+                else:
+                    self.spot_models[name] = SPOT(
+                        q=self.spot_q,
+                        init_level=self.spot_init_level,
+                        min_excesses=self.spot_min_excesses,
+                    )
+
         # Probation buffers
         self.count: int = 0
         self.probation_timestamps: List[pd.Timestamp] = []
@@ -94,7 +125,7 @@ class Sentinel:
         self.gap_count: int = 0
 
     def _finish_probation(self):
-        """Seed all detectors from the collected probation observations."""
+        """Seed all detectors and calibrate SPOT from probation observations."""
         d1: RobustZ = self.detectors["RobustZ"]  # type: ignore
         d1.init_from_probation(self.probation_values)
         scale = d1.scale
@@ -115,6 +146,24 @@ class Sentinel:
         if "CUSUM" in self.detectors:
             d6: CUSUM = self.detectors["CUSUM"]  # type: ignore
             d6.init_scale(median=median, scale=scale)
+
+        # Warm up detectors on probation observations to populate sliding buffers
+        # and collect normal score distributions for SPOT calibration
+        probation_scores: Dict[str, List[float]] = {name: [] for name in self.detectors}
+        for tp, xp in zip(self.probation_timestamps, self.probation_values):
+            for name, det in self.detectors.items():
+                s = det.update(tp, xp)
+                probation_scores[name].append(s)
+
+        # Reset CUSUM drift so it starts clean at 0 post-probation
+        if "CUSUM" in self.detectors:
+            self.detectors["CUSUM"].s_pos = 0.0  # type: ignore
+            self.detectors["CUSUM"].s_neg = 0.0  # type: ignore
+
+        if self.use_spot:
+            for name in self.detectors:
+                if name in self.spot_models:
+                    self.spot_models[name].fit_from_probation(probation_scores[name])
 
         # Release probation memory
         self.probation_timestamps = []
@@ -143,26 +192,48 @@ class Sentinel:
 
         # Phase 2: Post-probation detection across all active detectors
         raw_scores: Dict[str, float] = {}
+        norm_ratios: Dict[str, float] = {}
         calibrated_scores: Dict[str, float] = {}
+        alarms: Dict[str, bool] = {}
 
         for name, det in self.detectors.items():
             raw = det.update(t, x)
             raw_scores[name] = raw
-            # Smooth erf mapping to [0, 1]
-            cal_score = float(math.erf(raw / math.sqrt(2.0)))
-            calibrated_scores[name] = max(0.0, min(1.0, cal_score))
+
+            if self.use_spot and name in self.spot_models:
+                cal_score, _ = self.spot_models[name].update(raw)
+                base_th = self.detector_thresholds.get(name, self.threshold)
+                zq = getattr(self.spot_models[name], "z_q", base_th)
+                if hasattr(self.spot_models[name], "spot"):
+                    zq = self.spot_models[name].spot.z_q
+                # Reconcile dynamic EVT threshold with detector baseline threshold
+                effective_zq = max(zq, base_th)
+                ratio = raw / max(1e-6, effective_zq)
+                norm_ratios[name] = ratio
+                calibrated_scores[name] = cal_score
+                alarms[name] = bool(raw > effective_zq)
+            else:
+                thresh = self.detector_thresholds.get(name, self.threshold)
+                ratio = raw / max(1e-6, thresh)
+                norm_ratios[name] = ratio
+                # Calibrated score in [0, 1] using erf on normalized ratio
+                cal_score = float(math.erf(ratio / math.sqrt(2.0)))
+                calibrated_scores[name] = max(0.0, min(1.0, cal_score))
+                alarms[name] = ratio > 1.0
 
         # MAX-Score Fusion
         fused_score = max(calibrated_scores.values()) if calibrated_scores else 0.0
 
-        # Check threshold exceedances
-        fired = [name for name, s in raw_scores.items() if s > self.threshold]
-        is_anom = len(fired) > 0
-        label = "ANOMALOUS" if is_anom else "NORMAL"
+        # Determine top detector by normalized deviation ratio
+        top_name = max(norm_ratios, key=norm_ratios.get) if norm_ratios else "RobustZ"
+        top_score = raw_scores[top_name] if raw_scores else 0.0
+        top_ratio = norm_ratios[top_name] if norm_ratios else 0.0
 
-        # Determine top detector
-        top_name = max(raw_scores, key=raw_scores.get)
-        top_score = raw_scores[top_name]
+        # Check threshold exceedances (consensus voting: >= 2 detectors or 1 extreme outlier >= 1.5)
+        fired = [name for name, is_al in alarms.items() if is_al]
+        is_anom = (len(fired) >= 2) or (top_ratio >= 1.5)
+
+        label = "ANOMALOUS" if is_anom else "NORMAL"
 
         # Event manager logic with debounce (ADR-003)
         is_event_start = False
@@ -172,7 +243,7 @@ class Sentinel:
         if is_anom:
             self.consecutive_anom += 1
             if not self.in_event and self.cooldown_remaining == 0:
-                if self.consecutive_anom >= self.debounce or top_score >= (self.threshold * 1.5):
+                if self.consecutive_anom >= self.debounce or top_ratio >= 1.5:
                     is_event_start = True
                     self.in_event = True
                     self.cooldown_remaining = self.cooldown_duration
@@ -212,10 +283,17 @@ class Sentinel:
                 "text": f"Value {x:.2f} is {top_score:.1f}σ {direction} expected {expected_val:.2f} ({top_name} detected {anom_type}).",
             }
 
+        # Ensure scalar score is strictly consistent with categorical label
+        # Normal observations stay < 0.5; Confirmed anomalies map to [0.5, 1.0]
+        if is_anom:
+            final_score = float(max(0.5, min(1.0, fused_score)))
+        else:
+            final_score = float(min(0.45, fused_score * 0.45))
+
         return Result(
             timestamp=t,
             value=x,
-            score=fused_score,
+            score=round(final_score, 4),
             label=label,
             is_event_start=is_event_start,
             evidence=evidence,

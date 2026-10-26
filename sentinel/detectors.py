@@ -290,9 +290,16 @@ class CUSUM(Detector):
             return 0.0
 
         z = (x - self.median) / self.scale
-        # Accumulate two-sided CUSUM drift
-        self.s_pos = max(0.0, self.s_pos + z - self.k)
-        self.s_neg = max(0.0, self.s_neg - z - self.k)
+        # Accumulate two-sided CUSUM drift with leaky decay when in-control
+        if z > self.k:
+            self.s_pos = min(25.0, self.s_pos + (z - self.k))
+        else:
+            self.s_pos = max(0.0, self.s_pos * 0.85 + (z - self.k))
+
+        if -z > self.k:
+            self.s_neg = min(25.0, self.s_neg + (-z - self.k))
+        else:
+            self.s_neg = max(0.0, self.s_neg * 0.85 + (-z - self.k))
 
         raw_score = max(self.s_pos, self.s_neg)
         return float(raw_score)

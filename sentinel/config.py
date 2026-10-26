@@ -14,16 +14,24 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "probation_fraction": PROBATION_FRACTION,
     "probation_max": PROBATION_MAX,
     "probation": 300,  # Fallback when n_total is unknown
-    "fixed_threshold": 6.0,  # Calibrated Robust Z-score threshold (ADR-003)
+    "fixed_threshold": 6.0,  # Base fallback threshold
     "debounce": 2,  # Require 2 consecutive outliers (or 1 extreme spike) (ADR-003)
     "detectors": ["robust_z", "last_w", "lagged_residual", "var_ratio", "seasonal", "cusum"],
+    "detector_thresholds": {
+        "RobustZ": 6.0,
+        "LastW": 6.0,
+        "LaggedResidual": 6.0,
+        "VarRatio": 1.5,
+        "Seasonal": 5.0,
+        "CUSUM": 8.0,
+    },
     "last_w": {"w": 3},
     "lagged_residual": {"w": 16, "h": 64},
     "var_ratio": {"w": 24},
     "seasonal": {"by": "hour", "alpha": 0.05, "min_count": 3},
     "cusum": {"k": 0.5},
     "baseline_alpha": 0.01,
-    "use_spot": False,  # Turned to True in K3
+    "use_spot": True,  # Task K3: EVT Extreme Value Theory tail calibration
     "spot": {"init_level": 0.98, "q": 1e-4, "min_excesses": 10, "dspot_depth": 0},
     "fusion": "max",
     "vote_k": 2,
