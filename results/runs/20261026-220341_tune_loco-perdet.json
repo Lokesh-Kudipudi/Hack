@@ -1,0 +1,590 @@
+{
+ "kind": "tune",
+ "created": "2026-10-26T22:03:41",
+ "tag": "loco-perdet",
+ "detector": "sentinel",
+ "git_sha": "47613de",
+ "sentinel_source": "tracked",
+ "grid": {
+  "spot.q_per_detector": [
+   {},
+   {
+    "LastW": 0.0001,
+    "LaggedResidual": 0.0001
+   },
+   {
+    "LastW": 0.001,
+    "LaggedResidual": 0.0001
+   },
+   {
+    "LastW": 0.0001,
+    "LaggedResidual": 0.0001,
+    "VarRatio": 1e-07,
+    "Seasonal": 1e-07
+   }
+  ],
+  "detector_thresholds": [
+   {},
+   {
+    "LastW": 2.0,
+    "LaggedResidual": 2.0
+   },
+   {
+    "LastW": 4.0,
+    "LaggedResidual": 4.0
+   }
+  ],
+  "fusion": [
+   [
+    "max",
+    1
+   ],
+   [
+    "vote",
+    2
+   ],
+   [
+    "vote",
+    3
+   ]
+  ],
+  "thr_scale": [
+   1.0,
+   1.5
+  ],
+  "debounce": [
+   1,
+   2
+  ],
+  "events.cooldown": [
+   400,
+   600,
+   1000
+  ],
+  "spot.q": [
+   1e-06
+  ],
+  "events.merge_gap": [
+   64
+  ]
+ },
+ "base": {},
+ "n_configs": 432,
+ "best_config": {
+  "spot.q_per_detector": {
+   "LastW": 0.0001,
+   "LaggedResidual": 0.0001
+  },
+  "detector_thresholds": {
+   "LastW": 2.0,
+   "LaggedResidual": 2.0
+  },
+  "fusion": "vote",
+  "vote_k": 3,
+  "thr_scale": 1.5,
+  "debounce": 2,
+  "events.cooldown": 600,
+  "spot.q": 1e-06,
+  "events.merge_gap": 64
+ },
+ "best_full_corpus": {
+  "files": 58,
+  "tp": 64,
+  "fp": 75,
+  "fn": 52,
+  "precision": 0.460431654676259,
+  "recall": 0.5517241379310345,
+  "f1": 0.5019607843137255,
+  "delay_points_mean": 149.828125,
+  "delay_points_median": 108.0,
+  "delay_minutes_mean": 1084.1875,
+  "delay_minutes_median": 920.0,
+  "delay_fraction_mean": 0.48411638397046236,
+  "delay_fraction_median": 0.4975124378109453,
+  "nab": 46.88834210160553
+ },
+ "loco": {
+  "per_category": {
+   "artificialNoAnomaly": {
+    "config_index": 178,
+    "config": {
+     "spot.q_per_detector": {
+      "LastW": 0.0001,
+      "LaggedResidual": 0.0001
+     },
+     "detector_thresholds": {
+      "LastW": 2.0,
+      "LaggedResidual": 2.0
+     },
+     "fusion": "vote",
+     "vote_k": 3,
+     "thr_scale": 1.5,
+     "debounce": 2,
+     "events.cooldown": 600,
+     "spot.q": 1e-06,
+     "events.merge_gap": 64
+    },
+    "train_f1": 0.5019607843137255,
+    "held_out_f1": null,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "artificialWithAnomaly": {
+    "config_index": 178,
+    "config": {
+     "spot.q_per_detector": {
+      "LastW": 0.0001,
+      "LaggedResidual": 0.0001
+     },
+     "detector_thresholds": {
+      "LastW": 2.0,
+      "LaggedResidual": 2.0
+     },
+     "fusion": "vote",
+     "vote_k": 3,
+     "thr_scale": 1.5,
+     "debounce": 2,
+     "events.cooldown": 600,
+     "spot.q": 1e-06,
+     "events.merge_gap": 64
+    },
+    "train_f1": 0.5108225108225108,
+    "held_out_f1": 0.4166666666666667,
+    "tp": 5,
+    "fp": 13,
+    "fn": 1
+   },
+   "realAWSCloudwatch": {
+    "config_index": 394,
+    "config": {
+     "spot.q_per_detector": {
+      "LastW": 0.0001,
+      "LaggedResidual": 0.0001,
+      "VarRatio": 1e-07,
+      "Seasonal": 1e-07
+     },
+     "detector_thresholds": {
+      "LastW": 2.0,
+      "LaggedResidual": 2.0
+     },
+     "fusion": "vote",
+     "vote_k": 3,
+     "thr_scale": 1.5,
+     "debounce": 2,
+     "events.cooldown": 600,
+     "spot.q": 1e-06,
+     "events.merge_gap": 64
+    },
+    "train_f1": 0.5222222222222223,
+    "held_out_f1": 0.4057971014492754,
+    "tp": 14,
+    "fp": 25,
+    "fn": 16
+   },
+   "realAdExchange": {
+    "config_index": 178,
+    "config": {
+     "spot.q_per_detector": {
+      "LastW": 0.0001,
+      "LaggedResidual": 0.0001
+     },
+     "detector_thresholds": {
+      "LastW": 2.0,
+      "LaggedResidual": 2.0
+     },
+     "fusion": "vote",
+     "vote_k": 3,
+     "thr_scale": 1.5,
+     "debounce": 2,
+     "events.cooldown": 600,
+     "spot.q": 1e-06,
+     "events.merge_gap": 64
+    },
+    "train_f1": 0.48068669527896996,
+    "held_out_f1": 0.7272727272727273,
+    "tp": 8,
+    "fp": 0,
+    "fn": 6
+   },
+   "realKnownCause": {
+    "config_index": 178,
+    "config": {
+     "spot.q_per_detector": {
+      "LastW": 0.0001,
+      "LaggedResidual": 0.0001
+     },
+     "detector_thresholds": {
+      "LastW": 2.0,
+      "LaggedResidual": 2.0
+     },
+     "fusion": "vote",
+     "vote_k": 3,
+     "thr_scale": 1.5,
+     "debounce": 2,
+     "events.cooldown": 600,
+     "spot.q": 1e-06,
+     "events.merge_gap": 64
+    },
+    "train_f1": 0.5112107623318386,
+    "held_out_f1": 0.4375,
+    "tp": 7,
+    "fp": 6,
+    "fn": 12
+   },
+   "realTraffic": {
+    "config_index": 166,
+    "config": {
+     "spot.q_per_detector": {
+      "LastW": 0.0001,
+      "LaggedResidual": 0.0001
+     },
+     "detector_thresholds": {
+      "LastW": 2.0,
+      "LaggedResidual": 2.0
+     },
+     "fusion": "vote",
+     "vote_k": 2,
+     "thr_scale": 1.5,
+     "debounce": 2,
+     "events.cooldown": 600,
+     "spot.q": 1e-06,
+     "events.merge_gap": 64
+    },
+    "train_f1": 0.49572649572649574,
+    "held_out_f1": 0.5454545454545454,
+    "tp": 6,
+    "fp": 2,
+    "fn": 8
+   },
+   "realTweets": {
+    "config_index": 160,
+    "config": {
+     "spot.q_per_detector": {
+      "LastW": 0.0001,
+      "LaggedResidual": 0.0001
+     },
+     "detector_thresholds": {
+      "LastW": 2.0,
+      "LaggedResidual": 2.0
+     },
+     "fusion": "vote",
+     "vote_k": 2,
+     "thr_scale": 1.0,
+     "debounce": 2,
+     "events.cooldown": 600,
+     "spot.q": 1e-06,
+     "events.merge_gap": 64
+    },
+    "train_f1": 0.5,
+    "held_out_f1": 0.41237113402061853,
+    "tp": 20,
+    "fp": 44,
+    "fn": 13
+   }
+  },
+  "mean_held_out_f1": 0.49084369581063886,
+  "pooled_held_out": {
+   "files": 58,
+   "tp": 60,
+   "fp": 90,
+   "fn": 56,
+   "precision": 0.4,
+   "recall": 0.5172413793103449,
+   "f1": 0.45112781954887216,
+   "delay_points_mean": 155.36666666666667,
+   "delay_points_median": 100.0,
+   "delay_minutes_mean": 1134.2166666666667,
+   "delay_minutes_median": 970.0,
+   "delay_fraction_mean": 0.484160617555575,
+   "delay_fraction_median": 0.4975124378109453
+  }
+ },
+ "best_nab_config": {
+  "spot.q_per_detector": {
+   "LastW": 0.001,
+   "LaggedResidual": 0.0001
+  },
+  "detector_thresholds": {
+   "LastW": 2.0,
+   "LaggedResidual": 2.0
+  },
+  "fusion": "vote",
+  "vote_k": 3,
+  "thr_scale": 1.0,
+  "debounce": 1,
+  "events.cooldown": 400,
+  "spot.q": 1e-06,
+  "events.merge_gap": 64
+ },
+ "best_nab_full_corpus": {
+  "files": 58,
+  "tp": 80,
+  "fp": 189,
+  "fn": 36,
+  "precision": 0.29739776951672864,
+  "recall": 0.6896551724137931,
+  "f1": 0.4155844155844156,
+  "delay_points_mean": 136.75,
+  "delay_points_median": 105.5,
+  "delay_minutes_mean": 1169.3875,
+  "delay_minutes_median": 927.5,
+  "delay_fraction_mean": 0.44680299420913966,
+  "delay_fraction_median": 0.4939759036144578,
+  "nab": 55.29817214441694
+ },
+ "top10": [
+  {
+   "config": {
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "fusion": "vote",
+    "vote_k": 3,
+    "thr_scale": 1.5,
+    "debounce": 2,
+    "events.cooldown": 600,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.5019607843137255,
+   "precision": 0.460431654676259,
+   "recall": 0.5517241379310345,
+   "tp": 64,
+   "fp": 75,
+   "fn": 52,
+   "nab": 46.88834210160553
+  },
+  {
+   "config": {
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "fusion": "vote",
+    "vote_k": 2,
+    "thr_scale": 1.5,
+    "debounce": 2,
+    "events.cooldown": 600,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.5,
+   "precision": 0.45714285714285713,
+   "recall": 0.5517241379310345,
+   "tp": 64,
+   "fp": 76,
+   "fn": 52,
+   "nab": 46.85275777897452
+  },
+  {
+   "config": {
+    "spot.q_per_detector": {},
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "fusion": "vote",
+    "vote_k": 2,
+    "thr_scale": 1.5,
+    "debounce": 1,
+    "events.cooldown": 600,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.496,
+   "precision": 0.4626865671641791,
+   "recall": 0.5344827586206896,
+   "tp": 62,
+   "fp": 72,
+   "fn": 54,
+   "nab": 45.65869901642697
+  },
+  {
+   "config": {
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "fusion": "vote",
+    "vote_k": 3,
+    "thr_scale": 1.5,
+    "debounce": 1,
+    "events.cooldown": 600,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.49230769230769234,
+   "precision": 0.4444444444444444,
+   "recall": 0.5517241379310345,
+   "tp": 64,
+   "fp": 80,
+   "fn": 52,
+   "nab": 46.72518658229853
+  },
+  {
+   "config": {
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001,
+     "VarRatio": 1e-07,
+     "Seasonal": 1e-07
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "fusion": "vote",
+    "vote_k": 3,
+    "thr_scale": 1.5,
+    "debounce": 2,
+    "events.cooldown": 600,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.4899598393574297,
+   "precision": 0.45864661654135336,
+   "recall": 0.5258620689655172,
+   "tp": 61,
+   "fp": 72,
+   "fn": 55,
+   "nab": 44.722943107254
+  },
+  {
+   "config": {
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001,
+     "VarRatio": 1e-07,
+     "Seasonal": 1e-07
+    },
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "fusion": "vote",
+    "vote_k": 2,
+    "thr_scale": 1.5,
+    "debounce": 2,
+    "events.cooldown": 600,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.488,
+   "precision": 0.4552238805970149,
+   "recall": 0.5258620689655172,
+   "tp": 61,
+   "fp": 73,
+   "fn": 55,
+   "nab": 44.68735878462299
+  },
+  {
+   "config": {
+    "spot.q_per_detector": {},
+    "detector_thresholds": {
+     "LastW": 2.0,
+     "LaggedResidual": 2.0
+    },
+    "fusion": "vote",
+    "vote_k": 3,
+    "thr_scale": 1.5,
+    "debounce": 1,
+    "events.cooldown": 600,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.48582995951417,
+   "precision": 0.4580152671755725,
+   "recall": 0.5172413793103449,
+   "tp": 60,
+   "fp": 71,
+   "fn": 56,
+   "nab": 44.07272196708813
+  },
+  {
+   "config": {
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {
+     "LastW": 4.0,
+     "LaggedResidual": 4.0
+    },
+    "fusion": "vote",
+    "vote_k": 3,
+    "thr_scale": 1.5,
+    "debounce": 2,
+    "events.cooldown": 600,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.48412698412698413,
+   "precision": 0.4485294117647059,
+   "recall": 0.5258620689655172,
+   "tp": 61,
+   "fp": 75,
+   "fn": 55,
+   "nab": 44.80887277554105
+  },
+  {
+   "config": {
+    "spot.q_per_detector": {},
+    "detector_thresholds": {
+     "LastW": 4.0,
+     "LaggedResidual": 4.0
+    },
+    "fusion": "vote",
+    "vote_k": 2,
+    "thr_scale": 1.5,
+    "debounce": 1,
+    "events.cooldown": 600,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.4838709677419355,
+   "precision": 0.45454545454545453,
+   "recall": 0.5172413793103449,
+   "tp": 60,
+   "fp": 72,
+   "fn": 56,
+   "nab": 44.048303528429294
+  },
+  {
+   "config": {
+    "spot.q_per_detector": {
+     "LastW": 0.0001,
+     "LaggedResidual": 0.0001
+    },
+    "detector_thresholds": {},
+    "fusion": "vote",
+    "vote_k": 3,
+    "thr_scale": 1.5,
+    "debounce": 2,
+    "events.cooldown": 600,
+    "spot.q": 1e-06,
+    "events.merge_gap": 64
+   },
+   "f1": 0.4838709677419355,
+   "precision": 0.45454545454545453,
+   "recall": 0.5172413793103449,
+   "tp": 60,
+   "fp": 72,
+   "fn": 56,
+   "nab": 44.144139224076554
+  }
+ ]
+}

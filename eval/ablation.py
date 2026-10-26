@@ -41,8 +41,11 @@ def configs() -> List[Tuple[str, str, str, dict]]:
            ("fusion", "all 6 + SPOT + events, vote k=3", "sentinel",
             {"detectors": ALL, "use_spot": True, "fusion": "vote", "vote_k": 3}),
            ("tuned", "tuned config (base)", "sentinel", {})]
-    out += [("alone", f"RobustZ + {NAMES[d]}" if d != "robust_z" else "RobustZ only", "sentinel", {"detectors": [d]})
-            for d in ALL]
+    # "alone" uses MAX fusion: under k-of-n voting a lone detector could only fire via the extreme bypass
+    out += [("alone", f"RobustZ + {NAMES[d]} (MAX)" if d != "robust_z" else "RobustZ only (MAX)", "sentinel",
+             {"detectors": [d], **mx}) for d in ALL]
+    out += [("fusion", "tuned, vote k=2", "sentinel", {"fusion": "vote", "vote_k": 2}),
+            ("fusion", "tuned, no per-detector q", "sentinel", {"spot.q_per_detector": {}, "detector_thresholds": {}})]
     out += [("removed", f"all − {NAMES[d]}", "sentinel", {"detectors": [x for x in ALL if x != d]})
             for d in ALL if d != "robust_z"]
     out += [("added", "all 6 + IsolationForest (D7)", "sentinel", {"detectors": ALL + ["isolation_forest"]})]

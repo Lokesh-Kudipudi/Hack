@@ -108,7 +108,7 @@ def test_tune_grid_and_loco():
 def test_ablation_configs_use_handoff_flags():
     from eval.ablation import configs
     allowed = {"detectors", "use_spot", "fusion", "vote_k", "threshold", "debounce", "events.cooldown",
-               "events.merge_gap"}
+               "events.merge_gap", "spot.q_per_detector", "detector_thresholds"}
     for _, _, _, cfg in configs():
         assert set(cfg) <= allowed
 

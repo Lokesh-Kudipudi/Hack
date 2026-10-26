@@ -1,17 +1,17 @@
 {
- "detectors": [
-  "robust_z",
-  "last_w",
-  "lagged_residual",
-  "var_ratio",
-  "seasonal",
-  "cusum"
- ],
+ "spot.q_per_detector": {
+  "LastW": 0.0001,
+  "LaggedResidual": 0.0001
+ },
+ "detector_thresholds": {
+  "LastW": 2.0,
+  "LaggedResidual": 2.0
+ },
  "fusion": "vote",
- "vote_k": 2,
- "spot.q": 1e-06,
+ "vote_k": 3,
  "thr_scale": 1.5,
  "debounce": 2,
  "events.cooldown": 600,
+ "spot.q": 1e-06,
  "events.merge_gap": 64
 }

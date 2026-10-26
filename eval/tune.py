@@ -41,6 +41,21 @@ GRIDS = {
         "events.cooldown": [200, 600],
         "events.merge_gap": [16, 64],
     },
+    # detector subsets x per-detector risk: with LastW/LaggedResidual active, smaller ensembles may win
+    "subsets": {
+        "detectors": [["robust_z", "lagged_residual"], ["robust_z", "last_w", "lagged_residual"],
+                      ["robust_z", "lagged_residual", "var_ratio"], ["robust_z", "last_w", "lagged_residual", "var_ratio"],
+                      ["robust_z", "last_w", "lagged_residual", "var_ratio", "cusum"]],
+        "fusion": [("max", 1), ("vote", 2)],
+        "spot.q_per_detector": [{"LastW": 1e-4, "LaggedResidual": 1e-4}, {"LastW": 1e-5, "LaggedResidual": 1e-5},
+                                {"LastW": 1e-3, "LaggedResidual": 1e-4}],
+        "detector_thresholds": [{"LastW": 2.0, "LaggedResidual": 2.0}, {"LastW": 4.0, "LaggedResidual": 4.0}],
+        "thr_scale": [1.0, 1.5],
+        "events.cooldown": [400, 600, 1000],
+        "debounce": [1, 2],
+        "spot.q": [1e-6],
+        "events.merge_gap": [64],
+    },
     # per-detector SPOT risk + base thresholds for the short/long-horizon detectors (LastW, LaggedResidual)
     "perdet": {
         "spot.q_per_detector": [{}, {"LastW": 1e-4, "LaggedResidual": 1e-4}, {"LastW": 1e-3, "LaggedResidual": 1e-4},
