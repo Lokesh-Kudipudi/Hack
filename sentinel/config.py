@@ -13,7 +13,7 @@ def probation_length(n: int) -> int:
 # Default = the event-F1 operating point chosen by leave-one-category-out tuning (results/best_config.json,
 # results/tuning.md): RobustZ + LaggedResidual, MAX fusion, per-detector SPOT risk (ADR-009), plus the phase-3
 # recall mechanisms (ADR-010): spatial-extreme flag, debounce 3, cooldown = 0.5 x probation, extreme ratio 2.0.
-# Full NAB corpus: event-F1 0.640, NAB 55.6, held-out pooled F1 0.623. NAB operating point: results/best_nab_config.json.
+# Full NAB corpus: event-F1 0.673, NAB 54.9, held-out pooled F1 0.654. NAB operating point: results/best_nab_config.json.
 DEFAULT_CONFIG: Dict[str, Any] = {
     "probation_fraction": PROBATION_FRACTION,
     "probation_max": PROBATION_MAX,
@@ -39,7 +39,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "use_spot": True,  # Task K3: EVT Extreme Value Theory tail calibration
     # Per-detector risk (ADR-009): clean short/long-horizon residuals need a looser q than noisy detectors
     "spot": {"init_level": 0.98, "q": 1e-6, "min_excesses": 10, "dspot_depth": 0,
-             "q_per_detector": {"LastW": 1e-4, "LaggedResidual": 1e-4}},
+             "q_per_detector": {"LastW": 1e-4, "LaggedResidual": 1e-5}},
     "fusion": "max",
     "vote_k": 1,
     "use_events": True,  # False = plain rising-edge events (no debounce / merge / cooldown)

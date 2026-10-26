@@ -1,14 +1,17 @@
 {
+ "spot.q_per_detector": {
+  "LaggedResidual": 1e-05
+ },
+ "spot.q": 1e-06,
  "spatial": {
   "enabled": true,
   "tol": 0.05
  },
  "debounce": 3,
- "events.agree_k": 0,
  "events.cooldown_frac": 0.5,
+ "extreme_ratio": 2.0,
  "detectors": [
   "robust_z",
   "lagged_residual"
- ],
- "extreme_ratio": 2.0
+ ]
 }
