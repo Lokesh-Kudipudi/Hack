@@ -8,7 +8,7 @@ Status values: `Not started` · `In progress` · `Done` · `Blocked (<reason>)`
 ## Status so far
 
 - 2026-10-26 — Planning complete: PS analysed, NAB repo explored, ICLR 2026 one-liners paper reviewed, `target.md` / `AGENTS.md` / `TASKS.md` written. TinyEdge CNN notebook rejected (see AGENTS.md §2).
-- **No code implemented yet.** Local git repo initialised; GitHub remote not yet added.
+- 2026-10-26 — Lokesh: L0–L2 done. GitHub remote `Lokesh-Kudipudi/Hack` live. `eval/data.py` loads all 58 NAB files + 116 windows (NAB clone or starter-pack layout); `eval/scorer.py` event-F1/P/R/delay per §5 (oracle sanity check → F1 1.0). Env: `uv venv -p 3.11 .venv`; `pytest.ini` limits pytest to `tests/`.
 
 ---
 
@@ -18,10 +18,10 @@ Owns: `eval/**`, `app/**`, `tests/test_scorer.py`, `tests/test_data.py`, `requir
 
 | ID | Task | Depends on | Done when | Status |
 |---|---|---|---|---|
-| L0 | Create GitHub repo, add remote, first push of docs. Share with Likhit. | — | Likhit can clone | Not started |
-| L1 | `requirements.txt`; `eval/data.py`: list NAB files, load series (`timestamp,value`), load windows from `combined_windows.json`, probation length = `min(floor(0.15n), 750)`; `SENTINEL_DATA` env var; starter-pack-ready loader. `tests/test_data.py`. | L0 | Loads all 58 files + windows; tests pass | Not started |
-| L2 | `eval/scorer.py`: event-F1, P, R, delay (points, minutes, fraction of window), per file / category / corpus — exactly per AGENTS.md §5. `tests/test_scorer.py` with hand-made toy cases (TP, FP, FN, duplicate-in-window, probation exclusion, no-anomaly file). | L1 | All toy cases pass | Not started |
-| L3 | `eval/nab_score.py`: wrapper around `data/NAB/nab/sweeper.py` to get official NAB standard score from per-point scores. Validate: null detector → 0, compare windowedGaussian vs published 39.6. | L1 | Reproduces published baseline within a few points | Not started |
+| L0 | Create GitHub repo, add remote, first push of docs. Share with Likhit. | — | Likhit can clone | Done |
+| L1 | `requirements.txt`; `eval/data.py`: list NAB files, load series (`timestamp,value`), load windows from `combined_windows.json`, probation length = `min(floor(0.15n), 750)`; `SENTINEL_DATA` env var; starter-pack-ready loader. `tests/test_data.py`. | L0 | Loads all 58 files + windows; tests pass | Done |
+| L2 | `eval/scorer.py`: event-F1, P, R, delay (points, minutes, fraction of window), per file / category / corpus — exactly per AGENTS.md §5. `tests/test_scorer.py` with hand-made toy cases (TP, FP, FN, duplicate-in-window, probation exclusion, no-anomaly file). | L1 | All toy cases pass | Done |
+| L3 | `eval/nab_score.py`: wrapper around `data/NAB/nab/sweeper.py` to get official NAB standard score from per-point scores. Validate: null detector → 0, compare windowedGaussian vs published 39.6. | L1 | Reproduces published baseline within a few points | Done |
 | L4 | `eval/baselines.py` (windowedGaussian, null, random) + `eval/run.py` CLI (runs any detector over the corpus, writes `results/runs/*.json`) + `eval/leaderboard.py` → `results/leaderboard.md`. | L2, L3 | **First baseline numbers on the leaderboard** | Not started |
 | L5 | `eval/benchmark.py`: µs/point and points/sec for any detector (single core, no I/O). | L4, K1 | Numbers in leaderboard | Not started |
 | L6 | `eval/ablation.py`: baseline → +each detector → +SPOT → +fusion → +events; table + bar chart to `results/figures/`. | L4, K2–K5 | Ablation table committed | Not started |
@@ -38,7 +38,7 @@ Owns: `sentinel/**`, `tests/test_detectors.py`, `tests/test_spot.py`, `tests/tes
 
 | ID | Task | Depends on | Done when | Status |
 |---|---|---|---|---|
-| K1 | **Contract first (push within the first hour):** `sentinel/types.py` (Result, Detector) exactly per AGENTS.md §4.1; `sentinel/config.py` defaults; `sentinel/pipeline.py` with `Sentinel` + `run_series()` using D1 only and a simple fixed threshold. `tests/test_pipeline.py`. | L0 | Lokesh can import and run `Sentinel` | Not started |
+| K1 | **Contract first (push within the first hour):** `sentinel/types.py` (Result, Detector) exactly per AGENTS.md §4.1; `sentinel/config.py` defaults; `sentinel/pipeline.py` with `Sentinel` + `run_series()` using D1 only and a simple fixed threshold. `tests/test_pipeline.py`. | L0 | Lokesh can import and run `Sentinel` | Done |
 | K2 | `sentinel/detectors.py`: D1 RobustZ, D2 LastW, D3 LaggedResidual, D4 VarRatio, D5 Seasonal, D6 CUSUM — causal, O(1)/O(w), with `expected()` and `reset_baseline()`. `tests/test_detectors.py` on synthetic series (each fires on its anomaly type). | K1 | Tests pass; each detector registered in pipeline | Not started |
 | K3 | `sentinel/spot.py`: SPOT + DSPOT (GPD fit, streaming update, calibrated score in [0,1]). Init on probation. `tests/test_spot.py` (false-alarm rate ≈ q on Gaussian noise). | K1 | Tests pass | Not started |
 | K4 | `sentinel/fusion.py`: MAX fusion (default) + k-of-n vote option, configurable. `tests/test_fusion.py`. | K2, K3 | Tests pass | Not started |
