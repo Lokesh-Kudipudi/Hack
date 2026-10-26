@@ -22,12 +22,15 @@ class EventManager:
         cooldown: int = 200,
         rebaseline_after: int = 80,
         extreme_ratio: float = 1.5,
+        agree_k: int = 0,
     ):
         self.debounce = max(1, int(debounce))
         self.merge_gap = max(1, int(merge_gap))
         self.cooldown_duration = max(0, int(cooldown))
         self.rebaseline_after = max(10, int(rebaseline_after))
         self.extreme_ratio = float(extreme_ratio)
+        # L21: confirm on the first point when >= agree_k detectors fire together (0 = off)
+        self.agree_k = int(agree_k)
 
         # State tracking
         self.in_event: bool = False
@@ -36,12 +39,13 @@ class EventManager:
         self.gap_count: int = 0
         self.total_event_points: int = 0
 
-    def update(self, is_anom: bool, top_ratio: float = 1.0) -> Tuple[bool, bool]:
+    def update(self, is_anom: bool, top_ratio: float = 1.0, n_fired: int = 0) -> Tuple[bool, bool]:
         """Update event state with current point's anomaly classification.
 
         Args:
             is_anom: Whether the current observation was flagged anomalous.
             top_ratio: Normalized deviation ratio of the top detector.
+            n_fired: Number of detectors alarming on this point (agreement bypass).
 
         Returns:
             Tuple of:
@@ -61,7 +65,8 @@ class EventManager:
             if not self.in_event:
                 if self.cooldown_remaining == 0:
                     # Debounce confirmation or extreme outlier bypass (ADR-003)
-                    if self.consecutive_anom >= self.debounce or top_ratio >= self.extreme_ratio:
+                    agree = self.agree_k > 0 and n_fired >= self.agree_k
+                    if self.consecutive_anom >= self.debounce or top_ratio >= self.extreme_ratio or agree:
                         is_event_start = True
                         self.in_event = True
                         self.total_event_points = self.consecutive_anom

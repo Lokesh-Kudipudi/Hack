@@ -41,6 +41,17 @@ GRIDS = {
         "events.cooldown": [200, 600],
         "events.merge_gap": [16, 64],
     },
+    # phase-3 recall/delay knobs (L18–L21) on top of the engine defaults
+    "recall": {
+        "spatial": [{"enabled": False}, {"enabled": True, "tol": 0.05}, {"enabled": True, "tol": 0.1},
+                    {"enabled": True, "tol": 0.15}, {"enabled": True, "tol": 0.25}],
+        "debounce": [2, 3],
+        "events.agree_k": [0, 2],
+        "events.cooldown_frac": [0.0, 0.5, 1.0],
+        "detectors": [["robust_z", "lagged_residual"], ["robust_z", "lagged_residual", "seasonal"]],
+        "detector_thresholds": [{"Seasonal": 15.0}, {"Seasonal": 25.0}],
+        "extreme_ratio": [1.5, 2.0],
+    },
     # one config for both metrics: union of the F1-optimal and NAB-optimal regions
     "joint": {
         "detectors": [["robust_z", "lagged_residual"], ["robust_z", "last_w", "lagged_residual"],
@@ -178,7 +189,8 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict:
     if args.objective == "nab":
         order = sorted(range(len(cfgs)), key=lambda i: -nabs[i])
     else:
-        order = sorted(eligible, key=lambda i: -(full[i]["f1"] or 0))
+        # ties on F1 broken by the smaller median detection delay
+        order = sorted(eligible, key=lambda i: (-(full[i]["f1"] or 0), full[i]["delay_fraction_median"] or 1.0))
     best = order[0]
     # NAB floor uses the full-corpus NAB (not recomputed per held-out split); F1 selection is held-out
     lo = loco(cfgs, per_cfg, eligible)
@@ -190,7 +202,8 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict:
         "best_config": cfgs[best], "best_full_corpus": full[best], "loco": lo,
         "best_nab_config": cfgs[best_nab], "best_nab_full_corpus": full[best_nab],
         "objective": args.objective, "nab_min": args.nab_min if args.objective == "joint" else None,
-        "all": [{"config": cfgs[i], **{k: full[i][k] for k in ("f1", "precision", "recall", "fp", "fn", "nab")}}
+        "all": [{"config": cfgs[i], **{k: full[i][k] for k in ("f1", "precision", "recall", "fp", "fn", "nab",
+                                                                  "delay_fraction_median")}}
                 for i in range(len(cfgs))],
         "top10": [{"config": cfgs[i], **{k: full[i][k] for k in ("f1", "precision", "recall", "tp", "fp", "fn", "nab")}}
                   for i in order[:10]],

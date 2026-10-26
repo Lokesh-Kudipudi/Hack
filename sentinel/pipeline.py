@@ -23,8 +23,9 @@ from sentinel.detectors import (
     StreamingIsolationForest,
 )
 from sentinel.events import EventManager
-from sentinel.explain import ExplainEngine
+from sentinel.explain import DETECTOR_TYPE_MAP, ExplainEngine
 from sentinel.fusion import FusionEngine
+from sentinel.recall import ScoreSmoother, SpatialExtreme
 from sentinel.spot import SPOT, DSPOT
 from sentinel.types import Detector, Result
 
@@ -135,26 +136,40 @@ class Sentinel:
         # Fusion Engine (Task K4)
         fusion_strategy = str(self.config.get("fusion", "max"))
         vote_k = int(self.config.get("vote_k", 2))
-        self.fusion_engine = FusionEngine(strategy=fusion_strategy, vote_k=vote_k, extreme_ratio=1.5)
+        # ratio (raw / threshold) above which a single detector confirms immediately (fusion + debounce bypass)
+        self.extreme_ratio = float(self.config.get("extreme_ratio", 1.5))
+        self.fusion_engine = FusionEngine(strategy=fusion_strategy, vote_k=vote_k, extreme_ratio=self.extreme_ratio)
 
         # Event Manager (Task K5)
         evt_cfg = self.config.get("events", {})
+        cooldown = int(evt_cfg.get("cooldown", 200))
+        if evt_cfg.get("cooldown_frac"):
+            # L18: CAD-OSE-style rest period proportional to the stream (probation = 15% of it, max 750)
+            cooldown = max(1, int(float(evt_cfg["cooldown_frac"]) * self.probation_limit))
         if self.config.get("use_events", True):
             self.event_manager = EventManager(
                 debounce=int(self.config.get("debounce", 2)),
                 merge_gap=int(evt_cfg.get("merge_gap", 16)),
-                cooldown=int(evt_cfg.get("cooldown", 200)),
+                cooldown=cooldown,
                 rebaseline_after=int(evt_cfg.get("rebaseline_after", 80)),
-                extreme_ratio=1.5,
+                extreme_ratio=self.extreme_ratio,
+                agree_k=int(evt_cfg.get("agree_k", 0)),
             )
         else:
             # Ablation: no event lifecycle — every NORMAL->ANOMALOUS edge starts an event
             self.event_manager = EventManager(debounce=1, merge_gap=1, cooldown=0,
                                               rebaseline_after=int(evt_cfg.get("rebaseline_after", 80)),
-                                              extreme_ratio=1.5)
+                                              extreme_ratio=self.extreme_ratio)
+
+        # Recall / delay mechanisms (L19, L20), off by default
+        sp_cfg = self.config.get("spatial") or {}
+        self.spatial: Optional[SpatialExtreme] = (SpatialExtreme(float(sp_cfg.get("tol", 0.05)))
+                                                   if sp_cfg.get("enabled") else None)
+        sm_cfg = self.config.get("smoothing") or {}
+        self.smoother = ScoreSmoother(int(sm_cfg.get("window", 1)), sm_cfg.get("detectors"))
 
         # Explain Engine (Task K6)
-        self.explain_engine = ExplainEngine()
+        self.explain_engine = ExplainEngine({**DETECTOR_TYPE_MAP, SpatialExtreme.name: "spike"})
 
         # Hot-path pre-allocated buffers (Task K7 Performance)
         self._raw_scores: Dict[str, float] = {}
@@ -206,8 +221,11 @@ class Sentinel:
         probation_scores: Dict[str, List[float]] = {name: [] for name in self.detectors}
         for tp, xp in zip(self.probation_timestamps, self.probation_values):
             for name, det in self.detectors.items():
-                s = det.update(tp, xp)
+                s = self.smoother(name, det.update(tp, xp))
                 probation_scores[name].append(s)
+
+        if self.spatial is not None:
+            self.spatial.seed(self.probation_values)
 
         # Reset CUSUM drift so it starts clean at 0 post-probation
         if "CUSUM" in self.detectors:
@@ -254,8 +272,9 @@ class Sentinel:
         alarms = self._alarms
         alarms.clear()
 
+        smooth = self.smoother
         for name, det in self.detectors.items():
-            raw = det.update(t, x)
+            raw = smooth(name, det.update(t, x))
             raw_scores[name] = raw
 
             if self.use_spot and name in self.spot_models:
@@ -283,11 +302,17 @@ class Sentinel:
         fused_score, is_anom, top_name, top_ratio, fired = self.fusion_engine.fuse(
             calibrated_scores, norm_ratios, alarms
         )
+        if self.spatial is not None and self.spatial.update(x):
+            # L19: new extreme beyond the tolerated range -> anomalous now, confirmed without debounce
+            is_anom = True
+            fired = fired + [SpatialExtreme.name]
+            top_ratio = max(top_ratio, self.extreme_ratio)
+            fused_score = max(fused_score, 1.0 - 1e-6)
         top_score = raw_scores.get(top_name, 0.0)
         label = "ANOMALOUS" if is_anom else "NORMAL"
 
         # Event manager logic with debounce, gap merge, cooldown, and rebaseline (Task K5)
-        is_event_start, should_rebaseline = self.event_manager.update(is_anom, top_ratio)
+        is_event_start, should_rebaseline = self.event_manager.update(is_anom, top_ratio, len(fired))
 
         if should_rebaseline:
             # Confirmed persistent level shift: adapt all detectors to new baseline (AGENTS.md §4.5)

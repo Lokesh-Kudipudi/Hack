@@ -43,7 +43,12 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "fusion": "max",
     "vote_k": 1,
     "use_events": True,  # False = plain rising-edge events (no debounce / merge / cooldown)
-    "events": {"merge_gap": 64, "cooldown": 600, "rebaseline_after": 80},
+    # cooldown_frac > 0 replaces cooldown with frac x probation length; agree_k > 0 confirms on the first
+    # point when that many detectors fire together (phase-3 recall/delay knobs, off by default)
+    "events": {"merge_gap": 64, "cooldown": 600, "rebaseline_after": 80, "cooldown_frac": 0.0, "agree_k": 0},
+    "extreme_ratio": 1.5,  # raw/threshold ratio that confirms a single detector immediately
+    "spatial": {"enabled": False, "tol": 0.05},  # new running min/max beyond tol x range -> alarm
+    "smoothing": {"window": 1, "detectors": None},  # moving average of raw scores before SPOT (1 = off)
 }
 
 # Likhit's original K1–K8 defaults (event-F1 0.311, NAB 53.0), kept for reference / ablation.
