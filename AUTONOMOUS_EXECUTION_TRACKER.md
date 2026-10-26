@@ -29,28 +29,30 @@
   - Runtime: **16.37 µs/pt** (well within < 50 µs/pt budget).
 
 - [x] **Task K4: Multi-Detector Fusion Engine (`sentinel/fusion.py`)**
-  - Created `FusionEngine` with MAX fusion, k-of-n consensus voting, and extreme outlier bypass.
+  - Created modular `FusionEngine` supporting MAX fusion, k-of-n consensus voting, and extreme outlier bypass.
   - Integrated into `sentinel/pipeline.py`.
   - Verified: All 5 fusion tests pass. Full test suite: 58 passed.
 
-- [ ] **Task K5: Event Lifecycle Manager (`sentinel/events.py`)**
-  - Module created with debounce, merge gap, cooldown suppression, and level shift rebaselining.
-  - Unit tests created in `tests/test_events.py` (4 tests pass).
-  - Next step: Complete wiring in `sentinel/pipeline.py` and benchmark.
+- [x] **Task K5: Event Lifecycle Manager (`sentinel/events.py`)**
+  - Modular `EventManager` with debounce confirmation, merge gap windowing, cooldown suppression, and sustained level-shift re-baselining.
+  - Verified: All 4 event tests pass. Full test suite: 62 passed.
+  - Benchmark: Recall jumped to **0.733** (85/116 windows), Event-F1 = 0.311, runtime = 37.42 µs/pt.
 
-- [ ] **Task K6: Explainability Engine (`sentinel/explain.py`)**
-  - Structured evidence dictionary and narrative text generation for every ANOMALOUS point.
-  - Types: `spike`, `level_shift`, `variance_change`, `pattern_break`, `sequence`.
-  - Add `tests/test_explain.py` and integrate.
+- [x] **Task K6: Explainability Engine (`sentinel/explain.py`)**
+  - Structured evidence dictionary and contextual narrative text for all flagged anomalies conforming to AGENTS.md §4.6.
+  - Mapped types: `spike` (D1/D2), `sequence` (D3), `variance_change` (D4), `pattern_break` (D5), `level_shift` (D6).
+  - Verified: All 3 explain tests pass. Full test suite: 65 passed.
+  - Benchmark: Event-F1 = 0.311, Recall = **0.733** (85/116 windows), runtime = **23.04 µs/pt**.
 
 - [ ] **Task K7: Performance & Tuning Pass**
-  - Profile `Sentinel.update` allocations and memory overhead.
-  - Ensure single-point update stays strictly < 50 µs/pt.
-  - Tune global hyperparameters on corpus.
+  - Hot-path optimization: eliminate generator expressions in `LaggedResidual`, pre-allocate per-point dicts in `Sentinel.update`.
+  - Maintain runtime well below the 50 µs/point budget (target < 20 µs/pt).
+  - Status: *In progress*.
 
 - [ ] **Task K8: Stretch Detector (D7 Streaming Isolation Forest / Fast Random Projection)**
   - Streaming windowed tree estimator on rolling lag features.
   - Evaluate whether it adds value to the ensemble in ablation.
+  - Status: *Not started*.
 
 ---
 
@@ -62,7 +64,9 @@
 | `k1 d1 robust-z` | 0.176 | 0.101 | 0.664 | 77 / 116 | 683 | 108.0 | 4.4 | Single detector, fixed threshold |
 | `k1-v2 debounce thr6` | 0.240 | 0.151 | 0.595 | 69 / 116 | 389 | 114.0 | 3.2 | Added debounce & 6.0 threshold |
 | `k2-v3 consensus-fusion` | 0.153 | 0.086 | 0.698 | 81 / 116 | 860 | 84.0 | 13.3 | 6 detectors, high recall |
-| **`k3 spot-calibrated`** | **0.324** | **0.209** | **0.724** | **84 / 116** | **318** | **100.0** | **16.37** | **New #1 on Leaderboard!** FP dropped by 63% |
+| **`k3 spot-calibrated`** | **0.324** | **0.209** | **0.724** | **84 / 116** | **318** | **100.0** | **16.37** | **#1 on Leaderboard!** FP dropped 63% |
+| `k5 event-lifecycle` | 0.311 | 0.197 | **0.733** | **85 / 116** | 346 | 100.0 | 37.42 | Highest Recall (85 windows caught) |
+| `k6 explain-engine` | 0.311 | 0.197 | **0.733** | **85 / 116** | 346 | 100.0 | **23.04** | Full explainability evidence schema |
 
 ---
 
