@@ -124,7 +124,7 @@ Delay is measured from window start to first alert in the **76 detected windows*
 | ARTime | 106 | 105 readings (49.9%) |
 | Windowed Gaussian (NAB) | 73 | 100 readings (48.8%) |
 
-Median timing is similar across these models; the number of windows found differs more. The full 16-model comparison is in [results/delay_comparison.md](results/delay_comparison.md).
+Median timing is similar across these models; the number of windows found differs more. The full 16-model comparison is in [docs/results/detection_delay_comparison.md](results/detection_delay_comparison.md).
 
 ---
 
@@ -137,7 +137,7 @@ Median timing is similar across these models; the number of windows found differ
 | Numenta HTM | 0.527 | 152 | — |
 | Windowed Gaussian (NAB) | 0.283 | 326 | 57.8 µs |
 
-![Two-panel horizontal bars comparing event-F1 and inference time](results/figures/event_f1_vs_inference_time.png)
+![Two-panel horizontal bars comparing event-F1 and inference time](../results/figures/event_f1_vs_inference_time.png)
 
 The chart includes all models with recorded event metrics. A dash means no local runtime. The time axis is compressed, but its value labels are in actual µs per point. Published models' event results use NAB's stored scores and thresholds; measured runtimes use the same machine.
 
@@ -152,7 +152,7 @@ The chart includes all models with recorded event metrics. A dash means no local
 | Numenta HTM | 0.387 | 0.828 |
 | Windowed Gaussian (NAB) | 0.183 | 0.629 |
 
-![Two-panel horizontal bars comparing precision and recall](results/figures/precision_vs_recall_models.png)
+![Two-panel horizontal bars comparing precision and recall](../results/figures/precision_vs_recall_models.png)
 
 The chart includes all models with recorded event metrics. A dash means undefined precision. More detected windows can come with more false events, so precision and recall should be read together.
 
@@ -160,7 +160,7 @@ The chart includes all models with recorded event metrics. A dash means undefine
 
 ## Slide 10 — Example alert and evidence
 
-![Current default on NYC taxi data](results/figures/example_nyc_taxi.png)
+![Current default on NYC taxi data](../results/figures/example_nyc_taxi.png)
 
 All four red dots are LaggedResidual event starts. It compares each reading with the average of 8 readings from roughly 256 points earlier.
 

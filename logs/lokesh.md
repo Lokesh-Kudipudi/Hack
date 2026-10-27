@@ -152,3 +152,18 @@
 - Changed: `presentation.md`, `eval/build_presentation_pdf.py`, `presentation.pdf`.
 - Result: 11-slide PDF has separate readable comparison charts, four explained NYC taxi alerts, and current-default RobustZ and spatial flag examples. Checked the PDF text and page count; `git diff --check` passed.
 - Notes / next: user explicitly authorized pushing these accumulated presentation changes to Lokesh's branch; no merge requested.
+
+## 2026-10-27 16:50 — Docs restructure
+- Changed: moved eight standalone Markdown documents into `docs/`; updated `README.md`, `AGENTS.md`, `TASKS.md`, `eval/leaderboard.py`, `results/leaderboard.md`, and `results/tuning.md`.
+- Result: 73 local links checked with no broken destinations; `pytest -q` passed (114 tests); `git diff --check` passed.
+- Notes / next: Root `AGENTS.md`, `CLAUDE.md`, and `TASKS.md` remain discoverable; generated result reports and historical logs retain their existing paths.
+
+## 2026-10-27 16:53 — Docs restructure: result reports
+- Changed: moved and descriptively renamed all eight `results/*.md` reports into `docs/results/`; added an About note to each; updated README, documentation links, evaluation report writers, and the presentation chart reader.
+- Result: regenerated the leaderboard in its new location; 75 local Markdown links resolve; `pytest -q` passed (114 tests); `git diff --check` passed.
+- Notes / next: JSON run records, config files, and figures remain under `results/`. No Markdown files remain there.
+
+## 2026-10-27 16:55 — Docs snake_case filenames
+- Changed: renamed `docs/ARCHITECTURE_DECISIONS.md`, `AUTONOMOUS_EXECUTION_TRACKER.md`, `DOMAIN_KNOWLEDGE.md`, and `JUDGES_COMPREHENSIVE_REPORT.md` to lowercase snake_case; updated README and in-doc references.
+- Result: all 16 `docs/**/*.md` filenames match snake_case; 75 local Markdown links resolve; `pytest -q` passed (114 tests); `git diff --check` passed.
+- Notes / next: case-only moves were recorded through temporary names so Git tracks the renames on macOS.

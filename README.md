@@ -16,14 +16,19 @@ held-out score for the fixed default. The engine runs at about **2.9 µs per poi
 operating point reaches a **NAB standard score of 60.58**, above earthgecko Skyline (58.2) and Random Cut Forest
 (51.7).
 
-- How it works, stage by stage, with a worked example: **[explain.md](explain.md)**
-- Slides: **[presentation.pdf](presentation.pdf)** · [Markdown outline](presentation.md) · regenerate with `python -m eval.build_presentation_pdf` (requires ReportLab)
-- Design decisions: [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md)
-- Background (anomaly types, EVT, NAB scoring): [DOMAIN_KNOWLEDGE.md](DOMAIN_KNOWLEDGE.md)
-- Configuration tuning, current default, and previous setting: [configuration_tuning.md](configuration_tuning.md)
-- Result tables: [results/leaderboard.md](results/leaderboard.md), [results/ablation.md](results/ablation.md),
-  [results/tuning.md](results/tuning.md), [results/model_comparison.md](results/model_comparison.md),
-  [results/runtime_comparison.md](results/runtime_comparison.md), [results/miss_analysis.md](results/miss_analysis.md)
+- How it works, stage by stage, with a worked example: **[explain.md](docs/explain.md)**
+- Slides: **[presentation.pdf](presentation.pdf)** · [Markdown outline](docs/presentation.md) · regenerate with `python -m eval.build_presentation_pdf` (requires ReportLab)
+- Design decisions: [architecture_decisions.md](docs/architecture_decisions.md)
+- Background (anomaly types, EVT, NAB scoring): [domain_knowledge.md](docs/domain_knowledge.md)
+- Configuration tuning, current default, and previous setting: [configuration_tuning.md](docs/configuration_tuning.md)
+- Result reports: [benchmark leaderboard](docs/results/benchmark_leaderboard.md),
+  [detector ablation](docs/results/detector_ablation_results.md),
+  [model performance](docs/results/model_performance_comparison.md),
+  [inference runtime](docs/results/inference_runtime_comparison.md),
+  [detection delay](docs/results/detection_delay_comparison.md),
+  [missed anomalies](docs/results/missed_anomaly_analysis.md),
+  [event-F1 tuning](docs/results/hyperparameter_tuning.md), and
+  [joint objective tuning](docs/results/joint_objective_tuning.md)
 
 ## Repository layout
 
@@ -50,11 +55,13 @@ eval/                evaluation and experiments
   benchmark.py         µs/point
   miss_analysis.py     why windows are missed
   nab_runtime.py nab_compare.py   NAB's own detectors: measured runtime, event-F1 from their stored scores
-  leaderboard.py figures.py       results/leaderboard.md, results/figures/*.png
+  leaderboard.py figures.py       docs/results/benchmark_leaderboard.md, results/figures/*.png
 app/dashboard.py     Streamlit replay demo
 tests/               pytest suite (114 tests)
-results/             runs/*.json (one per experiment), *.md tables, best_*config.json, figures/
-logs/  TASKS.md  AGENTS.md  ARCHITECTURE_DECISIONS.md
+results/             runs/*.json (one per experiment), best_*config.json, figures/
+docs/               project documentation (design, background, tuning, presentation)
+  results/           generated Markdown result reports
+logs/  TASKS.md  AGENTS.md  CLAUDE.md
 data/                local only, never committed (NAB clone and/or starter pack)
 ```
 
@@ -162,7 +169,7 @@ truth windows, events with evidence cards, per-detector scores and a running eve
 1. **Baselines.** null, random and windowedGaussian, scored with our event scorer and with the official NAB scorer
    (which reproduces NAB's published 0.0 / 39.65 / 70.10 for null / windowedGaussian / Numenta).
 2. **Detectors.** Six causal one-liner detectors (ICLR 2026 multi-horizon idea), each tested alone and removed
-   (`results/ablation.md`).
+   (`docs/results/detector_ablation_results.md`).
 3. **SPOT thresholds.** Peaks-over-threshold with a GPD per detector instead of fixed z cut-offs. This took a static
    robust z-score from F1 0.040 (4,519 FPs) to 0.376.
 4. **Event lifecycle.** Debounce, merge gap, cooldown and rebaseline, because event-F1 counts only the first start
@@ -199,20 +206,20 @@ python -c "import json; from sentinel.config import ORIGINAL_DEFAULT_CONFIG as c
 python -m eval.run --detector sentinel --config /tmp/orig.json --tag "likhit default"
 python -m eval.run --detector sentinel --tag "engine default (final)"
 python -m eval.run --detector sentinel --config results/best_nab_config.json --tag "NAB operating point (final)"
-# Historical 432-setting search; results/tuning.md records the former default.
-# The current best_config.json is from the later lag/margin sweep in configuration_tuning.md.
-python -m eval.ablation --tag final                               # results/ablation.md, figures/ablation.png (~3 min)
-python -m eval.miss_analysis                                      # results/miss_analysis.md, figures/miss_analysis.png
+# Historical 432-setting search; docs/results/hyperparameter_tuning.md records the former default.
+# The current best_config.json is from the later lag/margin sweep in docs/configuration_tuning.md.
+python -m eval.ablation --tag final                               # docs/results/detector_ablation_results.md, figures/ablation.png (~3 min)
+python -m eval.miss_analysis                                      # docs/results/missed_anomaly_analysis.md, figures/miss_analysis.png
 python -m eval.benchmark                                          # µs/point, all detectors
 python -m eval.nab_runtime                                        # NAB detectors timed (needs statsmodels; ~2 min)
-python -m eval.nab_compare                                        # results/model_comparison.md, figures/model_comparison.png
+python -m eval.nab_compare                                        # docs/results/model_performance_comparison.md, figures/model_comparison.png
 python -m eval.predict --input data --windows auto -q             # must print event-F1=0.691
-python -m eval.leaderboard                                        # results/leaderboard.md
+python -m eval.leaderboard                                        # docs/results/benchmark_leaderboard.md
 python -m eval.figures                                            # results/figures/*.png
 ```
 
 The other tune grids are `default`, `perdet`, `subsets`, `recall` and `joint`. `joint` is run with
-`--grid joint --objective joint --nab-min 52` and writes `tuning_joint.md` / `best_joint_config.json`. The `phase 2` leaderboard
+`--grid joint --objective joint --nab-min 52` and writes `docs/results/joint_objective_tuning.md` / `best_joint_config.json`. The `phase 2` leaderboard
 row ("tuned for event-F1 (LOCO, RobustZ+LaggedResidual)") is a stored run. It is reproduced by `eval.ablation`'s
 "per-detector SPOT risk" row (0.563).
 
@@ -253,10 +260,10 @@ baselines, and from `eval.run` otherwise.
 - **Joint lag/margin grid LOCO selection:** pooled F1 0.664 / mean 0.590. This validates the selection
   procedure, not the one fixed default. artificialNoAnomaly has no windows and 0 FPs.
 
-**Comparison with published NAB detectors** ([results/model_comparison.md](results/model_comparison.md)). Event
+**Comparison with published NAB detectors** ([docs/results/model_performance_comparison.md](docs/results/model_performance_comparison.md)). Event
 metrics for published detectors are computed by our scorer from NAB's stored per-point scores at NAB's own
 standard-profile threshold. µs/point was measured on the same machine with NAB's own implementations
-([results/runtime_comparison.md](results/runtime_comparison.md): first 4,032 points of 6 files).
+([docs/results/inference_runtime_comparison.md](docs/results/inference_runtime_comparison.md): first 4,032 points of 6 files).
 
 | Model | Event-F1 | P | R | FP | NAB std | µs/point |
 |---|---|---|---|---|---|---|
@@ -290,9 +297,9 @@ Figures: [published_comparison.png](results/figures/published_comparison.png),
 ## Known limitations
 
 - Tuning and evaluation use one public corpus. LOCO limits but does not remove optimism.
-- The new default misses 40 windows. The refreshed [miss analysis](results/miss_analysis.md) classifies
+- The new default misses 40 windows. The refreshed [miss analysis](docs/results/missed_anomaly_analysis.md) classifies
   21 as alarms from other detectors, 11 as weak signal, and 8 as suppressed events.
 - Streams shorter than 7 points get probation 0 and are never flagged. `seasonal.auto_period` has no effect.
   Rebaseline is count-based, not CUSUM-confirmed.
 
-See [presentation.md](presentation.md) slide 10 and [explain.md](explain.md) for details.
+See [presentation.md](docs/presentation.md) slide 10 and [explain.md](docs/explain.md) for details.

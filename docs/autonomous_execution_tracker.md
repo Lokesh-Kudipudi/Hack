@@ -101,7 +101,7 @@
 
 ## 4. Architecture Decision Records (ADR Cards)
 
-All key design choices are documented in [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md):
+All key design choices are documented in [architecture_decisions.md](architecture_decisions.md):
 - **ADR-001:** Strict Streaming & Causal Invariant ($O(1)$ memory & time, $< 50\ \mu\text{s/pt}$)
 - **ADR-002:** Causal Multi-Horizon Detector Ensemble (D1 to D7)
 - **ADR-003:** Event Debounce and Confirmation Protocol ($K=2$ / 1.5x extreme bypass)
