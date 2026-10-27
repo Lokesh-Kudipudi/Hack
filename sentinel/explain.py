@@ -62,7 +62,7 @@ class ExplainEngine:
         # Time context (fast tuple lookup without method call overhead)
         time_str = ""
         try:
-            time_str = f" ({_WEEKDAYS[t.dayofweek]} {t.hour:02d}:{t.minute:02d})"
+            time_str = f" ({_WEEKDAYS[t.day_of_week]} {t.hour:02d}:{t.minute:02d})"
         except Exception:
             pass
 

@@ -18,6 +18,7 @@ operating point reaches a **NAB standard score of 60.58**, above earthgecko Skyl
 - How it works, stage by stage, with a worked example: **[explain.md](explain.md)**
 - Slides: **[presentation.md](presentation.md)**
 - Design decisions: [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md)
+- Background (anomaly types, EVT, NAB scoring): [DOMAIN_KNOWLEDGE.md](DOMAIN_KNOWLEDGE.md)
 - Result tables: [results/leaderboard.md](results/leaderboard.md), [results/ablation.md](results/ablation.md),
   [results/tuning.md](results/tuning.md), [results/model_comparison.md](results/model_comparison.md),
   [results/runtime_comparison.md](results/runtime_comparison.md), [results/miss_analysis.md](results/miss_analysis.md)
