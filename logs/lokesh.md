@@ -127,3 +127,28 @@
 - Changed: `.gitignore`, `README.md`, `eval/predict.py`, `outputs/predictions/` (58 per-file CSVs, combined CSV, events CSV, summary JSON).
 - Result: regenerated current-default predictions for all 365,558 NAB points; 104 predicted events, TP 76 / FP 28 / FN 40, event-F1 0.691, precision 0.731, recall 0.655. Verified combined rows, file keys, and events against the summary.
 - Notes / next: user explicitly requested tracking and pushing these derived CSVs. Old local predictions were moved outside the repo to `/private/tmp/sentinel-predictions-previous-20261027`; raw NAB input data remains ignored. README links the canonical files and gives the regeneration command.
+
+## 2026-10-27 14:37 — L13 Build ten-slide PDF
+- Changed: `presentation.pdf`, `eval/build_presentation_pdf.py`, `README.md`, `.gitattributes`.
+- Result: generated a ten-page 16:9 PDF from the reviewed outline with the current default only, both model comparison charts, the NYC taxi example, and no speaker notes. Rendered every page and checked layout at full size. The deck keeps event-F1 0.691 and official NAB score 58.80.
+- Notes / next: `python -m eval.build_presentation_pdf` regenerates the PDF with ReportLab. No PPTX was created.
+
+## 2026-10-27 14:40 — L13 Split model comparison slides locally
+- Changed: `presentation.md`, `eval/build_presentation_pdf.py`, `presentation.pdf`.
+- Result: moved event-F1/runtime and precision/recall charts to separate, larger slides. The PDF now has 11 pages; slides 8–11 were rendered and checked, with no speaker notes or alternate Sentinel settings.
+- Notes / next: user requested no GitHub push for this revision. The earlier ten-page PDF had already been pushed before that instruction; this revision remains local.
+
+## 2026-10-27 14:44 — L13 Explain all four NYC taxi alerts
+- Changed: `presentation.md`, `eval/build_presentation_pdf.py`, `presentation.pdf`.
+- Result: slide 10 now lists each of the four current-default event starts, its observed reading, the older eight-reading average, and a plain-language reason. Checked all four values against `outputs/predictions/events.csv`, rendered the slide, and verified the 11-page PDF text.
+- Notes / next: kept the revised presentation local as requested; no commit or push.
+
+## 2026-10-27 14:48 — L13 Add RobustZ and spatial flag examples
+- Changed: `presentation.md`, `eval/build_presentation_pdf.py`, `presentation.pdf`.
+- Result: slide 5 now gives a current-default RobustZ true positive (CVS tweet count 10 vs expected 0.41) and a spatial-extreme true positive (ambient temperature 82.29 vs prior high 80.52). The NYC taxi slide remains four LaggedResidual events. Rendered slide 5 and verified the 11-page PDF text.
+- Notes / next: SEF is identified as a separate new-range check. Kept all presentation changes local, with no commit or push.
+
+## 2026-10-27 14:51 — L13 Publish revised presentation
+- Changed: `presentation.md`, `eval/build_presentation_pdf.py`, `presentation.pdf`.
+- Result: 11-slide PDF has separate readable comparison charts, four explained NYC taxi alerts, and current-default RobustZ and spatial flag examples. Checked the PDF text and page count; `git diff --check` passed.
+- Notes / next: user explicitly authorized pushing these accumulated presentation changes to Lokesh's branch; no merge requested.
