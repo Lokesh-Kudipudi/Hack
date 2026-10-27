@@ -122,3 +122,8 @@
 - Changed: `eval/delay_compare.py`, `results/delay_comparison.md`, `results/runs/20261027-142128_delay_comparison.json`, `presentation.md`.
 - Result: scored first-alert delay for Sentinel and 15 NAB published models on the same 116 labelled windows; slide 7 shows five representative models with their windows found. Sentinel found 76 windows with median delay 100 readings (49.7% of window width). The published model medians are also near the middle of their detected windows.
 - Notes / next: delay is conditional on detected windows. Published NAB predictions use threshold crossings as event starts; Sentinel uses its event manager. PDF generation remains deferred during Markdown review.
+
+## 2026-10-27 14:29 — L13 Publish current-default predictions
+- Changed: `.gitignore`, `README.md`, `eval/predict.py`, `outputs/predictions/` (58 per-file CSVs, combined CSV, events CSV, summary JSON).
+- Result: regenerated current-default predictions for all 365,558 NAB points; 104 predicted events, TP 76 / FP 28 / FN 40, event-F1 0.691, precision 0.731, recall 0.655. Verified combined rows, file keys, and events against the summary.
+- Notes / next: user explicitly requested tracking and pushing these derived CSVs. Old local predictions were moved outside the repo to `/private/tmp/sentinel-predictions-previous-20261027`; raw NAB input data remains ignored. README links the canonical files and gives the regeneration command.

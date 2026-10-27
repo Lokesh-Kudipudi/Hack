@@ -1,0 +1,49 @@
+{
+ "created": "2026-10-27T14:29:05",
+ "config": {
+  "spot.q_per_detector": {
+   "LastW": 0.0001,
+   "LaggedResidual": 1e-05
+  },
+  "spot.q": 1e-06,
+  "spatial": {
+   "enabled": true,
+   "tol": 0.0575
+  },
+  "debounce": 3,
+  "events.cooldown_frac": 0.5,
+  "extreme_ratio": 2.0,
+  "detectors": [
+   "robust_z",
+   "lagged_residual"
+  ],
+  "lagged_residual": {
+   "w": 8,
+   "h": 256
+  }
+ },
+ "files": 58,
+ "points": 365558,
+ "events": 104,
+ "runtime": {
+  "update_seconds": 1.0332284175092354,
+  "us_per_point": 2.826441816371781,
+  "wall_seconds": 2.378209749935195
+ },
+ "metrics": {
+  "files": 58,
+  "tp": 76,
+  "fp": 28,
+  "fn": 40,
+  "precision": 0.7307692307692307,
+  "recall": 0.6551724137931034,
+  "f1": 0.6909090909090909,
+  "delay_points_mean": 146.55263157894737,
+  "delay_points_median": 100.0,
+  "delay_minutes_mean": 1272.9736842105262,
+  "delay_minutes_median": 982.5,
+  "delay_fraction_mean": 0.5060034779345668,
+  "delay_fraction_median": 0.4967741935483871
+ },
+ "metrics_files_scored": 58
+}

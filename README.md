@@ -129,12 +129,24 @@ python -m sentinel -i multi.csv --stream-col stream_id                          
 **Predictions for a folder of CSVs** (e.g. hidden test windows)
 
 ```bash
-python -m eval.predict --input data/starter --out outputs/predictions [--windows auto] [--combined] [--config default]
+python -m eval.predict --input data/starter --out outputs/starter-predictions [--windows auto] [--combined] [--config default]
 ```
 
 This writes `<category>/<file>.csv` per point (score, label, is_event_start, evidence type, text and JSON),
 `events.csv` with one row per event, and `summary.json` (runtime, plus metrics when `--windows` is given). The
 default config is `results/best_config.json`, which matches the engine default (`w=8`, `h=256`, spatial margin 5.75%).
+
+**Saved predictions for the current default on all 58 NAB files:** [combined per-point CSV](outputs/predictions/predictions.csv),
+[per-file CSVs](outputs/predictions/), [detected events](outputs/predictions/events.csv), and
+[run summary](outputs/predictions/summary.json). They cover 365,558 points and reproduce event-F1 **0.691**
+(precision **0.731**, recall **0.655**). These are the tracked default predictions; raw NAB input data stays local.
+To regenerate them, run:
+
+```bash
+python -m eval.predict --input data/NAB/data --out outputs/predictions \
+  --windows data/NAB/labels/combined_windows.json --combined \
+  --config results/best_config.json
+```
 
 **Dashboard**
 
