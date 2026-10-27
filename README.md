@@ -1,301 +1,282 @@
-# Sentinel — Adaptive Streaming Time-Series Anomaly Detection
+# Sentinel: adaptive streaming anomaly detection (Hackathon Challenge 2)
 
-[![Tests](https://img.shields.io/badge/pytest-107%20passed-brightgreen.svg)]()
-[![NAB Standard Score](https://img.shields.io/badge/NAB%20Score-60.58-orange.svg)]()
-[![Event F1](https://img.shields.io/badge/Event--F1-0.673%20(LOCO%200.654)-blue.svg)]()
-[![Throughput](https://img.shields.io/badge/Throughput-367k%20pts%2Fsec-success.svg)]()
-[![Latency](https://img.shields.io/badge/Latency-2.7%20%C2%B5s%2Fpt-purple.svg)]()
+Sentinel is a lightweight, strictly causal anomaly detector for univariate time series. It reads one
+`(timestamp, value)` point at a time and returns, for every point, a `score` in [0, 1], a `NORMAL`/`ANOMALOUS`
+`label`, an `is_event_start` flag and a structured `evidence` dict that explains each flag.
 
-> **Hackathon Challenge 2:** Online, lookahead-free streaming anomaly detection on the 58-file Numenta Anomaly Benchmark (NAB). Built with a causal multi-horizon detector ensemble, Extreme Value Theory (SPOT/EVT) dynamic thresholding, event lifecycle debounce & re-baselining, and structured operational explainability.
+The detector is an ensemble of two O(1) statistical detectors (a robust z-score and a long-horizon lagged
+residual, after the ICLR 2026 "one-liner" baselines). Each has its own Extreme-Value-Theory threshold (SPOT, with a
+per-detector risk level), plus a spatial-extreme flag and an event manager that turns point alarms into
+well-placed events.
 
-Sentinel reads one `(timestamp, value)` point at a time and returns, for every point:
+On the full NAB corpus (58 files, 116 anomaly windows) the engine default reaches **event-F1 0.673** (precision
+0.747, recall 0.612, 24 false-positive events). The windowedGaussian baseline gets 0.302. Leave-one-category-out
+held-out F1 is **0.654 pooled / 0.593 mean**. The engine runs at **2.8 µs per point** on one core. A second global
+operating point reaches a **NAB standard score of 60.58**, above earthgecko Skyline (58.2) and Random Cut Forest
+(51.7).
 
-| Field | Meaning |
-|---|---|
-| `score` | Fused anomaly score in [0, 1] (1 − tail probability under an EVT model) |
-| `label` | `NORMAL` / `ANOMALOUS` |
-| `is_event_start` | First point of a new anomaly event (what event-F1 and alarms count) |
-| `evidence` | Structured diagnostic evidence — type, expected vs observed, deviation $\sigma$, fired detectors, natural-language explanation |
+- How it works, stage by stage, with a worked example: **[explain.md](explain.md)**
+- Slides: **[presentation.md](presentation.md)**
+- Design decisions: [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md)
+- Background (anomaly types, EVT, NAB scoring): [DOMAIN_KNOWLEDGE.md](DOMAIN_KNOWLEDGE.md)
+- Result tables: [results/leaderboard.md](results/leaderboard.md), [results/ablation.md](results/ablation.md),
+  [results/tuning.md](results/tuning.md), [results/model_comparison.md](results/model_comparison.md),
+  [results/runtime_comparison.md](results/runtime_comparison.md), [results/miss_analysis.md](results/miss_analysis.md)
 
-```json
-{
-  "type": "spike",
-  "expected": 14093.6,
-  "observed": 39197.0,
-  "deviation_sigma": 7.9,
-  "fired": ["LastW", "LaggedResidual", "Seasonal"],
-  "top_detector": "LaggedResidual",
-  "text": "Value 3.92e+04 is 7.9σ above expected 1.409e+04 at Sun 01:00: a deviation from the longer-horizon trend (LaggedResidual; also LastW, Seasonal)."
-}
-```
-
----
-
-## Key Highlights & Achievements
-
-1. **Beats Major Published Industry Standards on NAB**:
-   - **Sentinel (NAB operating point): 60.58 Standard / 54.02 Reward Low FP / 64.75 Reward Low FN**; the engine default scores 54.90 (original K1–K8 defaults: 53.00)
-   - Above **earthgecko Skyline (58.2)** and **KNN CAD (58.0)**; outperforms **Relative Entropy (54.6)**, **Random Cut Forest (51.7)**, **Twitter ADVec (47.1)**, **Windowed Gaussian (39.6)**, **Etsy Skyline (35.7)**, **Bayesian Changepoint (17.7)**, and **EXPoSE (16.4)**.
-2. **High Generalization & Event-F1**:
-   - Engine default (`Sentinel()`, no config) reaches **Event-F1 = 0.673** (Precision 0.747, Recall 0.612, 24 FP events) vs **0.302** for the windowedGaussian baseline and 0.311 for the original K1–K8 defaults.
-   - **Leave-One-Category-Out (LOCO) held-out F1: pooled 0.654, mean 0.593** — tuned on 6 categories, tested on the unseen 7th.
-   - Two engine changes made the difference: a **per-detector SPOT risk level** (ADR-009: 0.311 → 0.563) and **recall mechanisms**
-     (ADR-010: spatial-extreme flag, proportional cooldown, debounce 3, extreme ratio 2.0: 0.563 → 0.673, recall 0.48 → 0.61).
-   - Detections land **at the labelled anomaly point** (median +0 points; 62 of 71 at or before it).
-3. **Ultra-Low Latency & High Throughput**:
-   - Executes in **2.7 µs/point** (~367,000 points/second on a single CPU core; p99 4.4 µs), including input validation.
-   - **~19x faster than our < 50 µs/point budget** and than windowedGaussian (48.7 µs).
-4. **Strictly Causal & $O(1)$**:
-   - Zero lookahead, no future centering, fixed-size rolling circular deques with entry/exit running sums.
-5. **Human-in-the-Loop Explainability**:
-   - Generates structured JSON evidence cards and natural-language root-cause diagnostic text for every detected incident.
-
----
-
-## Benchmark Leaderboard
-
-### Official Published NAB Leaderboard Comparison
-
-Evaluated on the full 58-file corpus using NAB's official sweeper (`data/NAB/nab/sweeper.py`). Latencies: NAB's own implementations run on our machine on the same streams (`python -m eval.nab_runtime`, `results/runtime_comparison.md`):
-
-| Detector | Standard Profile | Reward Low FP | Reward Low FN | Inference Latency | Theoretical Complexity |
-|---|---|---|---|---|---|
-| **Perfect Detector** | 100.0 | 100.0 | 100.0 | — | — |
-| ARTime | 74.9 | 65.1 | 80.4 | not runnable here (Julia) | Non-streaming |
-| Numenta HTM | 70.1 | 63.1 | 74.3 | not runnable here (nupic, Py2) | Heavy Cortical Network |
-| CAD OSE | 69.9 | 67.0 | 73.2 | 229.5 µs/pt (measured) | Conformal Predictor |
-| **Sentinel (Ours, NAB operating point)** | **60.58** | **54.02** | **64.75** | **4.8 µs/pt** | **Strict $O(1)$ Causal** |
-| earthgecko Skyline | 58.2 | 46.2 | 63.9 | 227.7 µs/pt (measured) | Multi-process |
-| KNN CAD | 58.0 | 43.4 | 64.8 | 776.9 µs/pt (measured) | $O(N)$ Nearest Neighbors |
-| Relative Entropy | 54.6 | 47.6 | 58.8 | 577.3 µs/pt (measured) | Kernel Density |
-| Sentinel (Ours, engine default) | 54.90 | 53.78 | 57.00 | 2.7 µs/pt | Strict $O(1)$ Causal |
-| Sentinel (Ours, original K1–K8 defaults) | 53.00 | 37.27 | 59.76 | 5.5 µs/pt | Strict $O(1)$ Causal |
-| Random Cut Forest | 51.7 | 38.4 | 59.7 | not runnable here (AWS service) | Random Trees |
-| Twitter ADVec v1.0.0 | 47.1 | 33.6 | 53.5 | not runnable here (R) | Seasonal ESD |
-| Windowed Gaussian | 39.6 | 20.9 | 47.4 | 57.6 µs/pt (measured, NAB impl.) | Sliding Window |
-| Etsy Skyline | 35.7 | 27.1 | 44.5 | 2589.8 µs/pt (measured) | Heuristics |
-| Bayesian Changepoint | 17.7 | 3.2 | 32.2 | 113.6 µs/pt (measured) | $O(N^2)$ Exact Bayesian |
-| EXPoSE | 16.4 | 3.2 | 26.9 | 550.1 µs/pt (measured) | Kernel Embedding |
-| Random Detector | 16.8 | 5.8 | 25.9 | 0.1 µs/pt (measured) | Uniform Random |
-| Null Detector | 0.0 | 0.0 | 0.0 | 0.0 µs/pt (measured) | Constant 0.5 |
-
-### Event-based metrics (PS primary metric) — full corpus, 116 anomaly windows
-
-Global operating points, all found by searching global configs only with leave-one-category-out validation
-([results/tuning.md](results/tuning.md)):
-
-| Detector | Event-F1 | Precision | Recall | FP events | Missed windows | NAB std | µs/pt |
-|---|---|---|---|---|---|---|---|
-| windowedGaussian (NAB baseline, best thr) | 0.302 | 0.211 | 0.534 | 232 | 54 | 39.6 | 48.7 |
-| Sentinel — original K1–K8 defaults (`ORIGINAL_DEFAULT_CONFIG`) | 0.311 | 0.197 | 0.733 | 346 | 31 | 53.0 | 5.5 |
-| Sentinel — phase 2: per-detector risk (ADR-009) | 0.563 | 0.675 | 0.483 | 27 | 60 | 42.8 | 2.4 |
-| **Sentinel — engine default** (phase 3, ADR-010; `results/best_config.json`) | **0.673** | **0.747** | 0.612 | **24** | 45 | 54.9 | **2.7** |
-| **Sentinel — NAB operating point** (`results/best_nab_config.json`) | 0.489 | 0.366 | **0.733** | 147 | **31** | **60.6** | 4.8 |
-
-- Engine default: **RobustZ + LaggedResidual**, MAX fusion, SPOT q = 1e-6 (1e-5 for LaggedResidual), **spatial-extreme
-  flag** (new running min/max beyond 5% of the range), debounce 3, extreme ratio 2.0, cooldown = 0.5 × probation length.
-- NAB operating point: adds Seasonal (threshold 15), two-sided VarRatio (flatline / variance-collapse detection, K19) and a
-  2-detector agreement bypass, LaggedResidual risk 1e-4.
-- **Event-F1 and NAB still trade off** (figure below, 1488 evaluated configs): NAB rewards catching every window and charges
-  an extra alarm only 0.11, event-F1 counts every false alarm in full. Phase 3 moved the whole front up and right: the
-  default now scores above Random Cut Forest on NAB *and* 0.673 F1, so it also serves as the joint config
-  (`results/best_joint_config.json`). **We submit the engine default** and quote the NAB point for leaderboard comparison.
-- **Delay** ([results/miss_analysis.md](results/miss_analysis.md)): NAB windows start well before the labelled anomaly, so a
-  "50% of the window" delay means detection at the labelled point itself (median +0 points). Of the 45 remaining misses,
-  30 are pattern breaks only Seasonal sees (adding it costs too many false alarms), 12 have no detector signal at all.
-
-![Event-F1 vs NAB trade-off](results/figures/pareto_f1_nab.png)
-- **Ablation** ([results/ablation.md](results/ablation.md)): SPOT turns a static robust-z (F1 0.040, 4519 FPs) into 0.376;
-  events → 0.392; all 6 detectors with MAX fusion 0.419, voting 0.456; per-detector risk with RobustZ + LaggedResidual
-  0.563; + spatial-extreme flag 0.587; + debounce 3 / extreme ratio 2.0 0.610; + proportional cooldown 0.640;
-  + LaggedResidual risk 1e-5 **0.673**. Removing the spatial flag from the final default costs the most (→ 0.428).
-
----
-
-## Architectural Components
+## Repository layout
 
 ```
-                   Streaming Observation (t, x_t)
-                                 │
-                 ┌───────────────┴───────────────┐
-                 │                               │
-       Probation (Warmup)               Post-Probation (Streaming)
-                 │                               │
-                 ▼                               ▼
-       EVT / GPD Tail Fit               Multi-Detector Ensemble
-     (Peaks-Over-Threshold)       ┌──────────────┴──────────────┐
-                 │                │ D1: RobustZ (Spikes)        │
-                 ▼                │ D2: LastW (Step Jumps)      │
-       Dynamic Thresholds (z_q)   │ D3: LaggedResidual (Seq)    │
-                 │                │ D4: VarRatio (Volatility)   │
-                 │                │ D5: Seasonal (Diurnal)      │
-                 │                │ D6: CUSUM (Level Shift)     │
-                 │                │ D7: Streaming IForest       │
-                 │                └──────────────┬──────────────┘
-                 │                               │ Raw Deviations
-                 ▼                               ▼
-         ┌───────────────────────────────────────────────┐
-         │ Dynamic Tail Probability Calibration (SPOT)   │
-         └───────────────────────┬───────────────────────┘
-                                 │ Calibrated Scores in [0, 1]
-                                 ▼
-         ┌───────────────────────────────────────────────┐
-         │ MAX-Score & Consensus Fusion Engine           │
-         └───────────────────────┬───────────────────────┘
-                                 │ Fused Score & Alarms
-                                 ▼
-         ┌───────────────────────────────────────────────┐
-         │ Event Lifecycle Manager                       │
-         │ - Debounce Window (K=2 / Extreme Spike Bypass)│
-         │ - Gap Merging (W=16 points)                   │
-         │ - Post-Alarm Cooldown (W=200 points)          │
-         │ - Sustained Level-Shift Re-Baselining (W=80)  │
-         └───────────────────────┬───────────────────────┘
-                                 │ Event Start Flags & Decision
-                                 ▼
-         ┌───────────────────────────────────────────────┐
-         │ Explainability & Causal Evidence Engine       │
-         │ - Primary Detector Attribution                │
-         │ - Expected vs Observed & Deviation Sigma      │
-         │ - Structured Human-Readable Narrative Text   │
-         └───────────────────────┬───────────────────────┘
-                                 ▼
-                     Result(timestamp, value,
-                            score, label,
-                            is_event_start, evidence)
+sentinel/            detection engine (NumPy + stdlib in the hot path)
+  pipeline.py          Sentinel class: update(t, x) -> Result; run_series(df)
+  config.py            DEFAULT_CONFIG (engine default) and ORIGINAL_DEFAULT_CONFIG (first version)
+  detectors.py         D1 RobustZ, D2 LastW, D3 LaggedResidual, D4 VarRatio, D5 Seasonal, D6 CUSUM, D7 IsolationForest
+  spot.py              SPOT / DSPOT (peaks-over-threshold, GPD by method of moments)
+  fusion.py            MAX / k-of-n vote fusion
+  recall.py            spatial-extreme flag, score smoother
+  events.py            debounce, merge gap, cooldown, rebaseline
+  explain.py           evidence dict + text
+  validate.py          input sanitising (NaN/inf, bad types, duplicate/backward/tz-mixed timestamps)
+  state.py pool.py     checkpoint save/load, SentinelPool for many streams
+  __main__.py          CLI: python -m sentinel
+eval/                evaluation and experiments
+  data.py scorer.py    corpus loader, event scorer (AGENTS.md §5)
+  nab_score.py         official NAB score through data/NAB/nab/sweeper.py
+  baselines.py         null, random, windowedGaussian
+  run.py               score one detector/config on the corpus -> results/runs/*.json
+  predict.py           predictions for any folder of CSVs (hidden test windows)
+  tune.py ablation.py  LOCO grid search, ablation
+  benchmark.py         µs/point
+  miss_analysis.py     why windows are missed
+  nab_runtime.py nab_compare.py   NAB's own detectors: measured runtime, event-F1 from their stored scores
+  leaderboard.py figures.py       results/leaderboard.md, results/figures/*.png
+app/dashboard.py     Streamlit replay demo
+tests/               pytest suite (113 tests)
+results/             runs/*.json (one per experiment), *.md tables, best_*config.json, figures/
+logs/  TASKS.md  AGENTS.md  ARCHITECTURE_DECISIONS.md
+data/                local only, never committed (NAB clone and/or starter pack)
 ```
 
-### 1. Multi-Horizon Causal Detectors (`sentinel/detectors.py`)
-- **D1 (`RobustZ`):** Tracks online rolling median and Median Absolute Deviation (MAD). Slow exponential-weighted anti-pollution baseline update.
-- **D2 (`LastW`):** Immediate squared deviation from rolling mean ($w=3$) to catch sudden step jumps.
-- **D3 (`LaggedResidual`):** Dual-buffer rolling sum residual against a historical reference window ($w=16, h=64$) for sequence anomalies.
-- **D4 (`VarRatio`):** Volatility detector computing the ratio of rolling short-term variance ($w=24$) to long-term baseline variance.
-- **D5 (`Seasonal`):** 24-hour diurnal profile buckets with online mean and standard deviation updates to flag contextual pattern breaks.
-- **D6 (`CUSUM`):** Two-sided Cumulative Sum tracking persistent mean drift.
-- **D7 (`StreamingIsolationForest`):** Random cut tree isolation depth estimator evaluating multi-dimensional boundary exceedances in $O(1)$ time.
+## Requirements
 
-### 2. Extreme Value Theory Dynamic Thresholding (`sentinel/spot.py`)
-- Fits a **Generalized Pareto Distribution (GPD)** to upper tail excesses during probation via Method of Moments.
-- Computes dynamic extreme quantile thresholds $z_q$ for target risk level $q = 10^{-4}$.
-- Updates streaming tail statistics continuously while preventing alarm contamination.
+- Python **≥ 3.10** (the code uses `dataclass(slots=True)`). The system `python3` on macOS is 3.9, so create the venv
+  with 3.11 (`uv venv -p 3.11 .venv` or `python3.11 -m venv .venv`). The numbers below come from Python 3.11.15.
+- `requirements.txt`: numpy, pandas, scipy, scikit-learn, streamlit, plotly, matplotlib, pytest. The engine itself
+  needs only numpy and pandas (`pip install -e .` installs numpy, pandas, scipy and scikit-learn).
+- Optional, only for `eval.nab_runtime` (timing NAB's own detectors): `statsmodels` (earthgecko Skyline). NAB's Numenta,
+  HTM Java, ARTime, Random Cut Forest and Twitter ADVec detectors need Python 2, Java, Julia, AWS or R and are reported
+  as not runnable.
+- macOS or Linux, single core is enough (all timings are single-process), about 1 GB free disk (data/NAB is 350 MB).
 
-### 3. Event Lifecycle Manager (`sentinel/events.py`)
-- **Debounce Confirmation:** Requires 2 consecutive anomaly points (or 1 extreme outlier $> 1.5\times$ threshold) before firing.
-- **Gap Merging ($W = 16$):** Groups clustered anomaly alarms into a single coherent incident.
-- **Cooldown Suppression ($W = 200$):** Eliminates redundant re-triggering during post-anomaly recovery.
-- **Level-Shift Adaptation ($W = 80$):** Detects when a level shift becomes the "new normal" and calls `reset_baseline()` across all detectors.
+## Setup
 
----
-
-## Visualizations & Figures
-
-NAB leaderboard position and measured latency:
-
-![published comparison](results/figures/published_comparison.png)
-
-Event-F1 along the build-up (baseline → final engine default):
-
-![progression](results/figures/ablation_progression.png)
-
-Per-category event-F1 vs the windowedGaussian baseline, and why the remaining windows are missed:
-
-![per-category F1](results/figures/per_category_f1.png)
-
-![miss analysis](results/figures/miss_analysis.png)
-
-Example stream with ground-truth windows and detections:
-
-![example](results/figures/example_nyc_taxi.png)
-
-Event-F1 vs inference time against NAB's own detector implementations, run on the same machine
-([results/model_comparison.md](results/model_comparison.md), `python -m eval.nab_runtime && python -m eval.nab_compare`):
-
-![model comparison](results/figures/model_comparison.png)
-
-Full tables: [results/leaderboard.md](results/leaderboard.md) · [results/ablation.md](results/ablation.md) ·
-[results/tuning.md](results/tuning.md) · [results/miss_analysis.md](results/miss_analysis.md). Full ablation chart:
-[results/figures/ablation.png](results/figures/ablation.png).
-
----
-
-## Interactive Streamlit Dashboard
-
-Launch the live replay demo:
 ```bash
-streamlit run app/dashboard.py
+git clone https://github.com/Lokesh-Kudipudi/Hack.git hack && cd hack
+uv venv -p 3.11 .venv            # or: python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt  # with uv: uv pip install -r requirements.txt
+pip install -e .                 # optional: installs the `sentinel` package and command
+git clone --depth 1 https://github.com/numenta/NAB data/NAB    # corpus, labels and NAB scorer (once per machine)
+pytest -q                        # 113 passed
 ```
 
-Pick any series and an operating point (engine default / event-F1 / joint / NAB / original defaults), press **▶ Replay** and watch the stream: value vs expected $\pm k\sigma$ band, ground-truth windows, flagged events, fused score on a $-\log_{10}(p)$ scale with the SPOT alarm line, per-detector score lanes, running event-F1, and an evidence card for every event.
+**Data location.** The loader finds every `*.csv` with `timestamp,value` columns under a root folder. A file's
+category is the name of its parent folder, and its key `<category>/<file>.csv` matches `combined_windows.json`.
+All of these layouts work:
 
----
-
-## Quickstart & Reproduction
-
-### 1. Setup Environment
-```bash
-python3.11 -m venv .venv   # Python >= 3.10
-source .venv/bin/activate  # Or on Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-git clone --depth 1 https://github.com/numenta/NAB data/NAB
+```
+data/NAB/data/<category>/<file>.csv                 git clone of numenta/NAB (default root when present)
+data/<category>/<category>/<file>.csv               organiser starter pack, zip extracted into data/
+<any folder>/<category>/<file>.csv
 ```
 
-### 2. Run Test Suite
-```bash
-pytest -q
-# All 107 tests pass in ~5 seconds (incl. robustness fuzzing, checkpoint round-trips, no-look-ahead property tests)
-```
+- `SENTINEL_DATA=/path/to/root` overrides the corpus root. The default is `data/NAB` if it exists, else `data/`.
+- `SENTINEL_WINDOWS=/path/to/combined_windows.json` overrides the labels. The default is `<root>/labels/`, then the
+  first `combined_windows.json` under the root, then `data/NAB/labels/`.
+- Nothing under `data/` is ever committed (`.gitignore`).
 
-### 3. Run Benchmark & Evaluation
-```bash
-python -m eval.run --detector sentinel --tag "sentinel-eval"
-python -m eval.leaderboard
-python -m eval.benchmark
-python -m eval.ablation            # build-up from baseline to the engine default
-python -m eval.tune --grid recall2  # leave-one-category-out search
-python -m eval.miss_analysis        # why windows are missed / detection delay
-python -m eval.figures
-```
+## Usage
 
-### 4. Predict on new data (starter pack / hidden test windows)
-```bash
-python -m eval.predict --input path/to/csv_folder --out outputs/predictions [--combined] [--windows labels.json]
-```
-Streams every `timestamp,value` CSV (any folder nesting, or a single file) through a fresh Sentinel using the tuned
-`results/best_config.json`, and writes per-point `score,label,is_event_start,evidence` CSVs, an `events.csv` with one row
-per detected event (type, top detector, explanation), and `summary.json` (runtime; event-F1/P/R if `--windows` is given).
+**Python API**
 
-### 5. Install as a package / command-line streaming
-```bash
-pip install -e .                                           # package sentinel-ad
-python -m sentinel --input data.csv --output results.jsonl # one stream, JSONL results
-cat stream.jsonl | python -m sentinel > flagged.jsonl      # stdin -> stdout
-python -m sentinel --input multi.csv --stream-col stream_id  # many streams (SentinelPool)
-```
-`Sentinel.save()` / `Sentinel.load()` checkpoint a stream mid-way; inputs with NaN/inf, missing values or
-duplicate/backward timestamps are sanitised (`sentinel/validate.py`) instead of crashing.
-
-Use from Python:
 ```python
-from sentinel.pipeline import Sentinel
-s = Sentinel(n_total=len(df))   # defaults = event-F1 operating point; config={...} overrides (nested keys merge)
-for t, x in zip(df.timestamp, df.value):
-    r = s.update(t, x)
+from sentinel import Sentinel
+from eval.data import load_series
+
+df = load_series("data/NAB/data/realKnownCause/nyc_taxi.csv")
+s = Sentinel(n_total=len(df))              # engine default; n_total sets probation = min(0.15 n, 750)
+for t, x in zip(df.timestamp.tolist(), df.value.tolist()):
+    r = s.update(t, x)                     # Result(timestamp, value, score, label, is_event_start, evidence, ...)
     if r.is_event_start:
         print(r.timestamp, r.score, r.evidence["text"])
 ```
 
----
+`config=` takes overrides. Nested dicts merge, an empty dict replaces, and dotted keys set nested values, so
+`Sentinel(config=json.load(open("results/best_nab_config.json")))` gives the NAB operating point. Without `n_total`
+(a live stream), probation is 300 points. `s.save("ckpt.json")` and `Sentinel.load("ckpt.json")` resume a stream
+with identical output.
 
-## Architecture Decision Records (ADRs)
+**CLI**
 
-All foundational architectural decisions, invariants, and empirical milestones are formally documented in [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md):
-- `ADR-001`: Strict Streaming & Causal Invariant ($O(1)$ memory & time, $< 50\ \mu\text{s/pt}$)
-- `ADR-002`: Causal Multi-Horizon Detector Ensemble (D1 to D7)
-- `ADR-003`: Event Debounce and Extreme Outlier Bypass Protocol
-- `ADR-004`: Multi-Detector Fusion Engine
-- `ADR-005`: Dynamic Tail Thresholding via Extreme Value Theory (SPOT/DSPOT)
-- `ADR-006`: Event Lifecycle Management (Gap Merging & Re-Baselining)
-- `ADR-007`: Structured Evidence & Explainability Schema
-- `ADR-008`: Event-Aligned Continuous Scoring for Official NAB Calibration
-- `ADR-009`: Per-Detector SPOT Risk Level and Tuned Defaults
-- `ADR-010`: Recall Mechanisms (Spatial-Extreme Flag, Proportional Cooldown, Confirmation)
+```bash
+python -m sentinel -i data/NAB/data/realKnownCause/nyc_taxi.csv --anomalies-only           # JSONL to stdout
+python -m sentinel -i series.csv -o out.csv --format csv -c results/best_nab_config.json
+cat stream.jsonl | python -m sentinel > flagged.jsonl                                      # live stream, stdin
+python -m sentinel -i multi.csv --stream-col stream_id                                     # many streams
+```
+
+**Predictions for a folder of CSVs** (e.g. hidden test windows)
+
+```bash
+python -m eval.predict --input data/starter --out outputs/predictions [--windows auto] [--combined] [--config default]
+```
+
+This writes `<category>/<file>.csv` per point (score, label, is_event_start, evidence type, text and JSON),
+`events.csv` with one row per event, and `summary.json` (runtime, plus metrics when `--windows` is given). The
+default config is `results/best_config.json`, which matches the engine default.
+
+**Dashboard**
+
+```bash
+streamlit run app/dashboard.py
+```
+
+Pick a series and an operating point, then press Replay. The page shows the value with its expected band and ground
+truth windows, events with evidence cards, per-detector scores and a running event-F1.
+
+## Experiment strategy
+
+1. **Baselines.** null, random and windowedGaussian, scored with our event scorer and with the official NAB scorer
+   (which reproduces NAB's published 0.0 / 39.65 / 70.10 for null / windowedGaussian / Numenta).
+2. **Detectors.** Six causal one-liner detectors (ICLR 2026 multi-horizon idea), each tested alone and removed
+   (`results/ablation.md`).
+3. **SPOT thresholds.** Peaks-over-threshold with a GPD per detector instead of fixed z cut-offs. This took a static
+   robust z-score from F1 0.040 (4,519 FPs) to 0.376.
+4. **Event lifecycle.** Debounce, merge gap, cooldown and rebaseline, because event-F1 counts only the first start
+   per window.
+5. **Per-detector risk** (ADR-009). The clean residual detectors need a looser q. This enabled RobustZ +
+   LaggedResidual and gave 0.563.
+6. **Recall mechanisms** (ADR-010), from the miss analysis: spatial-extreme flag, cooldown proportional to probation,
+   debounce 3 with a 2× extreme bypass. Together they gave 0.640 → 0.673.
+
+Rules that held throughout:
+- **Global configs only.** There is no per-file tuning on labels.
+- **Leave-one-category-out (LOCO):** tune on 6 categories, test on the 7th, rotate. The shipped config is the best on
+  all 7 categories, with ties broken by the smaller median detection delay.
+- **Two operating points.** Event-F1 and NAB favour different settings (`results/figures/pareto_f1_nab.png`).
+- **Miss analysis** classifies every missed window as suppressed, seen only by another detector, or weak.
+
+About 3,300 configs were evaluated over six grids: `default` 648, `perdet` 432, `subsets` 720, `joint` 576,
+`recall` 480, `recall2` 432.
+
+## Reproducibility
+
+Run in this order from the repo root with the venv active. Every `eval.run` call writes
+`results/runs/<timestamp>_<detector>_<tag>.json`; `--no-save` only prints. The tags below are the ones the
+leaderboard and figures look up.
+
+```bash
+pytest -q                                                                                   # 113 passed, ~5 s
+python -m eval.nab_score --nab-results null windowedGaussian numenta                       # 0.00 / 39.65 / 70.10 (= published)
+python -m eval.run --detector null --tag baseline
+python -m eval.run --detector random --tag baseline
+python -m eval.run --detector windowed_gaussian --config '{"threshold": 1.0}' --tag "baseline thr=1.0"
+python -c "import json; from sentinel.config import ORIGINAL_DEFAULT_CONFIG as c; print(json.dumps(c))" > /tmp/orig.json
+python -m eval.run --detector sentinel --config /tmp/orig.json --tag "likhit default"
+python -m eval.run --detector sentinel --tag "engine default (final)"
+python -m eval.run --detector sentinel --config results/best_nab_config.json --tag "NAB operating point (final)"
+python -m eval.tune --grid recall2 --tag loco-recall2 --jobs 8    # ~5 min on 9 cores; writes tuning.md, best_config.json
+python -m eval.ablation --tag final                               # results/ablation.md, figures/ablation.png (~3 min)
+python -m eval.miss_analysis                                      # results/miss_analysis.md, figures/miss_analysis.png
+python -m eval.benchmark                                          # µs/point, all detectors
+python -m eval.nab_runtime                                        # NAB detectors timed (needs statsmodels; ~2 min)
+python -m eval.nab_compare                                        # results/model_comparison.md, figures/model_comparison.png
+python -m eval.predict --input data --windows auto -q             # must print event-F1=0.673
+python -m eval.leaderboard                                        # results/leaderboard.md
+python -m eval.figures                                            # results/figures/*.png
+```
+
+The other tune grids are `default`, `perdet`, `subsets`, `recall` and `joint`. `joint` is run with
+`--grid joint --objective joint --nab-min 52` and writes `tuning_joint.md` / `best_joint_config.json`. The `phase 2` leaderboard
+row ("tuned for event-F1 (LOCO, RobustZ+LaggedResidual)") is a stored run. It is reproduced by `eval.ablation`'s
+"per-detector SPOT risk" row (0.563).
+
+**Expected values**
+
+| Quantity | Value | Tolerance |
+|---|---|---|
+| Engine default event-F1 / P / R / TP / FP / FN | 0.673 / 0.747 / 0.612 / 71 / 24 / 45 | exact (deterministic) |
+| NAB standard (engine default / NAB point / original defaults) | 54.90 / 60.58 / 53.00 | ±0.01 |
+| windowedGaussian (thr 1.0) event-F1 / NAB (our per-point scorer) | 0.302 / 40.13 | exact |
+| LOCO pooled / mean held-out F1 (`recall2`) | 0.654 / 0.593 | exact |
+| Sentinel µs/point (`eval.benchmark`) | 2.7–2.9 | hardware-dependent |
+
+**Determinism.** The engine has no randomness, except the IsolationForest stretch detector, which uses a fixed seed
+42. The random baseline is seeded per file. Detection results are bit-identical across runs and machines with the
+same numpy/pandas. Only the µs/point and points/s figures depend on hardware and load. Those were measured on an
+Apple-silicon (arm64) Mac, Python 3.11.15, single process, without other jobs running. Expect a full-corpus
+`eval.run` to take about 5 s for Sentinel and about 20 s for windowedGaussian.
+
+## Results
+
+Full NAB corpus, event metrics per AGENTS.md §5 (probation excluded, 116 windows). The NAB column is the official
+standard-profile score of the per-point `score`. µs/pt comes from `eval.benchmark` for the engine default and
+baselines, and from `eval.run` otherwise.
+
+| Detector | Event-F1 | P | R | TP | FP | FN | NAB std | µs/pt |
+|---|---|---|---|---|---|---|---|---|
+| windowedGaussian (NAB baseline, thr 1.0) | 0.302 | 0.211 | 0.534 | 62 | 232 | 54 | 40.1 | 48.6 |
+| Sentinel, original K1–K8 defaults | 0.311 | 0.197 | 0.733 | 85 | 346 | 31 | 53.0 | 6.4 |
+| Sentinel, phase 2 (per-detector risk, ADR-009) | 0.563 | 0.675 | 0.483 | 56 | 27 | 60 | 42.8 | 2.4 |
+| **Sentinel, engine default (submitted)** | **0.673** | **0.747** | 0.612 | 71 | **24** | 45 | 54.9 | **2.8** |
+| Sentinel, NAB operating point | 0.489 | 0.366 | **0.733** | 85 | 147 | **31** | **60.6** | 5.1 |
+
+- **Engine default:** RobustZ + LaggedResidual, MAX fusion, SPOT q = 1e-6 (1e-5 for LaggedResidual), spatial-extreme
+  flag (5% of the range), debounce 3, extreme bypass 2.0×, cooldown 0.5 × probation.
+- **NAB operating point** (`results/best_nab_config.json`): adds Seasonal (threshold 15) and two-sided VarRatio
+  (threshold 3), a 2-detector agreement bypass, and LaggedResidual risk 1e-4.
+- **Held-out (LOCO) F1 per category for the default:** artificialWithAnomaly 0.250, realAWSCloudwatch 0.737,
+  realAdExchange 0.741, realKnownCause 0.500, realTraffic 0.640, realTweets 0.689. artificialNoAnomaly has no
+  windows and 0 FPs.
+
+**Comparison with published NAB detectors** ([results/model_comparison.md](results/model_comparison.md)). Event
+metrics for published detectors are computed by our scorer from NAB's stored per-point scores at NAB's own
+standard-profile threshold. µs/point was measured on the same machine with NAB's own implementations
+([results/runtime_comparison.md](results/runtime_comparison.md): first 4,032 points of 6 files).
+
+| Model | Event-F1 | P | R | FP | NAB std | µs/point |
+|---|---|---|---|---|---|---|
+| CAD OSE | 0.676 | 0.590 | 0.793 | 64 | 69.9 | 228.9 |
+| **Sentinel, engine default** | **0.673** | **0.747** | 0.612 | **24** | 54.9 | **2.7** |
+| Numenta HTM | 0.527 | 0.387 | 0.828 | 152 | 70.1 | not runnable (nupic, Python 2) |
+| Sentinel, NAB operating point | 0.489 | 0.366 | 0.733 | 147 | 60.6 | 5.1 |
+| ARTime | 0.483 | 0.328 | 0.914 | 217 | 74.9 | not runnable (Julia) |
+| Relative Entropy | 0.452 | 0.341 | 0.672 | 151 | 54.6 | 585.3 |
+| earthgecko Skyline | 0.372 | 0.247 | 0.750 | 265 | 58.2 | 231.0 |
+| KNN CAD | 0.350 | 0.225 | 0.784 | 313 | 58.0 | 791.6 |
+| Windowed Gaussian (NAB) | 0.283 | 0.183 | 0.629 | 326 | 39.6 | 62.4 |
+
+Caveats:
+- The published detectors' thresholds were tuned for the NAB score, and each threshold crossing counts as one event
+  (no merging or cooldown). Their event-F1 is therefore a lower bound on what they could reach.
+- Sentinel was tuned on this same public corpus. Its held-out (LOCO) F1 of 0.654 is the fairer comparison.
+- The runtime table times a 20,132-point subset, so Sentinel shows 2.7 µs there and 2.8 µs on the full corpus.
+- The windowedGaussian row uses NAB's implementation and threshold. Our re-implementation at threshold 1.0 (first
+  table) gets 0.302.
+
+Figures: [published_comparison.png](results/figures/published_comparison.png),
+[model_comparison.png](results/figures/model_comparison.png),
+[ablation_progression.png](results/figures/ablation_progression.png),
+[pareto_f1_nab.png](results/figures/pareto_f1_nab.png), [per_category_f1.png](results/figures/per_category_f1.png),
+[miss_analysis.png](results/figures/miss_analysis.png), [example_nyc_taxi.png](results/figures/example_nyc_taxi.png).
+
+![Event-F1 vs NAB across evaluated configs](results/figures/pareto_f1_nab.png)
+
+## Known limitations
+
+- Tuning and evaluation use one public corpus. LOCO limits but does not remove optimism.
+- Of the 45 missed windows, most are pattern breaks inside the normal range that only Seasonal sees, and adding
+  Seasonal costs more FPs than it gains. 12 windows have no detector signal at all (`results/miss_analysis.md`).
+- Streams shorter than 7 points get probation 0 and are never flagged. `seasonal.auto_period` has no effect.
+  Rebaseline is count-based, not CUSUM-confirmed.
+
+See [presentation.md](presentation.md) slide 10 and [explain.md](explain.md) for details.

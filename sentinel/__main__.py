@@ -8,6 +8,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 import time
@@ -93,17 +94,25 @@ def main(args: Optional[list] = None) -> int:
     is_stdin = parsed.input == "-" or not parsed.input
     is_stdout = parsed.output == "-" or not parsed.output
 
-    out_file = None if is_stdout else open(parsed.output, "w", encoding="utf-8")
+    out_file = None if is_stdout else open(parsed.output, "w", encoding="utf-8", newline="")
+
+    sink = sys.stdout if is_stdout else out_file
+    csv_writer: list = []  # lazily created csv.DictWriter (header = keys of the first emitted row)
 
     def emit_result(r_dict: Dict[str, Any]):
         if parsed.anomalies_only and r_dict.get("label") != "ANOMALOUS":
             return
-        line = json.dumps(r_dict)
-        if is_stdout:
-            sys.stdout.write(line + "\n")
-            sys.stdout.flush()
+        if parsed.format == "csv":
+            row = {k: (json.dumps(v) if isinstance(v, (dict, list)) else ("" if v is None else v))
+                   for k, v in r_dict.items()}
+            if not csv_writer:
+                csv_writer.append(csv.DictWriter(sink, fieldnames=list(row)))
+                csv_writer[0].writeheader()
+            csv_writer[0].writerow(row)
         else:
-            out_file.write(line + "\n")
+            sink.write(json.dumps(r_dict) + "\n")
+        if is_stdout:
+            sys.stdout.flush()
 
     t_start = time.perf_counter()
     n_pts = 0

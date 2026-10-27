@@ -72,6 +72,13 @@ def sanitize_timestamp(
             flags.raw_type_invalid = True
             clean_t = last_t + pd.Timedelta(seconds=default_gap_seconds) if last_t else pd.Timestamp.now()
 
+    # Mixed tz-aware / tz-naive streams: align to the previous timestamp so ordering comparisons work
+    if last_t is not None and (clean_t.tzinfo is None) != (last_t.tzinfo is None):
+        try:
+            clean_t = clean_t.tz_convert(None) if last_t.tzinfo is None else clean_t.tz_localize(last_t.tzinfo)
+        except Exception:
+            pass
+
     # Check temporal ordering if last_t is available
     if last_t is not None:
         try:
@@ -138,7 +145,7 @@ def sanitize_observation(
     """Sanitize both timestamp and value in a single causal call."""
     # Fast path for the common case (clean pd.Timestamp moving forward, finite in-range number):
     # same result as the general path, without per-point Timedelta / flag merging overhead.
-    if type(t) is pd.Timestamp and type(x) in (float, int):
+    if type(t) is pd.Timestamp and type(x) in (float, int) and (last_t is None or (t.tzinfo is None) == (last_t.tzinfo is None)):
         v = float(x)
         if math.isfinite(v) and abs(v) <= MAX_SAFE_MAGNITUDE and (last_t is None or t > last_t):
             gap = None if last_t is None else (t.value - last_t.value) / 1e9

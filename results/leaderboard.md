@@ -8,13 +8,13 @@ Headline runs (latest of each). Engine default = `Sentinel()` with no config (su
 
 | Detector | Event-F1 | P | R | TP | FP | FN | NAB std | NAB low-FP | NAB low-FN | µs/pt |
 |---|---|---|---|---|---|---|---|---|---|---|
-| null | **0.000** | — | 0.000 | 0 | 0 | 116 | 0.0 | 0.0 | 0.0 | 0.5 |
-| random | **0.058** | 0.030 | 0.793 | 92 | 2981 | 24 | 12.9 | 1.9 | 22.7 | 0.6 |
-| windowedGaussian (NAB baseline, best threshold) | **0.302** | 0.211 | 0.534 | 62 | 232 | 54 | 40.1 | 23.9 | 47.7 | 49.0 |
-| Sentinel — original K1–K8 defaults | **0.311** | 0.197 | 0.733 | 85 | 346 | 31 | 53.0 | 37.3 | 59.8 | 5.7 |
+| null | **0.000** | — | 0.000 | 0 | 0 | 116 | 0.0 | 0.0 | 0.0 | 0.3 |
+| random | **0.058** | 0.030 | 0.793 | 92 | 2981 | 24 | 12.9 | 1.9 | 22.7 | 0.5 |
+| windowedGaussian (NAB baseline, best threshold) | **0.302** | 0.211 | 0.534 | 62 | 232 | 54 | 40.1 | 23.9 | 47.7 | 48.7 |
+| Sentinel — original K1–K8 defaults | **0.311** | 0.197 | 0.733 | 85 | 346 | 31 | 53.0 | 37.3 | 59.8 | 6.4 |
 | Sentinel — phase 2 (per-detector risk) | **0.563** | 0.675 | 0.483 | 56 | 27 | 60 | 42.8 | 41.6 | 44.7 | 2.4 |
-| **Sentinel — NAB operating point** | **0.489** | 0.366 | 0.733 | 85 | 147 | 31 | 60.6 | 54.0 | 64.8 | 4.8 |
-| **Sentinel — engine default (submitted)** | **0.673** | 0.747 | 0.612 | 71 | 24 | 45 | 54.9 | 53.8 | 57.0 | 2.8 |
+| **Sentinel — NAB operating point** | **0.489** | 0.366 | 0.733 | 85 | 147 | 31 | 60.6 | 54.0 | 64.8 | 5.1 |
+| **Sentinel — engine default (submitted)** | **0.673** | 0.747 | 0.612 | 71 | 24 | 45 | 54.9 | 53.8 | 57.0 | 2.9 |
 
 Engine default, held-out F1: **pooled 0.654, mean 0.593** over the 7 held-out categories.
 
@@ -24,6 +24,7 @@ Engine default, held-out F1: **pooled 0.654, mean 0.593** over the 7 held-out ca
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 20261026-234049 | sentinel | engine default (phase 3, final) | **0.673** | 0.747 | 0.612 | 71 | 24 | 45 | 118.0 | 0.50 | 54.9 | 54.9 | 2.7 | ca75967 |
 | 20261027-001109 | sentinel | engine default (final) | **0.673** | 0.747 | 0.612 | 71 | 24 | 45 | 118.0 | 0.50 | 54.9 | 54.9 | 2.8 | a768ece |
+| 20261027-105601 | sentinel | engine default (final) | **0.673** | 0.747 | 0.612 | 71 | 24 | 45 | 118.0 | 0.50 | 54.9 | 54.9 | 2.9 | 3bde5d0 |
 | 20261026-233022 | sentinel | engine default (phase 3) | **0.640** | 0.652 | 0.629 | 73 | 39 | 43 | 118.0 | 0.50 | 55.6 | 55.6 | 2.6 | 5f95a70 |
 | 20261026-221543 | sentinel | tuned for event-F1 (LOCO, RobustZ+LaggedResidual) | **0.563** | 0.675 | 0.483 | 56 | 27 | 60 | 132.5 | 0.50 | 42.8 | 42.8 | 2.4 | 8f38623 |
 | 20261026-231630 | sentinel | engine default (tuned) | **0.563** | 0.675 | 0.483 | 56 | 27 | 60 | 132.5 | 0.50 | 42.8 | 42.8 | 2.3 | be04ff6 |
@@ -32,6 +33,7 @@ Engine default, held-out F1: **pooled 0.654, mean 0.593** over the 7 held-out ca
 | 20261026-195502 | sentinel (local stand-in) | standin tuned (LOCO) | **0.538** | 0.654 | 0.457 | 53 | 28 | 63 | 156.0 | 0.50 | 0.0 | 40.1 | 4.6 | f250c4f |
 | 20261026-220359 | sentinel | tuned for event-F1 (LOCO, per-detector q) | **0.502** | 0.460 | 0.552 | 64 | 75 | 52 | 108.0 | 0.50 | 46.9 | 46.9 | 5.7 | 47613de |
 | 20261027-001115 | sentinel | NAB operating point (final) | **0.489** | 0.366 | 0.733 | 85 | 147 | 31 | 100.0 | 0.50 | 60.6 | 60.5 | 4.8 | a768ece |
+| 20261027-105607 | sentinel | NAB operating point (final) | **0.489** | 0.366 | 0.733 | 85 | 147 | 31 | 100.0 | 0.50 | 60.6 | 60.5 | 5.1 | 3bde5d0 |
 | 20261026-213724 | sentinel | tuned for event-F1 (LOCO) | **0.481** | 0.464 | 0.500 | 58 | 67 | 58 | 119.5 | 0.50 | 42.6 | 42.6 | 5.6 | a168065 |
 | 20261026-230719 | sentinel | joint: max F1 s.t. NAB>=52 | **0.461** | 0.361 | 0.638 | 74 | 131 | 42 | 104.0 | 0.50 | 53.1 | 53.1 | 5.7 | b7e7ae0-dirty |
 | 20261026-212333 | sentinel | likhit + tuned params | **0.405** | 0.330 | 0.526 | 61 | 124 | 55 | 110.0 | 0.50 | 42.2 | 42.2 | 5.6 | 1cef892 |
@@ -49,7 +51,9 @@ Engine default, held-out F1: **pooled 0.654, mean 0.593** over the 7 held-out ca
 | 20261026-210455 | sentinel | sentinel-official-nab | **0.311** | 0.197 | 0.733 | 85 | 346 | 31 | 100.0 | 0.49 | 53.0 | — | 35.1 | 132050e-dirty |
 | 20261026-212317 | sentinel | likhit default | **0.311** | 0.197 | 0.733 | 85 | 346 | 31 | 100.0 | 0.49 | 53.0 | 53.0 | 5.6 | 1cef892 |
 | 20261026-220412 | sentinel | likhit default | **0.311** | 0.197 | 0.733 | 85 | 346 | 31 | 100.0 | 0.49 | 53.0 | 53.0 | 5.7 | 47613de |
+| 20261027-105555 | sentinel | likhit default | **0.311** | 0.197 | 0.733 | 85 | 346 | 31 | 100.0 | 0.49 | 53.0 | 53.0 | 6.4 | 3bde5d0 |
 | 20261026-192758 | windowed_gaussian | baseline thr=1.0 | **0.302** | 0.211 | 0.534 | 62 | 232 | 54 | 100.0 | 0.49 | 40.1 | — | 49.0 | 7779a68 |
+| 20261027-105548 | windowed_gaussian | baseline thr=1.0 | **0.302** | 0.211 | 0.534 | 62 | 232 | 54 | 100.0 | 0.49 | 40.1 | 39.3 | 48.7 | 3bde5d0 |
 | 20261026-195354 | sentinel | k1-v2 debounce thr6 | **0.240** | 0.151 | 0.595 | 69 | 389 | 47 | 114.0 | 0.48 | 0.0 | — | 3.2 | cd543c8-dirty |
 | 20261026-194554 | sentinel | k1 d1 robust-z | **0.176** | 0.101 | 0.664 | 77 | 683 | 39 | 108.0 | 0.45 | 0.0 | — | 4.4 | 23455cd |
 | 20261026-195847 | sentinel | k2 all-6-detectors | **0.157** | 0.104 | 0.328 | 38 | 329 | 78 | 86.0 | 0.44 | 0.0 | — | 12.5 | 0251136-dirty |
@@ -57,7 +61,9 @@ Engine default, held-out F1: **pooled 0.654, mean 0.593** over the 7 held-out ca
 | 20261026-200308 | sentinel | k2-v2 normalized-6-detectors | **0.143** | 0.080 | 0.681 | 79 | 913 | 37 | 80.0 | 0.33 | 0.0 | — | 13.0 | 4eeaed7-dirty |
 | 20261026-192735 | windowed_gaussian | baseline | **0.107** | 0.057 | 0.836 | 97 | 1601 | 19 | 90.0 | 0.46 | 40.1 | — | 50.1 | 7779a68 |
 | 20261026-192713 | random | baseline | **0.058** | 0.030 | 0.793 | 92 | 2981 | 24 | 45.0 | 0.18 | 12.9 | — | 0.6 | 7779a68 |
+| 20261027-105526 | random | baseline | **0.058** | 0.030 | 0.793 | 92 | 2981 | 24 | 45.0 | 0.18 | 12.9 | -62.1 | 0.5 | 3bde5d0 |
 | 20261026-192707 | null | baseline | **0.000** | — | 0.000 | 0 | 0 | 116 | — | — | 0.0 | — | 0.5 | 7779a68 |
+| 20261027-105520 | null | baseline | **0.000** | — | 0.000 | 0 | 0 | 116 | — | — | 0.0 | 0.0 | 0.3 | 3bde5d0 |
 
 ## Event-F1 per category (top runs)
 
@@ -65,19 +71,19 @@ Engine default, held-out F1: **pooled 0.654, mean 0.593** over the 7 held-out ca
 |---|---|---|---|---|---|---|---|---|
 | 20261026-234049 | sentinel [engine default (phase 3, final)] | — | 0.250 | 0.750 | 0.741 | 0.541 | 0.640 | 0.724 |
 | 20261027-001109 | sentinel [engine default (final)] | — | 0.250 | 0.750 | 0.741 | 0.541 | 0.640 | 0.724 |
+| 20261027-105601 | sentinel [engine default (final)] | — | 0.250 | 0.750 | 0.741 | 0.541 | 0.640 | 0.724 |
 | 20261026-233022 | sentinel [engine default (phase 3)] | — | 0.250 | 0.737 | 0.714 | 0.489 | 0.615 | 0.688 |
 | 20261026-221543 | sentinel [tuned for event-F1 (LOCO, RobustZ+LaggedResidual)] | — | 0.286 | 0.500 | 0.667 | 0.462 | 0.571 | 0.657 |
 | 20261026-231630 | sentinel [engine default (tuned)] | — | 0.286 | 0.500 | 0.667 | 0.462 | 0.571 | 0.657 |
-| 20261026-235336 | sentinel [likhit-phase3] | — | 0.286 | 0.500 | 0.667 | 0.462 | 0.571 | 0.657 |
 
-## Runtime benchmark (2026-10-27T00:11:35, arm64 arm Darwin, Python 3.11.15, single core)
+## Runtime benchmark (2026-10-27T10:59:06, arm64 arm Darwin, Python 3.11.15, single core)
 
 | Detector | mean µs/pt | p50 | p99 | max | points/s |
 |---|---|---|---|---|---|
-| sentinel | 2.72 | 2.75 | 4.42 | 547 | 367,356 |
-| null | 0.27 | 0.25 | 0.46 | 16 | 3,763,905 |
-| random | 0.39 | 0.38 | 0.58 | 10 | 2,541,716 |
-| windowed_gaussian | 49.03 | 34.54 | 180.33 | 2406 | 20,397 |
+| sentinel | 2.79 | 2.83 | 4.48 | 541 | 357,797 |
+| null | 0.26 | 0.25 | 0.42 | 23 | 3,903,549 |
+| random | 0.39 | 0.38 | 0.58 | 20 | 2,543,256 |
+| windowed_gaussian | 48.55 | 34.25 | 179.62 | 789 | 20,599 |
 
 ## Published NAB leaderboard (standard profile)
 
