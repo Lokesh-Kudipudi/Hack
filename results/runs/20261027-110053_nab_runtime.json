@@ -1,0 +1,115 @@
+{
+ "kind": "nab_runtime",
+ "created": "2026-10-27T11:00:53",
+ "git_sha": "3bde5d0",
+ "machine": "arm64 Darwin",
+ "python": "3.11.15",
+ "max_points": 4032,
+ "budget_s": 120.0,
+ "streams": [
+  "artificialWithAnomaly/art_daily_jumpsup.csv",
+  "realAWSCloudwatch/ec2_cpu_utilization_825cc2.csv",
+  "realAdExchange/exchange-2_cpc_results.csv",
+  "realKnownCause/nyc_taxi.csv",
+  "realTraffic/occupancy_6005.csv",
+  "realTweets/Twitter_volume_AAPL.csv"
+ ],
+ "results": [
+  {
+   "detector": "Sentinel (engine default)",
+   "points": 20132,
+   "files": 6,
+   "us_per_point_mean": 2.7476091297436915,
+   "us_per_point_p50": 2.792,
+   "us_per_point_p99": 6.375
+  },
+  {
+   "detector": "contextOSE",
+   "points": 20132,
+   "files": 6,
+   "us_per_point_mean": 228.93609601629248,
+   "us_per_point_p50": 128.79149999999998,
+   "us_per_point_p99": 856.6122899999999
+  },
+  {
+   "detector": "knncad",
+   "points": 20132,
+   "files": 6,
+   "us_per_point_mean": 791.630943870455,
+   "us_per_point_p50": 865.792,
+   "us_per_point_p99": 1025.2639599999952
+  },
+  {
+   "detector": "relativeEntropy",
+   "points": 20132,
+   "files": 6,
+   "us_per_point_mean": 585.274097705146,
+   "us_per_point_p50": 513.8544999999999,
+   "us_per_point_p99": 1655.39096
+  },
+  {
+   "detector": "earthgeckoSkyline",
+   "points": 20132,
+   "files": 6,
+   "us_per_point_mean": 231.00542762765747,
+   "us_per_point_p50": 218.0205,
+   "us_per_point_p99": 470.0474999999997
+  },
+  {
+   "detector": "skyline",
+   "points": 20132,
+   "files": 6,
+   "us_per_point_mean": 2623.7402037055435,
+   "us_per_point_p50": 2453.0,
+   "us_per_point_p99": 5353.167
+  },
+  {
+   "detector": "bayesChangePt",
+   "points": 20132,
+   "files": 6,
+   "us_per_point_mean": 113.08457897874031,
+   "us_per_point_p50": 108.458,
+   "us_per_point_p99": 189.95869
+  },
+  {
+   "detector": "expose",
+   "points": 20132,
+   "files": 6,
+   "us_per_point_mean": 575.7227733955891,
+   "us_per_point_p50": 564.75,
+   "us_per_point_p99": 734.8167099999994
+  },
+  {
+   "detector": "windowedGaussian",
+   "points": 20132,
+   "files": 6,
+   "us_per_point_mean": 62.35999523147229,
+   "us_per_point_p50": 58.791,
+   "us_per_point_p99": 142.16669
+  },
+  {
+   "detector": "random",
+   "points": 20132,
+   "files": 6,
+   "us_per_point_mean": 0.12001688853566461,
+   "us_per_point_p50": 0.125,
+   "us_per_point_p99": 0.167
+  },
+  {
+   "detector": "null",
+   "points": 20132,
+   "files": 6,
+   "us_per_point_mean": 0.056227647526326245,
+   "us_per_point_p50": 0.042,
+   "us_per_point_p99": 0.084
+  }
+ ],
+ "not_runnable": {
+  "ARTime": "Julia package via JuliaCall",
+  "numenta": "nupic (Python 2 only)",
+  "numentaTM": "nupic (Python 2 only)",
+  "htmjava": "Java build of htm.java",
+  "randomCutForest": "AWS Kinesis Analytics cloud service",
+  "twitterADVec": "R package"
+ }
+}
