@@ -22,6 +22,8 @@ Engine default, held-out F1: **pooled 0.654, mean 0.593** over the 7 held-out ca
 
 | Run | Detector | Tag | Event-F1 | P | R | TP | FP | FN | Delay med (pts) | Delay med (frac) | NAB std | NAB starts | µs/pt | sha |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 20261027-121028 | sentinel | joint lag spatial w8 h256 margin5p75 | **0.691** | 0.731 | 0.655 | 76 | 28 | 40 | 100.0 | 0.50 | 58.8 | 58.8 | 2.8 | b0bfd3e |
+| 20261027-121105 | sentinel | spatial margin5p75 w16 h64 | **0.683** | 0.772 | 0.612 | 71 | 21 | 45 | 115.0 | 0.50 | 55.0 | 55.0 | 18.5 | b0bfd3e |
 | 20261026-234049 | sentinel | engine default (phase 3, final) | **0.673** | 0.747 | 0.612 | 71 | 24 | 45 | 118.0 | 0.50 | 54.9 | 54.9 | 2.7 | ca75967 |
 | 20261027-001109 | sentinel | engine default (final) | **0.673** | 0.747 | 0.612 | 71 | 24 | 45 | 118.0 | 0.50 | 54.9 | 54.9 | 2.8 | a768ece |
 | 20261027-105601 | sentinel | engine default (final) | **0.673** | 0.747 | 0.612 | 71 | 24 | 45 | 118.0 | 0.50 | 54.9 | 54.9 | 2.9 | 3bde5d0 |
@@ -69,12 +71,12 @@ Engine default, held-out F1: **pooled 0.654, mean 0.593** over the 7 held-out ca
 
 | Run | Detector | artificialNoAnomaly | artificialWithAnomaly | realAWSCloudwatch | realAdExchange | realKnownCause | realTraffic | realTweets |
 |---|---|---|---|---|---|---|---|---|
+| 20261027-121028 | sentinel [joint lag spatial w8 h256 margin5p75] | — | 0.250 | 0.759 | 0.667 | 0.667 | 0.667 | 0.724 |
+| 20261027-121105 | sentinel [spatial margin5p75 w16 h64] | — | 0.250 | 0.750 | 0.769 | 0.556 | 0.667 | 0.724 |
 | 20261026-234049 | sentinel [engine default (phase 3, final)] | — | 0.250 | 0.750 | 0.741 | 0.541 | 0.640 | 0.724 |
 | 20261027-001109 | sentinel [engine default (final)] | — | 0.250 | 0.750 | 0.741 | 0.541 | 0.640 | 0.724 |
 | 20261027-105601 | sentinel [engine default (final)] | — | 0.250 | 0.750 | 0.741 | 0.541 | 0.640 | 0.724 |
 | 20261026-233022 | sentinel [engine default (phase 3)] | — | 0.250 | 0.737 | 0.714 | 0.489 | 0.615 | 0.688 |
-| 20261026-221543 | sentinel [tuned for event-F1 (LOCO, RobustZ+LaggedResidual)] | — | 0.286 | 0.500 | 0.667 | 0.462 | 0.571 | 0.657 |
-| 20261026-231630 | sentinel [engine default (tuned)] | — | 0.286 | 0.500 | 0.667 | 0.462 | 0.571 | 0.657 |
 
 ## Runtime benchmark (2026-10-27T10:59:06, arm64 arm Darwin, Python 3.11.15, single core)
 
