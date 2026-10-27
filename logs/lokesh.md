@@ -92,3 +92,8 @@
 - Changed: `sentinel/config.py` (`w=8, h=256`, spatial margin 5.75%), `results/best_config.json`, pinned historical `best_joint_config.json` and NAB preset, tests, evaluation generators, documentation, four new run JSONs, refreshed tables and figures.
 - Result: fresh `Sentinel()` full-corpus event-F1 0.691 / P 0.731 / R 0.655 / TP 76 / FP 28 / FN 40 / NAB 58.80. `eval.predict` with saved default matched exactly. NAB-focused preset remained F1 0.489 / NAB 60.58. Full-corpus benchmark 2.76 µs/point; same-stream comparison 2.7 µs/point. `python -m pytest -q`: 114 passed; `git diff --check` and local Markdown links passed.
 - Notes / next: 16-setting joint-grid LOCO selection was 0.664 pooled / 0.590 mean, not a held-out score for the fixed default. Refreshed ablation found an unvalidated 0.697 candidate when per-detector SPOT risk is removed; left the requested 0.691 default in place. Historical 0.673 runs and tuning records remain labelled as prior results.
+
+## 2026-10-27 14:00 — L13 Simplify presentation source
+- Changed: `presentation.md`.
+- Result: reduced the outline to seven simple slides, updated LaggedResidual to the average of 8 readings roughly 256 points earlier, and kept only the current default in text and selected images. Current-default official NAB score is 58.80, as requested after clarifying the separate 60.58 result.
+- Notes / next: PDF generation is deferred until the user finishes reviewing the Markdown.
