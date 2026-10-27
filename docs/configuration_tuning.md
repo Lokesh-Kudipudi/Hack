@@ -4,7 +4,7 @@ Updated 2026-10-27. The best combined lag and spatial-margin setting is now the 
 
 ## Data and scoring
 
-All recent sweeps used the full public NAB corpus: 58 files, 365,558 readings, seven categories, and 116 labelled anomaly windows. Event-F1, precision, and recall are pooled across files using the event definitions in [AGENTS.md](AGENTS.md#5-evaluation-protocol-eval--fixed-definitions). Probation points are excluded from scoring. Each sweep changed global settings only; no detector was given ground-truth windows while processing a series.
+All recent sweeps used the full public NAB corpus: 58 files, 365,558 readings, seven categories, and 116 labelled anomaly windows. Event-F1, precision, and recall are pooled across files using the event definitions in [AGENTS.md](../AGENTS.md#5-evaluation-protocol-eval--fixed-definitions). Probation points are excluded from scoring. Each sweep changed global settings only; no detector was given ground-truth windows while processing a series.
 
 The full-corpus scores below are **in-sample for configuration selection** because the settings were compared on this public corpus. Leave-one-category-out (LOCO) numbers select a setting on six categories and score the seventh, rotating through all seven. A LOCO score for a sweep is a score for that **selection procedure**, not a direct hidden-test score for one fixed setting. The hidden evaluation has not been run.
 
@@ -34,7 +34,7 @@ Every other key is unchanged. Reproduce the result with the current defaults:
 python -m eval.run --detector sentinel --tag "engine default (final)"
 ```
 
-Saved full evaluations: [previous default](results/runs/20261027-105601_sentinel_engine-default-final.json), [margin 5.75% alone](results/runs/20261027-121105_sentinel_spatial-margin5p75-w16-h64.json), [best combined setting before adoption](results/runs/20261027-121028_sentinel_joint-lag-spatial-w8-h256-margin5p75.json), and [new no-override default](results/runs/20261027-122246_sentinel_engine-default-final.json). The separate margin-only run recorded an unusually high update time under transient machine load; its event metrics reproduced the sweep exactly, but that latency is not used in the comparison above.
+Saved full evaluations: [previous default](../results/runs/20261027-105601_sentinel_engine-default-final.json), [margin 5.75% alone](../results/runs/20261027-121105_sentinel_spatial-margin5p75-w16-h64.json), [best combined setting before adoption](../results/runs/20261027-121028_sentinel_joint-lag-spatial-w8-h256-margin5p75.json), and [new no-override default](../results/runs/20261027-122246_sentinel_engine-default-final.json). The separate margin-only run recorded an unusually high update time under transient machine load; its event metrics reproduced the sweep exactly, but that latency is not used in the comparison above.
 
 ### What the current default actually runs
 
@@ -45,7 +45,7 @@ Saved full evaluations: [previous default](results/runs/20261027-105601_sentinel
 - **Spatial extreme:** an immediate flag beyond the running minimum or maximum by 5.75% of the observed range, after at least 100 seed points.
 - **Events:** debounce 3, immediate extreme bypass at a 2× threshold ratio, merge gap 64, and cooldown of half the probation length.
 
-The prior 432-configuration `recall2` grid selected the previous default: **event-F1 0.673**, LOCO **0.654 pooled / 0.593 mean**. See [tuning.md](results/tuning.md) and [the saved tuning run](results/runs/20261027-104941_tune_loco-recall2.json). The separate NAB-focused operating point remains **NAB 60.58, event-F1 0.489**; it optimizes a different metric and is not the event-F1 default.
+The prior 432-configuration `recall2` grid selected the previous default: **event-F1 0.673**, LOCO **0.654 pooled / 0.593 mean**. See [tuning.md](../results/tuning.md) and [the saved tuning run](../results/runs/20261027-104941_tune_loco-recall2.json). The separate NAB-focused operating point remains **NAB 60.58, event-F1 0.489**; it optimizes a different metric and is not the event-F1 default.
 
 ## Tuning history before the recent sweeps
 
@@ -60,7 +60,7 @@ The project evaluated 3,288 grid points across six searches, on successive code 
 | `recall` | 480 | Spatial flag, debounce, cooldown, and recall controls |
 | `recall2` | 432 | Refinement that produced the previous default |
 
-These grids and their options are defined in [eval/tune.py](eval/tune.py); the final default's ablations are in [results/ablation.md](results/ablation.md).
+These grids and their options are defined in [eval/tune.py](../eval/tune.py); the final default's ablations are in [results/ablation.md](../results/ablation.md).
 
 ## Recent sweep 1: all detector subsets
 
@@ -74,7 +74,7 @@ We evaluated all **127 non-empty named subsets** of seven available detector opt
 | RobustZ + LastW | 0.640 | 0.670 | 0.612 | 71 | 35 |
 | RobustZ + LaggedResidual + CUSUM | 0.600 | 0.605 | 0.595 | 69 | 45 |
 
-The 127-subset LOCO selection scored **0.642 pooled / 0.584 mean**. All 127 requested rows, including the duplicate effective configurations, are in [the detector-subset sweep](results/runs/20261027-121431_tune_detector_subsets.json).
+The 127-subset LOCO selection scored **0.642 pooled / 0.584 mean**. All 127 requested rows, including the duplicate effective configurations, are in [the detector-subset sweep](../results/runs/20261027-121431_tune_detector_subsets.json).
 
 ## Recent sweep 2: LaggedResidual window and lag
 
@@ -94,7 +94,7 @@ All other default settings, including the 5% spatial margin, stayed fixed.
 | 8 | 128 | 0.667 | 0.745 | 0.603 | 70 | 24 | 54.56 |
 | 4 | 256 | 0.664 | 0.702 | 0.629 | 73 | 31 | 56.41 |
 
-The 25-setting LOCO search scored **0.648 pooled / 0.577 mean**. The 132-setting search scored **0.651 pooled / 0.579 mean**. A longer lag alone improved full-corpus recall but did not clearly improve the held-out result. Every setting in the wider grid is in [the lag sweep](results/runs/20261027-121431_tune_lagged_residual.json).
+The 25-setting LOCO search scored **0.648 pooled / 0.577 mean**. The 132-setting search scored **0.651 pooled / 0.579 mean**. A longer lag alone improved full-corpus recall but did not clearly improve the held-out result. Every setting in the wider grid is in [the lag sweep](../results/runs/20261027-121431_tune_lagged_residual.json).
 
 ## Recent sweep 3: RobustZ center and spread
 
@@ -109,7 +109,7 @@ These were **experimental in-memory variants**, not selectable `sentinel/config.
 | 10% trimmed mean + MAD | 0.651 | 0.696 | 0.612 | 71 | 31 | 54.59 |
 | Binned mode + MAD | 0.634 | 0.657 | 0.612 | 71 | 37 | 54.31 |
 
-The median + standard deviation variant removed **one false positive** with no recall change. That small gain has not been implemented as an engine option or tested jointly with the later lag/margin candidates. The six-variant LOCO selection scored **0.673 pooled / 0.608 mean**. See [the RobustZ statistics sweep](results/runs/20261027-121511_tune_robustz_statistics.json).
+The median + standard deviation variant removed **one false positive** with no recall change. That small gain has not been implemented as an engine option or tested jointly with the later lag/margin candidates. The six-variant LOCO selection scored **0.673 pooled / 0.608 mean**. See [the RobustZ statistics sweep](../results/runs/20261027-121511_tune_robustz_statistics.json).
 
 ## Recent sweep 4: spatial-extreme margin
 
@@ -129,7 +129,7 @@ The spatial-extreme flag uses the running minimum and maximum, **not a fixed tim
 | 20% | 0.624 | **0.829** | 0.500 | 58 | 12 | 45.44 |
 | 100% | 0.454 | 0.787 | 0.319 | 37 | 10 | 29.38 |
 
-At 5.75%, the same 71 windows were found as at 5%, with **three fewer false-positive events**. The 39-setting LOCO selection scored **0.673 pooled / 0.605 mean**. Every tested margin and its per-category metrics are in [the spatial-margin sweep](results/runs/20261027-121431_tune_spatial_margin.json).
+At 5.75%, the same 71 windows were found as at 5%, with **three fewer false-positive events**. The 39-setting LOCO selection scored **0.673 pooled / 0.605 mean**. Every tested margin and its per-category metrics are in [the spatial-margin sweep](../results/runs/20261027-121431_tune_spatial_margin.json).
 
 ## Recent sweep 5: combine the strongest lag and margin settings
 
@@ -143,7 +143,7 @@ We tested **16 combinations** from `(w,h) = (16,64), (8,256), (16,96), (8,128)` 
 | 8 / 256 | 5% | 0.682 | 0.710 | **0.655** | **76** | 31 | 58.65 |
 | 16 / 96 | 5.75% | 0.680 | **0.778** | 0.603 | 70 | **20** | 54.36 |
 
-The 16-setting LOCO selection scored **0.664 pooled / 0.590 mean**. This was the highest full-corpus event-F1 configuration in the lag/margin grids and is now the current default. All 16 rows are in [the joint lag/margin sweep](results/runs/20261027-121431_tune_joint_lag_spatial.json).
+The 16-setting LOCO selection scored **0.664 pooled / 0.590 mean**. This was the highest full-corpus event-F1 configuration in the lag/margin grids and is now the current default. All 16 rows are in [the joint lag/margin sweep](../results/runs/20261027-121431_tune_joint_lag_spatial.json).
 
 ## Interpretation
 
@@ -151,5 +151,5 @@ The 16-setting LOCO selection scored **0.664 pooled / 0.590 mean**. This was the
 - The **current default** is `w=8, h=256` plus a **5.75% spatial margin**: event-F1 **0.691**, precision **0.731**, recall **0.655**, with **28** false-positive events.
 - The **best standalone margin** is 5.75%; it improves precision without losing recall relative to the previous 5% setting.
 - The RobustZ median + standard deviation prototype is a much smaller change: one fewer false positive. It is not part of the best combined configuration.
-- A new single-setting ablation after adoption scored **0.697** (P 0.745, R 0.655, FP 26) when per-detector SPOT risk was removed from the 0.691 default. It has not gone through the joint-grid validation; it is recorded in [results/ablation.md](results/ablation.md) as a follow-up candidate.
+- A new single-setting ablation after adoption scored **0.697** (P 0.745, R 0.655, FP 26) when per-detector SPOT risk was removed from the 0.691 default. It has not gone through the joint-grid validation; it is recorded in [results/ablation.md](../results/ablation.md) as a follow-up candidate.
 - These results are on the same public corpus used for tuning. LOCO reduces optimism, but an independent hidden set is needed to know whether the 0.691 default generalizes.

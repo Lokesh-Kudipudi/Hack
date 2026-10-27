@@ -16,11 +16,11 @@ held-out score for the fixed default. The engine runs at about **2.9 µs per poi
 operating point reaches a **NAB standard score of 60.58**, above earthgecko Skyline (58.2) and Random Cut Forest
 (51.7).
 
-- How it works, stage by stage, with a worked example: **[explain.md](explain.md)**
-- Slides: **[presentation.pdf](presentation.pdf)** · [Markdown outline](presentation.md) · regenerate with `python -m eval.build_presentation_pdf` (requires ReportLab)
-- Design decisions: [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md)
-- Background (anomaly types, EVT, NAB scoring): [DOMAIN_KNOWLEDGE.md](DOMAIN_KNOWLEDGE.md)
-- Configuration tuning, current default, and previous setting: [configuration_tuning.md](configuration_tuning.md)
+- How it works, stage by stage, with a worked example: **[explain.md](docs/explain.md)**
+- Slides: **[presentation.pdf](presentation.pdf)** · [Markdown outline](docs/presentation.md) · regenerate with `python -m eval.build_presentation_pdf` (requires ReportLab)
+- Design decisions: [ARCHITECTURE_DECISIONS.md](docs/ARCHITECTURE_DECISIONS.md)
+- Background (anomaly types, EVT, NAB scoring): [DOMAIN_KNOWLEDGE.md](docs/DOMAIN_KNOWLEDGE.md)
+- Configuration tuning, current default, and previous setting: [configuration_tuning.md](docs/configuration_tuning.md)
 - Result tables: [results/leaderboard.md](results/leaderboard.md), [results/ablation.md](results/ablation.md),
   [results/tuning.md](results/tuning.md), [results/model_comparison.md](results/model_comparison.md),
   [results/runtime_comparison.md](results/runtime_comparison.md), [results/miss_analysis.md](results/miss_analysis.md)
@@ -54,7 +54,8 @@ eval/                evaluation and experiments
 app/dashboard.py     Streamlit replay demo
 tests/               pytest suite (114 tests)
 results/             runs/*.json (one per experiment), *.md tables, best_*config.json, figures/
-logs/  TASKS.md  AGENTS.md  ARCHITECTURE_DECISIONS.md
+docs/               project documentation (design, background, tuning, presentation)
+logs/  TASKS.md  AGENTS.md  CLAUDE.md
 data/                local only, never committed (NAB clone and/or starter pack)
 ```
 
@@ -200,7 +201,7 @@ python -m eval.run --detector sentinel --config /tmp/orig.json --tag "likhit def
 python -m eval.run --detector sentinel --tag "engine default (final)"
 python -m eval.run --detector sentinel --config results/best_nab_config.json --tag "NAB operating point (final)"
 # Historical 432-setting search; results/tuning.md records the former default.
-# The current best_config.json is from the later lag/margin sweep in configuration_tuning.md.
+# The current best_config.json is from the later lag/margin sweep in docs/configuration_tuning.md.
 python -m eval.ablation --tag final                               # results/ablation.md, figures/ablation.png (~3 min)
 python -m eval.miss_analysis                                      # results/miss_analysis.md, figures/miss_analysis.png
 python -m eval.benchmark                                          # µs/point, all detectors
@@ -295,4 +296,4 @@ Figures: [published_comparison.png](results/figures/published_comparison.png),
 - Streams shorter than 7 points get probation 0 and are never flagged. `seasonal.auto_period` has no effect.
   Rebaseline is count-based, not CUSUM-confirmed.
 
-See [presentation.md](presentation.md) slide 10 and [explain.md](explain.md) for details.
+See [presentation.md](docs/presentation.md) slide 10 and [explain.md](docs/explain.md) for details.

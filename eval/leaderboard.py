@@ -83,7 +83,7 @@ def render(runs: Sequence[Dict]) -> str:
         lines += ["## Final results", "",
                   "Headline runs (latest of each). Engine default = `Sentinel()` with no config. "
                   "LOCO grid F1 = leave-one-category-out selection within the 16-setting lag/margin grid, "
-                  "not a held-out score for the fixed default; see `configuration_tuning.md`.", "",
+                  "not a held-out score for the fixed default; see `docs/configuration_tuning.md`.", "",
                   "| Detector | Event-F1 | P | R | TP | FP | FN | NAB std | NAB low-FP | NAB low-FN | µs/pt |",
                   "|---|---|---|---|---|---|---|---|---|---|---|"]
         for key, lab in final:

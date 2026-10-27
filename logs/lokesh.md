@@ -152,3 +152,8 @@
 - Changed: `presentation.md`, `eval/build_presentation_pdf.py`, `presentation.pdf`.
 - Result: 11-slide PDF has separate readable comparison charts, four explained NYC taxi alerts, and current-default RobustZ and spatial flag examples. Checked the PDF text and page count; `git diff --check` passed.
 - Notes / next: user explicitly authorized pushing these accumulated presentation changes to Lokesh's branch; no merge requested.
+
+## 2026-10-27 16:50 — Docs restructure
+- Changed: moved eight standalone Markdown documents into `docs/`; updated `README.md`, `AGENTS.md`, `TASKS.md`, `eval/leaderboard.py`, `results/leaderboard.md`, and `results/tuning.md`.
+- Result: 73 local links checked with no broken destinations; `pytest -q` passed (114 tests); `git diff --check` passed.
+- Notes / next: Root `AGENTS.md`, `CLAUDE.md`, and `TASKS.md` remain discoverable; generated result reports and historical logs retain their existing paths.
