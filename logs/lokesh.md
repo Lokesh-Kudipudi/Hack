@@ -97,3 +97,8 @@
 - Changed: `presentation.md`.
 - Result: rewrote the outline as ten simple slides matching the required slide topics, updated LaggedResidual to the average of 8 readings roughly 256 points earlier, and kept only the current default in text and selected images. Current-default official NAB score is 58.80, as requested after clarifying the separate 60.58 result.
 - Notes / next: PDF generation is deferred until the user finishes reviewing the Markdown.
+
+## 2026-10-27 14:03 — L13 Remove presentation speaker notes
+- Changed: `presentation.md`.
+- Result: removed all ten speaker-note blocks while preserving the ten-slide outline and current-default results.
+- Notes / next: PDF generation remains deferred during Markdown review.
