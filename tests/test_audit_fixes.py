@@ -79,3 +79,14 @@ def test_cli_format_csv(tmp_path):
     assert {"timestamp", "value", "score", "label", "is_event_start", "evidence"} <= set(rows[0])
     flagged = [r for r in rows if r["label"] == "ANOMALOUS"]
     assert flagged and json.loads(flagged[0]["evidence"])["type"]
+
+
+def test_original_default_config_is_self_contained():
+    # merged onto the current defaults it must not inherit the phase-3 recall mechanisms
+    from sentinel.config import ORIGINAL_DEFAULT_CONFIG
+    s = Sentinel(n_total=10_000, config=ORIGINAL_DEFAULT_CONFIG)
+    assert s.spatial is None
+    assert s.extreme_ratio == 1.5
+    assert s.event_manager.cooldown_duration == 200
+    assert s.event_manager.debounce == 2
+    assert s.spot_q_per_detector == {}

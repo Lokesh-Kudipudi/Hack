@@ -81,5 +81,9 @@ ORIGINAL_DEFAULT_CONFIG: Dict[str, Any] = {
     "fusion": "max",
     "vote_k": 2,
     "use_events": True,
-    "events": {"merge_gap": 16, "cooldown": 200, "rebaseline_after": 80},
+    # explicit "off" values for keys added later, so merging this onto DEFAULT_CONFIG reproduces the original engine
+    "events": {"merge_gap": 16, "cooldown": 200, "rebaseline_after": 80, "cooldown_frac": 0.0, "agree_k": 0},
+    "extreme_ratio": 1.5,
+    "spatial": {"enabled": False, "tol": 0.05, "min_seed": 100},
+    "smoothing": {"window": 1, "detectors": None},
 }

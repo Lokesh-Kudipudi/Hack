@@ -7,7 +7,7 @@ name = "sentinel-ad"
 version = "0.3.0"
 description = "Lightweight, strictly causal, lookahead-free streaming time-series anomaly detection engine"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     { name = "Likhit & Lokesh" }
 ]
