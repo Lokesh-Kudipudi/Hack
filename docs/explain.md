@@ -120,7 +120,7 @@ CUSUM 8.0, IsolationForest 6.0.
 
 The default ensemble is **RobustZ + LaggedResidual**. Leave-one-category-out search picked it over all six
 detectors. Adding Seasonal or VarRatio raises recall but costs more false positives than it gains (see
-`results/ablation.md`, "added" rows).
+`docs/results/detector_ablation_results.md`, "added" rows).
 
 LastW and LaggedResidual score absolute residuals, not the squared differences of the ICLR one-liners. A squared
 residual is a monotone function of the absolute one, so thresholding gives the same decisions. The absolute value
@@ -314,7 +314,7 @@ regenerated [example plot](../results/figures/example_nyc_taxi.png).
 | **CUSUM** | Cumulative sum control chart. It accumulates standardised deviations beyond a slack k and catches small persistent shifts. Sentinel's version leaks (×0.85) when in control and caps at 25 |
 | **Operating point** | One global config, i.e. one point on the precision/recall or F1/NAB trade-off. Sentinel ships two: the engine default (event-F1) and `results/best_nab_config.json` (NAB) |
 | **LOCO validation** | Leave-one-category-out: for each of the 7 categories, choose the best config on the other 6 and score it on the held-out one. Reported as the pooled (TP/FP/FN summed) and mean held-out F1 |
-| **Ablation** | Adding or removing one component at a time and measuring the change (`results/ablation.md`) |
+| **Ablation** | Adding or removing one component at a time and measuring the change (`docs/results/detector_ablation_results.md`) |
 | **Pareto front** | Configs that no other config beats on both event-F1 and NAB (`results/figures/pareto_f1_nab.png`) |
 | **Spatial extreme** | A value outside the running [min, max] by more than 5.75% of the range (§3.6) |
 | **Cooldown** | The number of points after an event start during which no new event may start |

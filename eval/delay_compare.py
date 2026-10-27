@@ -37,6 +37,7 @@ def comparison_rows() -> list[dict]:
 
 def report(rows: list[dict]) -> str:
     lines = ["# Detection delay comparison", "",
+             "> **About this report:** Compares the first detected event time across Sentinel and published NAB models, alongside the number of labelled windows each finds.", "",
              "Full NAB corpus: 58 files and 116 labelled anomaly windows. Delay is measured from "
              "the start of a labelled window to the first predicted event start inside it. "
              "Medians and means use **detected windows only**; a missed window has no delay value. "
@@ -64,7 +65,7 @@ def report(rows: list[dict]) -> str:
 
 def main() -> Path:
     rows = comparison_rows()
-    path = REPO_ROOT / "results" / "delay_comparison.md"
+    path = REPO_ROOT / "docs" / "results" / "detection_delay_comparison.md"
     path.write_text(report(rows))
     run_path = REPO_ROOT / "results" / "runs" / f"{datetime.now():%Y%m%d-%H%M%S}_delay_comparison.json"
     run_path.write_text(json.dumps({"kind": "delay_comparison", "created": datetime.now().isoformat(),

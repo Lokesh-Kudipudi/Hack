@@ -124,7 +124,7 @@ Delay is measured from window start to first alert in the **76 detected windows*
 | ARTime | 106 | 105 readings (49.9%) |
 | Windowed Gaussian (NAB) | 73 | 100 readings (48.8%) |
 
-Median timing is similar across these models; the number of windows found differs more. The full 16-model comparison is in [results/delay_comparison.md](../results/delay_comparison.md).
+Median timing is similar across these models; the number of windows found differs more. The full 16-model comparison is in [docs/results/detection_delay_comparison.md](results/detection_delay_comparison.md).
 
 ---
 

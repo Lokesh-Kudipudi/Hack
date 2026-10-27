@@ -298,7 +298,7 @@ Sentinel's detection core consists of 7 specialized, lookahead-free detectors:
 Sentinel was extensively evaluated across all 58 time-series files (365,558 observations, 116 ground-truth anomaly windows) in the Numenta Anomaly Benchmark.
 
 ### 5.1 Component Ablation Progression
-Final build-up (`python -m eval.ablation`, `results/ablation.md`; latency = mean µs/pt of that run):
+Final build-up (`python -m eval.ablation`, `docs/results/detector_ablation_results.md`; latency = mean µs/pt of that run):
 
 | Phase / Configuration | Event-F1 | Precision | Recall | FP Events | Key Takeaway |
 |---|---|---|---|---|---|
@@ -316,7 +316,7 @@ Final build-up (`python -m eval.ablation`, `results/ablation.md`; latency = mean
 | **+ lag 8/256 and margin 5.75% = current default** | **0.691** | **0.731** | **0.655** | **28** | **2.86 µs/pt** |
 | NAB operating point (+ Seasonal, two-sided VarRatio, agreement bypass) | 0.489 | 0.366 | 0.733 | 147 | Trades F1 for recall; NAB 60.58 |
 
-For the previous default, removing the spatial flag lowered F1 from 0.673 to 0.428. The current-default ablation is in `results/ablation.md`. Adding Seasonal, two-sided VarRatio
+For the previous default, removing the spatial flag lowered F1 from 0.673 to 0.428. The current-default ablation is in `docs/results/detector_ablation_results.md`. Adding Seasonal, two-sided VarRatio
 (K19), the auto-period Seasonal (K19) or the isolation forest (D7) to the default raises recall but lowers event-F1
 (0.54–0.62), so they are not part of the event-F1 default. The NAB operating point uses Seasonal and VarRatio.
 
@@ -326,7 +326,7 @@ For the previous default, removing the spatial flag lowered F1 from 0.673 to 0.4
 
 Evaluated using the official Numenta scoring sweeper (published scores from `data/NAB/results/final_results.json`;
 latencies measured on our machine with `python -m eval.nab_runtime` — NAB's own implementations, same streams; see
-`results/runtime_comparison.md`):
+`docs/results/inference_runtime_comparison.md`):
 
 | Model | NAB Standard | Reward Low FP | Reward Low FN | Execution Latency | Architecture Type |
 |---|---|---|---|---|---|

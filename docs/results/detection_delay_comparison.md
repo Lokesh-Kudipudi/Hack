@@ -1,5 +1,7 @@
 # Detection delay comparison
 
+> **About this report:** Compares the first detected event time across Sentinel and published NAB models, alongside the number of labelled windows each finds.
+
 Full NAB corpus: 58 files and 116 labelled anomaly windows. Delay is measured from the start of a labelled window to the first predicted event start inside it. Medians and means use **detected windows only**; a missed window has no delay value. The window-position percentage makes files with different sampling rates and window widths easier to compare. Lower delay can still come with lower recall, so read it beside the number of windows found.
 
 Published models use NAB's stored per-point scores at its standard-profile threshold, with each new threshold crossing counted as an event. Sentinel uses the latest saved full-corpus run tagged `engine default (final)`. These event rules differ between systems. NAB windows usually centre the marked anomaly, which is why most medians are near 50% of the window width.

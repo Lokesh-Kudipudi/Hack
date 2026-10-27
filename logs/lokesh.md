@@ -157,3 +157,8 @@
 - Changed: moved eight standalone Markdown documents into `docs/`; updated `README.md`, `AGENTS.md`, `TASKS.md`, `eval/leaderboard.py`, `results/leaderboard.md`, and `results/tuning.md`.
 - Result: 73 local links checked with no broken destinations; `pytest -q` passed (114 tests); `git diff --check` passed.
 - Notes / next: Root `AGENTS.md`, `CLAUDE.md`, and `TASKS.md` remain discoverable; generated result reports and historical logs retain their existing paths.
+
+## 2026-10-27 16:53 — Docs restructure: result reports
+- Changed: moved and descriptively renamed all eight `results/*.md` reports into `docs/results/`; added an About note to each; updated README, documentation links, evaluation report writers, and the presentation chart reader.
+- Result: regenerated the leaderboard in its new location; 75 local Markdown links resolve; `pytest -q` passed (114 tests); `git diff --check` passed.
+- Notes / next: JSON run records, config files, and figures remain under `results/`. No Markdown files remain there.

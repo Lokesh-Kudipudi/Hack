@@ -45,7 +45,7 @@ Saved full evaluations: [previous default](../results/runs/20261027-105601_senti
 - **Spatial extreme:** an immediate flag beyond the running minimum or maximum by 5.75% of the observed range, after at least 100 seed points.
 - **Events:** debounce 3, immediate extreme bypass at a 2× threshold ratio, merge gap 64, and cooldown of half the probation length.
 
-The prior 432-configuration `recall2` grid selected the previous default: **event-F1 0.673**, LOCO **0.654 pooled / 0.593 mean**. See [tuning.md](../results/tuning.md) and [the saved tuning run](../results/runs/20261027-104941_tune_loco-recall2.json). The separate NAB-focused operating point remains **NAB 60.58, event-F1 0.489**; it optimizes a different metric and is not the event-F1 default.
+The prior 432-configuration `recall2` grid selected the previous default: **event-F1 0.673**, LOCO **0.654 pooled / 0.593 mean**. See [hyperparameter_tuning.md](results/hyperparameter_tuning.md) and [the saved tuning run](../results/runs/20261027-104941_tune_loco-recall2.json). The separate NAB-focused operating point remains **NAB 60.58, event-F1 0.489**; it optimizes a different metric and is not the event-F1 default.
 
 ## Tuning history before the recent sweeps
 
@@ -60,7 +60,7 @@ The project evaluated 3,288 grid points across six searches, on successive code 
 | `recall` | 480 | Spatial flag, debounce, cooldown, and recall controls |
 | `recall2` | 432 | Refinement that produced the previous default |
 
-These grids and their options are defined in [eval/tune.py](../eval/tune.py); the final default's ablations are in [results/ablation.md](../results/ablation.md).
+These grids and their options are defined in [eval/tune.py](../eval/tune.py); the final default's ablations are in [docs/results/detector_ablation_results.md](results/detector_ablation_results.md).
 
 ## Recent sweep 1: all detector subsets
 
@@ -151,5 +151,5 @@ The 16-setting LOCO selection scored **0.664 pooled / 0.590 mean**. This was the
 - The **current default** is `w=8, h=256` plus a **5.75% spatial margin**: event-F1 **0.691**, precision **0.731**, recall **0.655**, with **28** false-positive events.
 - The **best standalone margin** is 5.75%; it improves precision without losing recall relative to the previous 5% setting.
 - The RobustZ median + standard deviation prototype is a much smaller change: one fewer false positive. It is not part of the best combined configuration.
-- A new single-setting ablation after adoption scored **0.697** (P 0.745, R 0.655, FP 26) when per-detector SPOT risk was removed from the 0.691 default. It has not gone through the joint-grid validation; it is recorded in [results/ablation.md](../results/ablation.md) as a follow-up candidate.
+- A new single-setting ablation after adoption scored **0.697** (P 0.745, R 0.655, FP 26) when per-detector SPOT risk was removed from the 0.691 default. It has not gone through the joint-grid validation; it is recorded in [docs/results/detector_ablation_results.md](results/detector_ablation_results.md) as a follow-up candidate.
 - These results are on the same public corpus used for tuning. LOCO reduces optimism, but an independent hidden set is needed to know whether the 0.691 default generalizes.

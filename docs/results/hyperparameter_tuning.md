@@ -1,4 +1,6 @@
-# Hyperparameter tuning (leave-one-category-out)
+# Historical event-F1 hyperparameter tuning
+
+> **About this report:** Records the historical event-F1 hyperparameter search and its leave-one-category-out validation; its selected setting predates the current default.
 
 Historical `recall2` search on the previous default revision. The current no-override default is the later joint lag/margin setting (event-F1 0.691); see `docs/configuration_tuning.md`.
 

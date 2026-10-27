@@ -171,7 +171,7 @@ This document captures the architectural rationale, technical trade-offs, and em
 - **Status:** Accepted & Implemented
 - **Date:** 2026-10-26
 - **Context:**
-  After ADR-009 the engine missed 60 of 116 windows (recall 0.48). The miss analysis (`results/miss_analysis.md`) showed
+  After ADR-009 the engine missed 60 of 116 windows (recall 0.48). The miss analysis (`docs/results/missed_anomaly_analysis.md`) showed
   27% of misses were *suppressed* (flagged, but cooldown / an earlier event / debounce blocked a new event) and most others
   had only weak or pattern-only signal. Detection "delay" turned out to be detection at the labelled anomaly point
   (median +0 points) — NAB windows start well before the label — so the lever is recall, not earlier firing.
