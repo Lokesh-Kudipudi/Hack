@@ -104,7 +104,10 @@ Event manager → score, label, explanation
 | Precision | **0.731** |
 | Recall | **0.655** |
 | Event-F1 | **0.691** |
+| Median detection delay | **100 readings** (49.7% through window) |
 | Official NAB score | **58.80** |
+
+Delay is measured from window start to first alert in the **76 detected windows**. NAB labels usually lie near the middle of their windows.
 
 ---
 

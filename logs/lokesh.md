@@ -112,3 +112,8 @@
 - Changed: `eval/presentation_charts.py`, both comparison figures, `presentation.md`.
 - Result: each figure now has two aligned horizontal bar panels in the same model order. Missing runtimes and undefined precision show a dash; the time panel uses a labelled compressed scale.
 - Notes / next: regenerated and visually checked both images. No PDF generated.
+
+## 2026-10-27 14:18 — L13 Add detection delay to evaluation slide
+- Changed: `presentation.md`.
+- Result: added the current default's median delay of 100 readings (49.7% through labelled window) from the 0.691-F1 run. Defined it as first alert minus window start for detected windows only.
+- Notes / next: no published-model delay comparison is currently recorded in `results/model_comparison.md`.
