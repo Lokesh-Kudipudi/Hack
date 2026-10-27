@@ -26,7 +26,7 @@ Recent research has attempted to apply large Transformer-based time-series found
 - **Per-Window Normalization Artifacts:** When a quiet signal has near-zero variance, $1/\sigma$ normalizers blow up micro-noise into false anomalies.
 - **The Moving Baseline Equivalence (ICLR 2026):** Deep architectures on standard benchmarks functionally reduce to estimating rolling local moving averages and variance ratios—operations computable in $O(1)$ time with 1 line of arithmetic.
 
-**Sentinel's Solution:** A multi-timescale causal ensemble with Extreme Value Theory (EVT/SPOT) adaptive tail estimation, delivering **$2.6\ \mu\text{s/pt}$ latency**, **$O(1)$ memory ($<30\ \text{KB/stream}$)**, and a winning **Event-F1 of 0.673** (NAB Standard Score **60.58**, outperforming AWS Random Cut Forest and Twitter ADVec).
+**Sentinel's Solution:** A multi-timescale causal ensemble with Extreme Value Theory (EVT/SPOT) adaptive tail estimation, delivering about **$2.9\ \mu\text{s/pt}$ latency** and a public-corpus **Event-F1 of 0.691**. The separate NAB operating point scores **60.58**, above AWS Random Cut Forest and Twitter ADVec.
 
 ---
 
@@ -88,9 +88,9 @@ Real-world anomalies do not conform to a single mathematical pattern. A single d
 
 ### 2.3 Topology 3: Sequence Divergence & Window Contamination ($D3$ - `LaggedResidual`)
 - **The Contamination Trap (ICLR 2026 §6.1):** When an anomaly persists for 15 steps (e.g., an AWS EC2 instance pegged at 100% CPU), a standard rolling window of width $w=10$ ingests the anomaly. The local mean shifts to 100%, local variance shrinks, the error drops to 0, and the detector prematurely ceases alerting.
-- **Sentinel's Uncontaminated Lag Solution:** Sentinel compares $x_t$ against a reference baseline buffer positioned $h=64$ steps in the past:
+- **Sentinel's Uncontaminated Lag Solution:** Sentinel compares $x_t$ against a reference baseline buffer positioned $h=256$ steps in the past:
   $$\text{Score}_{Lagged}(x_t) = \frac{|x_t - \bar{x}_{t-h-w : t-h}|}{\text{scale}}$$
-  Because the reference window terminated 64 steps prior, it remains in the pre-anomaly normal regime throughout the entire duration of the incident.
+  Because the reference window terminated 256 steps prior, it remains in the pre-anomaly normal regime throughout the entire duration of the incident.
 
 ### 2.4 Topology 4 & 5: Volatility Shifts & Flatline Freeze ($D4$ - `VarRatio`)
 - **Phenomenon:** The mean of the series remains constant, but the variance undergoes a regime shift.
@@ -205,8 +205,8 @@ Because the denominator approaches zero, normal quantization noise (e.g., sensor
 |---|---|---|---|
 | **Parameter Count** | ~48,000,000 | ~200,000,000 | **0 parameters (Closed-form)** |
 | **Inference Hardware** | GPU / Heavy CPU | GPU Required | **Single Core CPU** |
-| **Per-Point Latency** | $15,000\text{–}40,000\ \mu\text{s}$ | $50,000\text{–}120,000\ \mu\text{s}$ | **$2.6\ \mu\text{s}$ (6,000x faster)** |
-| **Throughput** | ~30 pts/sec | ~10 pts/sec | **~388,000 pts/sec** |
+| **Per-Point Latency** | $15,000\text{–}40,000\ \mu\text{s}$ | $50,000\text{–}120,000\ \mu\text{s}$ | **about $2.8\ \mu\text{s}$** |
+| **Throughput** | ~30 pts/sec | ~10 pts/sec | **~362,000 pts/sec** |
 | **RAM / VRAM** | 1.2 GB VRAM | 4.5 GB VRAM | **$< 30\ \text{KB per stream}$** |
 | **Causal Guarantee** | Often violated by patch slicing | Context window edge artifacts | **Formally proven prefix invariant** |
 
@@ -329,23 +329,23 @@ Sentinel was benchmarked against the standard baseline suite:
 
 | Model | Event-F1 | Precision | Recall | False Alarms (FPs) | Latency / Pt |
 |---|---|---|---|---|---|
-| Naive 3-Sigma Gaussian | 0.302 | 0.203 | 0.584 | 232 FPs | 57.6 µs |
-| AWS Random Cut Forest (RCF) | 0.517 | 0.441 | 0.625 | 114 FPs | 1,420.0 µs |
-| CAD OSE (NAB) | 0.580 | 0.512 | 0.671 | 89 FPs | 229.5 µs |
-| **Sentinel (Engine Default)** | **0.673** | **0.747** | **0.612** | **24 FPs (90% drop!)** | **2.6 µs** |
-| **Sentinel (NAB-Tuned Profile)**| **0.658** | **0.638** | **0.680** | **38 FPs** | **2.7 µs** |
+| Windowed Gaussian (our baseline, threshold 1.0) | 0.302 | 0.211 | 0.534 | 232 FPs | 49.3 µs |
+| AWS Random Cut Forest (NAB stored scores) | 0.333 | 0.214 | 0.750 | 319 FPs | not runnable here |
+| CAD OSE (NAB stored scores) | 0.676 | 0.590 | 0.793 | 64 FPs | 231.1 µs |
+| **Sentinel (Engine Default)** | **0.691** | **0.731** | **0.655** | **28 FPs** | **2.9 µs** |
+| **Sentinel (NAB operating point)** | **0.489** | **0.366** | **0.733** | **147 FPs** | **5.2 µs** |
 
 ### 8.2 Official NAB Benchmark Scores (Standard Metric)
 
 | Algorithm | NAB Score (Higher is Better) | Runtime Efficiency |
 |---|---|---|
 | Random / Null Detector | 0.00 | N/A |
-| Windowed Gaussian | 39.60 | 57.6 µs/pt |
-| Twitter ADVec | 47.10 | 312.0 µs/pt |
-| AWS Random Cut Forest (RCF) | 51.70 | 1,420.0 µs/pt |
-| KNN CAD | 58.00 | 776.9 µs/pt |
-| Earthgecko Skyline | 58.20 | 185.0 µs/pt |
-| **Sentinel Engine** | **60.58** | **2.6 µs/pt (297x faster)** |
+| Windowed Gaussian | 39.60 | 49.3 µs/pt (our baseline) |
+| Twitter ADVec | 47.10 | not runnable here (R) |
+| AWS Random Cut Forest (RCF) | 51.70 | not runnable here (AWS service) |
+| KNN CAD | 58.00 | 773.7 µs/pt |
+| Earthgecko Skyline | 58.20 | 316.9 µs/pt |
+| **Sentinel NAB operating point** | **60.58** | **5.2 µs/pt** |
 
 ---
 

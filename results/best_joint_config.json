@@ -7,6 +7,7 @@
   "enabled": true,
   "tol": 0.05
  },
+ "lagged_residual": {"w": 16, "h": 64},
  "debounce": 3,
  "events.cooldown_frac": 0.5,
  "extreme_ratio": 2.0,

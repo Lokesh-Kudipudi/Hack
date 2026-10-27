@@ -24,8 +24,8 @@ FINAL = [(("null", "baseline"), "null"),
          (("sentinel", "likhit default"), "Sentinel — original K1–K8 defaults"),
          (("sentinel", "tuned for event-F1 (LOCO, RobustZ+LaggedResidual)"), "Sentinel — phase 2 (per-detector risk)"),
          (("sentinel", "NAB operating point (final)"), "**Sentinel — NAB operating point**"),
-         (("sentinel", "engine default (final)"), "**Sentinel — engine default (submitted)**")]
-FINAL_TUNE = "loco-recall2"
+         (("sentinel", "engine default (final)"), "**Sentinel — engine default**")]
+FINAL_TUNE = "joint_lag_spatial"
 
 
 def load_runs(runs_dir: Path = RUNS_DIR) -> List[Dict]:
@@ -81,8 +81,9 @@ def render(runs: Sequence[Dict]) -> str:
     if final:
         latest = {(r["detector"], r.get("tag")): r for r in full}
         lines += ["## Final results", "",
-                  "Headline runs (latest of each). Engine default = `Sentinel()` with no config (submitted). "
-                  "Held-out F1 = leave-one-category-out (tune on 6 categories, test on the 7th), see `results/tuning.md`.", "",
+                  "Headline runs (latest of each). Engine default = `Sentinel()` with no config. "
+                  "LOCO grid F1 = leave-one-category-out selection within the 16-setting lag/margin grid, "
+                  "not a held-out score for the fixed default; see `configuration_tuning.md`.", "",
                   "| Detector | Event-F1 | P | R | TP | FP | FN | NAB std | NAB low-FP | NAB low-FN | µs/pt |",
                   "|---|---|---|---|---|---|---|---|---|---|---|"]
         for key, lab in final:
@@ -92,14 +93,16 @@ def render(runs: Sequence[Dict]) -> str:
                          f"{o['fn']} | {_f(nab.get('standard', {}).get('score'), 1)} | "
                          f"{_f(nab.get('reward_low_FP_rate', {}).get('score'), 1)} | "
                          f"{_f(nab.get('reward_low_FN_rate', {}).get('score'), 1)} | {_f(rt.get('us_per_point'), 1)} |")
-        tunes = [r for r in runs_all if r.get("kind") == "tune" and r.get("tag") == FINAL_TUNE]
+        tunes = [r for r in runs_all if r.get("kind") == "configuration_tuning_sweep" and r.get("study") == FINAL_TUNE]
         if tunes:
             lo = tunes[-1]["loco"]
-            lines += ["", f"Engine default, held-out F1: **pooled {_f(lo['pooled_held_out']['f1'])}, "
+            lines += ["", f"Joint lag/margin grid, LOCO selection F1: **pooled {_f(lo['pooled_held_out']['f1'])}, "
                           f"mean {_f(lo['mean_held_out_f1'])}** over the 7 held-out categories."]
         lines.append("")
 
-    lines += ["## All full-corpus runs", ""]
+    lines += ["## All full-corpus runs", "",
+              "Archived runs retain their original tags. Older rows called `engine default (final)` used the "
+              "previous 0.673 defaults; the latest no-override run in the Final results table uses 0.691.", ""]
     table(full)
 
     if full:

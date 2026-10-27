@@ -34,8 +34,8 @@ RESULTS = Path(__file__).resolve().parent.parent / "results"
 # operating points: label -> settings file (None = engine defaults in sentinel/config.py)
 OPERATING_POINTS = {
     "Engine default (tuned for event-F1)": None,
-    "Event-F1 (results/best_config.json)": "best_config.json",
-    "Joint: F1 with NAB >= 52": "best_joint_config.json",
+    "Saved event-F1 default (results/best_config.json)": "best_config.json",
+    "Previous default (0.673)": "best_joint_config.json",
     "NAB score (results/best_nab_config.json)": "best_nab_config.json",
     "Original K1-K8 defaults": "ORIGINAL",
 }

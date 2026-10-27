@@ -43,7 +43,7 @@ HEADLINE = {
     ("sentinel", "likhit default"): "Sentinel — original K1-K8 defaults",
     ("sentinel", "NAB operating point (final)"): "Sentinel — NAB operating point",
     ("sentinel", "tuned for event-F1 (LOCO, RobustZ+LaggedResidual)"): "Sentinel — phase 2 (per-detector risk)",
-    ("sentinel", "engine default (final)"): "Sentinel — engine default (submitted)",
+    ("sentinel", "engine default (final)"): "Sentinel — engine default",
 }
 
 
@@ -133,6 +133,21 @@ def pareto(runs: List[Dict], path: Path) -> None:
         pts += list(zip(xs, ys))
         ax.scatter(xs, ys, s=7, color=col, alpha=0.5, label=None if lab in seen else lab)
         seen.add(lab)
+    joint = [r for r in runs if r.get("kind") == "configuration_tuning_sweep"
+             and r.get("study") == "joint_lag_spatial"]
+    if joint:
+        xs = [row["overall"]["f1"] or 0 for row in joint[-1]["rows"]]
+        ys = [row["nab_standard"] for row in joint[-1]["rows"]]
+        pts += list(zip(xs, ys))
+        ax.scatter(xs, ys, s=18, color=RED, alpha=0.5, label="joint lag/margin grid")
+    ablations = [r for r in runs if r.get("kind") == "ablation"]
+    if ablations:
+        candidate = next((row for row in ablations[-1]["rows"]
+                          if row["name"] == "default − per-detector SPOT risk"), None)
+        if candidate:
+            pts.append((candidate["f1"], candidate["nab"]))
+            ax.scatter([candidate["f1"]], [candidate["nab"]], s=70, color=GREEN, marker="D",
+                       label="unvalidated ablation candidate")
     front, best = [], -1e9
     for f, n in sorted(pts, key=lambda p: (-p[0], -p[1])):
         if n > best:
@@ -145,7 +160,7 @@ def pareto(runs: List[Dict], path: Path) -> None:
     marks = [(("windowed_gaussian", "baseline thr=1.0"), "windowedGaussian baseline", "#202124", "x"),
              (("sentinel", "likhit default"), "original K1-K8 defaults", ORANGE, "s"),
              (("sentinel", "NAB operating point (final)"), "NAB operating point", ORANGE, "D"),
-             (("sentinel", "engine default (final)"), "engine default (submitted)", RED, "*")]
+             (("sentinel", "engine default (final)"), "engine default", RED, "*")]
     latest = {}
     for r in runs:
         if "overall" in r and not r.get("categories") and r.get("sentinel_source") != "local-untracked":
@@ -227,7 +242,8 @@ def ablation_progression(runs: List[Dict], path: Path) -> None:
              "per-detector SPOT risk: RobustZ + LaggedResidual (ADR-009)": "per-detector\nrisk (2 det.)",
              "+ spatial-extreme flag": "+ spatial\nextreme", "+ debounce 3, extreme ratio 2.0": "+ debounce 3\nextreme 2.0",
              "+ cooldown 0.5 x probation": "+ proportional\ncooldown",
-             "+ LaggedResidual risk 1e-5 = engine default (ADR-010)": "+ LR risk 1e-5\n= default"}
+             "+ LaggedResidual risk 1e-5 (previous default)": "+ LR risk 1e-5\n= previous",
+             "+ lag 8/256 and spatial margin 5.75% (current default)": "+ lag 8/256\nmargin 5.75%"}
     labels = [short.get(r["name"], r["name"]) for r in rows]
     x = range(len(rows))
     fig, ax = plt.subplots(figsize=(12, 4.6))

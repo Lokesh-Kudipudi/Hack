@@ -10,15 +10,15 @@ re-measured on the final code (commands in [README.md](README.md#reproducibility
 - **Team:** April 28
 - **Members:** Lokesh K, Likhit G
 - **Track:** Challenge 2, Adaptive Time-Series Anomaly Detection
-- **One line:** a strictly causal, 2.8 µs/point streaming detector. Two statistical one-liners, each with its own
+- **One line:** a strictly causal, about 2.8 µs/point streaming detector. Two statistical one-liners, each with its own
   Extreme-Value-Theory threshold, plus a spatial-extreme flag and an event lifecycle. Every alarm explains itself.
-- **Headline (NAB, 58 files, 116 windows):** event-F1 **0.673** (P 0.747, R 0.612, 24 false alarms) vs 0.302 for the
-  windowedGaussian baseline. Held-out (leave-one-category-out) F1 **0.654**. NAB operating point **60.58**.
+- **Headline (NAB, 58 files, 116 windows):** event-F1 **0.691** (P 0.731, R 0.655, 28 false alarms) vs 0.302 for the
+  windowedGaussian baseline. The 16-setting lag/margin LOCO selection scores **0.664 pooled / 0.590 mean**. NAB operating point **60.58**.
 
 > Speaker notes: We built Sentinel for the problem as posed: points arrive one at a time, labels are hidden, and
-> both accuracy and runtime are scored. The headline is that a small, explainable statistical engine matches the
-> best published NAB detector on event-F1 (CAD OSE 0.676). It has fewer than half of CAD OSE's false alarms (24 vs 64)
-> and runs about 85× faster on the same machine.
+> both accuracy and runtime are scored. The headline is that a small, explainable statistical engine exceeds the
+> published CAD OSE event-F1 of 0.676 on this corpus. It has fewer than half of CAD OSE's false alarms (28 vs 64)
+> and runs about about 86× faster on the same machine.
 
 ---
 
@@ -107,7 +107,7 @@ flowchart LR
 
 > Speaker notes: The pipeline is the code path of `Sentinel.update()`; explain.md walks through it stage by stage.
 > Probation is the only place with batch work. The rest is constant-time per point, and the whole update costs
-> 2.8 µs including validation.
+> about 2.8 µs including validation.
 
 ---
 
@@ -132,8 +132,8 @@ flowchart LR
   - the tail fit updates online, but never with alarms
 - **Per-detector risk** (ADR-009): q = 1e-6 globally, 1e-5 for LaggedResidual. Clean detectors need a looser q to fire
   at all. With RobustZ + LaggedResidual it lifts event-F1 from 0.438 to 0.563.
-- **Spatial-extreme flag** (ADR-010): a value beyond the running [min, max] by more than 5% of the range is an
-  immediate event. It is the single largest recall gain: removing it drops F1 from 0.673 to 0.428.
+- **Spatial-extreme flag** (ADR-010): a value beyond the running [min, max] by more than 5.75% of the range is an
+  immediate event. It is the single largest recall gain: the earlier 5% setting fell from 0.673 to 0.428 when the flag was removed.
 - **Event lifecycle:**
   - debounce 3 consecutive points, or bypass at 2× threshold
   - merge gaps < 64 points
@@ -155,7 +155,8 @@ flowchart LR
 | Global LOCO grid on the 6-detector engine | 0.481 | 648 configs: q = 1e-6, thresholds × 1.5, cooldown 600, merge gap 64 (held-out pooled 0.412) |
 | Per-detector SPOT risk + detector subsets | 0.563 | 432 + 720 configs: RobustZ + LaggedResidual, q_LR = 1e-4 (held-out 0.510) |
 | Recall mechanisms | 0.640 | 480 configs: spatial flag, debounce 3, bypass 2×, cooldown 0.5 × probation (held-out 0.623) |
-| Re-opened risk with the recall mechanisms on | **0.673** | 432 configs: q_LR = 1e-5 (held-out pooled **0.654**, mean 0.593) |
+| Re-opened risk with the recall mechanisms on | 0.673 | 432 configs: previous default, q_LR = 1e-5 (LOCO pooled 0.654, mean 0.593) |
+| Joint lag/margin sweep | **0.691** | Current default: w=8, h=256, margin 5.75%; 16-setting LOCO pooled 0.664 / mean 0.590 |
 
 - **Search strategy:**
   - global configs only, as full grids (648 / 432 / 720 / 576 / 480 / 432, about 3,300 configs in total)
@@ -165,7 +166,7 @@ flowchart LR
   - a joint objective (max F1 subject to NAB ≥ floor; the floor uses the full corpus) for a single compromise config
 - **Ablation build-up** (`results/ablation.md`):
   - static robust z 0.040 (4,519 FPs) → + SPOT 0.376 → + events 0.392 → 6 detectors MAX 0.419 / vote 0.456
-  - → per-detector risk 0.563 → + spatial 0.587 → + debounce 3 / bypass 2× 0.610 → + cooldown 0.640 → 0.673
+  - → per-detector risk 0.563 → + spatial 0.587 → + debounce 3 / bypass 2× 0.610 → + cooldown 0.640 → previous default 0.673 → current default 0.691
 
 ![Ablation progression](results/figures/ablation_progression.png)
 
@@ -188,30 +189,30 @@ flowchart LR
   - **FN** = a window with no start
   - micro P / R / F1 over the corpus; also per category and per file
   - windows are mapped to indices with first t ≥ start and last t ≤ end, so non-monotonic timestamps work
-- **Detection delay:** first start − window start, in points, minutes and fraction of the window. Median 118 points,
+- **Detection delay:** first start − window start, in points, minutes and fraction of the window. Median 100 points,
   0.50 of the window = at the labelled point.
 - **NAB score:** the official `sweeper.py` with corpus-wide threshold optimisation. Our wrapper reproduces the
   published null 0.0, windowedGaussian 39.65 and Numenta 70.10 exactly.
 - **Runtime:** mean µs per `update()` over all 365,558 points, single process, data pre-loaded (no I/O). NAB's own
   detectors are timed through their `handleRecord()` on the same streams and machine.
 - **Validation:**
-  - leave-one-category-out: held-out pooled F1 **0.654**, mean 0.593 (in-sample 0.673)
+  - lag/margin grid leave-one-category-out selection: pooled F1 **0.664**, mean 0.590; fixed default full-corpus F1 0.691
   - ablation: add and remove each component
-  - pytest: 113 tests, including prefix-invariance (no look-ahead), determinism, fuzzing and checkpoint round-trips
+  - pytest: 114 tests, including prefix-invariance (no look-ahead), determinism, fuzzing and checkpoint round-trips
 
-| Category | Baseline F1 | Sentinel F1 (in-sample) | Sentinel F1 (held-out) |
+| Category | Baseline F1 | Current default F1 (public corpus) | Previous grid LOCO F1 |
 |---|---|---|---|
 | artificialWithAnomaly | 0.125 | 0.250 | 0.250 |
-| realAWSCloudwatch | 0.241 | 0.750 | 0.737 |
-| realAdExchange | 0.581 | 0.741 | 0.741 |
-| realKnownCause | 0.125 | 0.541 | 0.500 |
-| realTraffic | 0.583 | 0.640 | 0.640 |
+| realAWSCloudwatch | 0.241 | 0.759 | 0.737 |
+| realAdExchange | 0.581 | 0.667 | 0.741 |
+| realKnownCause | 0.125 | 0.667 | 0.500 |
+| realTraffic | 0.583 | 0.667 | 0.640 |
 | realTweets | 0.313 | 0.724 | 0.689 |
 | artificialNoAnomaly | 0 FP | 0 FP | 0 FP |
 
-> Speaker notes: The held-out number is the one to trust. Each category's config was chosen without seeing that
-> category. The drop from 0.673 to 0.654 is small: 4 of the 7 folds
-> selected the shipped config even without their own category.
+> Speaker notes: The last column shows the earlier 432-setting grid, not the current default. The new 16-setting
+> grid scores 0.664 pooled under leave-one-category-out selection. Its chosen settings may differ by fold, so
+> this does not directly estimate hidden-test F1 for the fixed 0.691 default.
 
 ---
 
@@ -221,7 +222,7 @@ flowchart LR
 |---|---|---|---|---|---|---|---|
 | windowedGaussian (baseline) | 0.302 | 0.211 | 0.534 | 232 | 54 | 40.1 | 48.6 |
 | Sentinel, original defaults | 0.311 | 0.197 | 0.733 | 346 | 31 | 53.0 | 6.4 |
-| **Sentinel, engine default** | **0.673** | **0.747** | 0.612 | **24** | 45 | 54.9 | **2.8** |
+| **Sentinel, engine default** | **0.691** | **0.731** | **0.655** | **28** | **40** | **58.8** | **2.8** |
 | Sentinel, NAB operating point | 0.489 | 0.366 | 0.733 | 147 | 31 | **60.6** | 5.1 |
 
 **Against published NAB detectors**: their event metrics come from their stored scores at NAB's threshold.
@@ -229,17 +230,17 @@ flowchart LR
 
 | Model | Event-F1 | FP | NAB std | µs/pt |
 |---|---|---|---|---|
-| CAD OSE | 0.676 | 64 | 69.9 | 228.9 |
-| **Sentinel (default)** | **0.673** | **24** | 54.9 | **2.7** |
+| CAD OSE | 0.676 | 64 | 69.9 | 231.1 |
+| **Sentinel (default)** | **0.691** | **28** | **58.8** | **2.7** |
 | Numenta HTM | 0.527 | 152 | 70.1 | not runnable (Py2) |
 | ARTime | 0.483 | 217 | 74.9 | not runnable (Julia) |
-| earthgecko Skyline | 0.372 | 265 | 58.2 | 231.0 |
-| Windowed Gaussian (NAB) | 0.283 | 326 | 39.6 | 62.4 |
+| earthgecko Skyline | 0.372 | 265 | 58.2 | 316.9 |
+| Windowed Gaussian (NAB) | 0.283 | 326 | 39.6 | 57.8 |
 
 - **Caveats:**
   - Published detectors were tuned for NAB, and each threshold crossing counts as one event, so their event-F1 is a
     lower bound.
-  - Sentinel was tuned on this corpus, so quote the held-out 0.654 next to 0.673.
+  - Sentinel was tuned on this corpus. Quote the 16-setting LOCO selection result 0.664 alongside the public-corpus 0.691, with its scope.
 
 ![Model comparison](results/figures/model_comparison.png)
 
@@ -247,7 +248,7 @@ flowchart LR
 
 ![Per-category F1](results/figures/per_category_f1.png)
 
-> Speaker notes: On the primary metric we are level with the best published detector and well ahead of the rest,
+> Speaker notes: On the public corpus's primary metric we score above the best published detector and ahead of the rest,
 > with the fewest false alarms of any detector with real recall. On NAB's own score the NAB operating point (60.6)
 > ranks above earthgecko Skyline, KNN CAD, Relative Entropy and Random Cut Forest. HTM, ARTime and CAD OSE remain
 > higher there.
@@ -256,51 +257,49 @@ flowchart LR
 
 ## Slide 9 — Demo and sample predictions
 
-- **Command:** `python -m eval.predict --input data --windows auto` reproduces event-F1 0.673 from the starter-pack
-  CSVs. It writes per-point CSVs, `events.csv` (95 events: 65 spike, 30 sequence) and `summary.json`.
+- **Command:** `python -m eval.predict --input data/NAB/data --windows auto` reproduces event-F1 0.691.
+  It writes per-point CSVs, `events.csv` (104 events: 43 spike, 61 sequence) and `summary.json`.
 - **Real events** from `events.csv`:
-  - **realKnownCause/nyc_taxi.csv, 2014-11-02 01:00 (TP, NYC Marathon window):** "Value 39197.00 is a new high
-    (Sun 01:00): above the range seen so far [1431.00, 30373.00] by more than the tolerated margin (+8824.00; 3.7σ
-    above expected 18768.36)."
-  - **realKnownCause/machine_temperature_system_failure.csv, 2013-12-16 16:30 (TP):** "Value 21.74 is 7.4σ below
-    expected 54.48 (Mon 16:30) (RobustZ detected isolated pulse or step jump)."
-  - **artificialWithAnomaly/art_daily_jumpsup.csv, 2014-04-11 09:00 (TP):** "Value 127.88 is 27.3σ above lagged
-    baseline 19.98 (Fri 09:00) (sustained sequence divergence). Corroborated by: RobustZ, SpatialExtreme."
+  - **realKnownCause/nyc_taxi.csv, 2014-11-01 13:30 (TP, NYC Marathon window):** "Value 25115.00 is 4.1σ above
+    lagged baseline 2602.00 (Sat 13:30) (sustained sequence divergence)."
+  - **realKnownCause/machine_temperature_system_failure.csv, 2013-12-16 16:30 (TP):** "Value 21.74 is 17.7σ below
+    lagged baseline 100.18 (Mon 16:30) (sustained sequence divergence)."
+  - **artificialWithAnomaly/art_daily_jumpsup.csv, 2014-04-11 09:00 (TP):** "Value 127.88 is 25.5σ above
+    expected 27.19 (Fri 09:00) (RobustZ detected isolated pulse or step jump). Corroborated by: SpatialExtreme."
 - **Evidence JSON** (nyc_taxi):
-  `{"type": "spike", "expected": 18768.361, "observed": 39197.0, "deviation_sigma": 3.71, "fired": ["SpatialExtreme"], "top_detector": "SpatialExtreme", "threshold_ratio": 6.098, "confidence": 0.85, "context": {"range_low": 1431.0, "range_high": 30373.0, ...}}`
+  `{"type": "sequence", "expected": 2602.0, "observed": 25115.0, "deviation_sigma": 4.09, "fired": ["LaggedResidual"], "top_detector": "LaggedResidual", "threshold_ratio": 1.05, "confidence": 0.51}`
 - **Dashboard** (`streamlit run app/dashboard.py`):
   - choose realKnownCause/nyc_taxi.csv and the "NAB score" operating point, then press Replay
   - the stream plays with its expected band and ground-truth windows
   - each event pops an evidence card; per-detector score lanes and a running event-F1 update live
   - screenshot below: NAB point on nyc_taxi gives 9 events, 2 of the 5 windows found (marathon, blizzard),
-    7 false alarms, file event-F1 0.29. The engine default on the same file gives 1 event, 1 TP, 0 FP
+    7 false alarms, file event-F1 0.29. The current engine default gives 4 events, 4 TP, 0 FP (file F1 0.89)
 
 ![Example: nyc_taxi with windows and detections](results/figures/example_nyc_taxi.png)
 
 ![Dashboard](results/figures/dashboard.png)
 
-> Speaker notes: The nyc_taxi example is traced stage by stage in explain.md §4. Neither detector crossed its
-> threshold there: RobustZ was at 3.7σ against a 6σ floor. The spatial flag caught the new maximum and confirmed it
-> at once. On the same file the NAB operating point also finds the January blizzard but adds 7 night-time false
-> alarms. That is the F1 vs NAB trade-off, live.
+> Speaker notes: The current default's longer lag finds four of the five NYC taxi windows. The older configuration's
+> spatial-only marathon detection is traced in explain.md §4 as a historical example. The NAB operating point shown
+> in the screenshot finds two windows and adds seven night-time false alarms.
 
 ---
 
 ## Slide 10 — Failure modes, limitations, future work
 
-- **Known failure modes** (`results/miss_analysis.md`, 45 missed windows):
-  - **Seen only by a detector outside the default** (30 misses; Seasonal alarms in 25 of them): the nyc_taxi holidays and blizzard, a flattened daily
-    cycle (art_daily_flatmiddle), a missing daily jump (art_daily_nojump). Adding Seasonal to the default catches them but costs 115 FPs
-    (F1 0.519).
-  - **Windows with no signal** (12): no detector alarms anywhere inside them.
-  - **Suppressed** (3): flagged, but no event started (cooldown of an earlier event, or debounce).
+- **Known failure modes** (`results/miss_analysis.md`, 40 missed windows):
+  - **Seen only by a detector outside the default** (21 misses; Seasonal alarms in 17 of them): the nyc_taxi holidays and blizzard, a flattened daily
+    cycle (art_daily_flatmiddle), a missing daily jump (art_daily_nojump). Adding Seasonal to the default catches them but raises total false positives to 108
+    (F1 0.541).
+  - **Windows with no signal** (11): no detector alarms anywhere inside them.
+  - **Suppressed** (8): flagged, but no event started (cooldown of an earlier event, or debounce).
   - **Small categories:** artificialWithAnomaly has only 6 windows. 5 are missed, and all 5 are
     seen only by Seasonal, so it scores 0.250.
   - **Short streams:** under 7 points means probation 0, never flagged. The 300-point fallback probation for live
     streams delays the first alarm.
 - **Limitations:**
   - tuning and testing on one public corpus (LOCO reduces, but does not remove, optimism)
-  - the F1-optimal and NAB-optimal configs differ (0.673 / 54.9 vs 0.489 / 60.6)
+  - the F1-optimal and NAB-optimal configs differ (0.691 / 58.8 vs 0.489 / 60.6)
   - published detectors' event-F1 is a lower bound (no event post-processing)
   - rebaseline is count-based, not CUSUM-confirmed
   - `seasonal.auto_period` is not wired into scoring
@@ -312,7 +311,7 @@ flowchart LR
   - the organiser's submission format once the hidden test windows are released (`eval.predict` already writes
     per-point CSVs and an events table)
 - **Conclusion:** two causal one-liners, per-detector EVT thresholds and a careful event lifecycle reach the best
-  published event-F1 on NAB. The engine runs at 2.8 µs per point, needs no training, and explains every alarm.
+  published event-F1 on NAB. The engine runs at about 2.8 µs per point, needs no training, and explains every alarm.
 
 > Speaker notes: The remaining misses are honest limits of a value-based detector. When the anomaly is a change of
 > shape inside the normal range, only a pattern model helps, and our Seasonal profile is too noisy as configured.

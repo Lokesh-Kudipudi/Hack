@@ -109,7 +109,7 @@ def test_ablation_configs_use_handoff_flags():
     from eval.ablation import configs
     allowed = {"detectors", "use_spot", "fusion", "vote_k", "threshold", "debounce", "events.cooldown",
                "events.merge_gap", "spot.q_per_detector", "detector_thresholds", "spatial",
-               "events.cooldown_frac", "extreme_ratio", "seasonal", "var_ratio"}
+               "events.cooldown_frac", "extreme_ratio", "seasonal", "var_ratio", "lagged_residual"}
     for _, _, _, cfg in configs():
         assert set(cfg) <= allowed
 
@@ -121,3 +121,12 @@ def test_sentinel_config_deep_merge():
     assert cfg["spot"]["q"] == 1e-6 and cfg["spot"]["init_level"] == DEFAULT_CONFIG["spot"]["init_level"]
     assert cfg["events"]["cooldown"] == 7 and cfg["events"]["merge_gap"] == DEFAULT_CONFIG["events"]["merge_gap"]
     assert cfg["detector_thresholds"]["RobustZ"] == 2 * DEFAULT_CONFIG["detector_thresholds"]["RobustZ"]
+
+
+def test_saved_event_f1_config_matches_engine_default():
+    from sentinel.config import DEFAULT_CONFIG
+    from sentinel.pipeline import Sentinel
+
+    saved = json.loads((REPO_ROOT / "results" / "best_config.json").read_text())
+    assert run.sentinel_config(saved) == DEFAULT_CONFIG
+    assert Sentinel(n_total=1000).config == Sentinel(n_total=1000, config=saved).config

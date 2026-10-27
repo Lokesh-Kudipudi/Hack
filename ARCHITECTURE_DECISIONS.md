@@ -29,7 +29,7 @@ This document captures the architectural rationale, technical trade-offs, and em
   Implement a decomposed ensemble of causal, specialized detectors:
   - **D1 (`RobustZ`):** Median Absolute Deviation (MAD) scaled Z-score for isolated pulse spikes.
   - **D2 (`LastW`):** Short-horizon ($w=3$) squared deviation for abrupt step jumps (ICLR 2026 baseline).
-  - **D3 (`LaggedResidual`):** Long-horizon ($w=16, h=64$) residual against past historical window for sequence anomalies.
+  - **D3 (`LaggedResidual`):** Long-horizon residual against a past historical window for sequence anomalies. The current default uses $w=8, h=256$ (ADR-011).
   - **D4 (`VarRatio`):** Rolling variance ratio ($w=24$) against baseline for volatility regime shifts.
   - **D5 (`Seasonal`):** 24-hour diurnal profile buckets with exponential smoothing for contextual pattern breaks.
   - **D6 (`CUSUM`):** Two-sided Cumulative Sum statistic on standardized residuals for persistent mean drift.
@@ -188,4 +188,15 @@ This document captures the architectural rationale, technical trade-offs, and em
     0.510 → **0.654**; 2.6 µs/pt. Removing the spatial flag costs the most (→ 0.428).
   - NAB operating point (`results/best_nab_config.json`): NAB **60.00** (adds Seasonal + agreement bypass), F1 0.541.
   - Remaining misses: 30 pattern breaks only Seasonal detects (adding it costs ~90 FPs), 12 with no detector signal.
+
+---
+
+## ADR-011: Adopt the joint lag and spatial-margin setting
+
+- **Status:** Accepted & Implemented
+- **Date:** 2026-10-27
+- **Context:** With the previous default ($w=16$, $h=64$, 5% spatial margin), the full public NAB corpus scored event-F1 0.673 (P 0.747, R 0.612; 24 false-positive events).
+- **Decision:** Use LaggedResidual $w=8$, $h=256$ and a 5.75% spatial margin as the no-override engine default and in `results/best_config.json`. The independent NAB operating point retains its explicit older lag and margin settings.
+- **Evidence:** A 16-setting joint sweep found this to be the highest full-corpus event-F1 candidate. A fresh no-override evaluation scored **0.691** (P 0.731, R 0.655; 28 false-positive events), NAB standard **58.80**, and 2.86 µs/point. See `configuration_tuning.md` and the saved run in `results/runs/`.
+- **Validation limit:** The 16-setting leave-one-category-out *selection procedure* scored 0.664 pooled / 0.590 mean. It is not a held-out estimate for this one fixed configuration. Hidden-test performance is unknown.
 

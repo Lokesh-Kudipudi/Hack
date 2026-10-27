@@ -10,10 +10,12 @@ def probation_length(n: int) -> int:
     return min(int(PROBATION_FRACTION * n), PROBATION_MAX)
 
 
-# Default = the event-F1 operating point chosen by leave-one-category-out tuning (results/best_config.json,
-# results/tuning.md): RobustZ + LaggedResidual, MAX fusion, per-detector SPOT risk (ADR-009), plus the phase-3
-# recall mechanisms (ADR-010): spatial-extreme flag, debounce 3, cooldown = 0.5 x probation, extreme ratio 2.0.
-# Full NAB corpus: event-F1 0.673, NAB 54.9, held-out pooled F1 0.654. NAB operating point: results/best_nab_config.json.
+# Event-F1 default: RobustZ + LaggedResidual, MAX fusion, per-detector SPOT risk,
+# spatial-extreme flag, debounce 3, cooldown = 0.5 x probation, extreme ratio 2.0.
+# The lag and spatial margin were selected from the public-corpus joint sweep (configuration_tuning.md).
+# Full NAB corpus: event-F1 0.691, P 0.731, R 0.655, NAB 58.80.
+# The joint-grid LOCO selection scored 0.664 pooled / 0.590 mean; that is not a
+# held-out score for this one fixed configuration. NAB operating point: results/best_nab_config.json.
 DEFAULT_CONFIG: Dict[str, Any] = {
     "probation_fraction": PROBATION_FRACTION,
     "probation_max": PROBATION_MAX,
@@ -31,7 +33,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "StreamingIsolationForest": 6.0,
     },
     "last_w": {"w": 3},
-    "lagged_residual": {"w": 16, "h": 64},
+    "lagged_residual": {"w": 8, "h": 256},
     "var_ratio": {"w": 24, "two_sided": False},  # two_sided: also flag variance collapse / flatlines (K19)
     "seasonal": {"by": "hour", "alpha": 0.05, "min_count": 3, "weekly": False, "auto_period": False},
     "cusum": {"k": 0.5},
@@ -48,7 +50,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "events": {"merge_gap": 64, "cooldown": 600, "rebaseline_after": 80, "cooldown_frac": 0.5, "agree_k": 0},
     "extreme_ratio": 2.0,  # raw/threshold ratio that confirms a single detector immediately
     # new running min/max beyond tol x range -> alarm, once >= min_seed values have been seen
-    "spatial": {"enabled": True, "tol": 0.05, "min_seed": 100},
+    "spatial": {"enabled": True, "tol": 0.0575, "min_seed": 100},
     "smoothing": {"window": 1, "detectors": None},  # moving average of raw scores before SPOT (1 = off)
 }
 

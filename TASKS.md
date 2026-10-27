@@ -14,6 +14,7 @@ Status values: `Not started` · `In progress` · `Done` · `Blocked (<reason>)`
 - 2026-10-26 — Lokesh: per-detector SPOT risk + detector-subset LOCO search → **event-F1 0.563** (P 0.675, R 0.483, FP 27; LOCO pooled 0.510 / mean 0.492), 2.4 µs/pt. `eval.predict` added for hidden test windows (branch `lokesh/predict`).
 - 2026-10-27 — Lokesh: **final audit + docs** (branch `lokesh/final-docs`). All headline numbers re-run on the final code: event-F1 0.673 (P 0.747, R 0.612, FP 24), LOCO pooled 0.654 / mean 0.593, NAB 54.90 (default) / 60.58 (NAB point), original defaults 0.311 / 53.00, baseline 0.302, 2.8 µs/pt. 5 bugs fixed with regression tests (dotted config keys ignored by `Sentinel`/CLI, spatial-only evidence misattributed, tz-mixed timestamps crash, CLI `--format csv` ignored, `ORIGINAL_DEFAULT_CONFIG` inherited phase-3 keys); headline metrics unchanged. New `explain.md`, `presentation.md`; README rewritten. 113 tests pass.
 - 2026-10-27 — Lokesh: documented all recent configuration sweeps in `configuration_tuning.md` (branch `lokesh/configuration-tuning`). Current default remains event-F1 0.673. Best measured configurable alternative: LaggedResidual `w=8, h=256` plus spatial margin 5.75% → event-F1 0.691 (P 0.731, R 0.655, FP 28), NAB 58.80; 16-setting LOCO search pooled 0.664 / mean 0.590. Full grid records saved; 113 tests pass.
+- 2026-10-27 — Lokesh: adopted the joint lag/margin candidate as the current default (`w=8, h=256`, spatial margin 5.75%). Fresh no-override full-corpus event-F1 0.691 (P 0.731, R 0.655, TP 76, FP 28, FN 40), NAB 58.80; refreshed reports and figures. The earlier 0.673 run remains historical. The joint-grid LOCO selection scored 0.664 pooled / 0.590 mean; it is not a held-out score for the fixed default.
 
 ---
 
@@ -35,6 +36,7 @@ Owns: `eval/**`, `app/**`, `tests/test_scorer.py`, `tests/test_data.py`, `requir
 | L9 | `README.md` (problem, approach, how to run, results, ablation) + slide figures in `results/figures/`. | L6 | README complete | Done |
 | L10 | *Stretch*: Chronos-Bolt-small vs `Last-3` on ~10 NAB files (F1 + runtime) for the "foundation model = one-liner" slide. Isolated in `eval/stretch_tsfm.py`, heavy deps not in main requirements. | L4 | Comparison table | Done |
 | L24 | Document all recent configuration sweeps, the current default, and the best measured alternative in `configuration_tuning.md`. | L7 | Results and validation limits recorded | Done |
+| L25 | Adopt the best joint lag/margin setting as engine default and refresh every headline output. | L24 | No-override score verified; docs and figures updated | Done |
 
 ---
 

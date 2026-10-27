@@ -9,9 +9,10 @@ residual, after the ICLR 2026 "one-liner" baselines). Each has its own Extreme-V
 per-detector risk level), plus a spatial-extreme flag and an event manager that turns point alarms into
 well-placed events.
 
-On the full NAB corpus (58 files, 116 anomaly windows) the engine default reaches **event-F1 0.673** (precision
-0.747, recall 0.612, 24 false-positive events). The windowedGaussian baseline gets 0.302. Leave-one-category-out
-held-out F1 is **0.654 pooled / 0.593 mean**. The engine runs at **2.8 µs per point** on one core. A second global
+On the full NAB corpus (58 files, 116 anomaly windows) the engine default reaches **event-F1 0.691** (precision
+0.731, recall 0.655, 28 false-positive events). The windowedGaussian baseline gets 0.302. A 16-setting
+leave-one-category-out selection scored **0.664 pooled / 0.590 mean**; this is a grid-selection result, not a
+held-out score for the fixed default. The engine runs at about **2.9 µs per point** on one core. A second global
 operating point reaches a **NAB standard score of 60.58**, above earthgecko Skyline (58.2) and Random Cut Forest
 (51.7).
 
@@ -19,7 +20,7 @@ operating point reaches a **NAB standard score of 60.58**, above earthgecko Skyl
 - Slides: **[presentation.md](presentation.md)**
 - Design decisions: [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md)
 - Background (anomaly types, EVT, NAB scoring): [DOMAIN_KNOWLEDGE.md](DOMAIN_KNOWLEDGE.md)
-- Configuration tuning, current default, and best measured alternative: [configuration_tuning.md](configuration_tuning.md)
+- Configuration tuning, current default, and previous setting: [configuration_tuning.md](configuration_tuning.md)
 - Result tables: [results/leaderboard.md](results/leaderboard.md), [results/ablation.md](results/ablation.md),
   [results/tuning.md](results/tuning.md), [results/model_comparison.md](results/model_comparison.md),
   [results/runtime_comparison.md](results/runtime_comparison.md), [results/miss_analysis.md](results/miss_analysis.md)
@@ -51,7 +52,7 @@ eval/                evaluation and experiments
   nab_runtime.py nab_compare.py   NAB's own detectors: measured runtime, event-F1 from their stored scores
   leaderboard.py figures.py       results/leaderboard.md, results/figures/*.png
 app/dashboard.py     Streamlit replay demo
-tests/               pytest suite (113 tests)
+tests/               pytest suite (114 tests)
 results/             runs/*.json (one per experiment), *.md tables, best_*config.json, figures/
 logs/  TASKS.md  AGENTS.md  ARCHITECTURE_DECISIONS.md
 data/                local only, never committed (NAB clone and/or starter pack)
@@ -77,7 +78,7 @@ source .venv/bin/activate
 pip install -r requirements.txt  # with uv: uv pip install -r requirements.txt
 pip install -e .                 # optional: installs the `sentinel` package and command
 git clone --depth 1 https://github.com/numenta/NAB data/NAB    # corpus, labels and NAB scorer (once per machine)
-pytest -q                        # 113 passed
+python -m pytest -q              # 114 passed
 ```
 
 **Data location.** The loader finds every `*.csv` with `timestamp,value` columns under a root folder. A file's
@@ -133,7 +134,7 @@ python -m eval.predict --input data/starter --out outputs/predictions [--windows
 
 This writes `<category>/<file>.csv` per point (score, label, is_event_start, evidence type, text and JSON),
 `events.csv` with one row per event, and `summary.json` (runtime, plus metrics when `--windows` is given). The
-default config is `results/best_config.json`, which matches the engine default.
+default config is `results/best_config.json`, which matches the engine default (`w=8`, `h=256`, spatial margin 5.75%).
 
 **Dashboard**
 
@@ -157,12 +158,13 @@ truth windows, events with evidence cards, per-detector scores and a running eve
 5. **Per-detector risk** (ADR-009). The clean residual detectors need a looser q. This enabled RobustZ +
    LaggedResidual and gave 0.563.
 6. **Recall mechanisms** (ADR-010), from the miss analysis: spatial-extreme flag, cooldown proportional to probation,
-   debounce 3 with a 2× extreme bypass. Together they gave 0.640 → 0.673.
+   debounce 3 with a 2× extreme bypass. Together they gave 0.640 → 0.673. A later lag/margin sweep raised the default to 0.691.
 
 Rules that held throughout:
 - **Global configs only.** There is no per-file tuning on labels.
-- **Leave-one-category-out (LOCO):** tune on 6 categories, test on the 7th, rotate. The shipped config is the best on
-  all 7 categories, with ties broken by the smaller median detection delay.
+- **Leave-one-category-out (LOCO):** tune on 6 categories, test on the 7th, rotate. The current lag/margin setting
+  had the best full-corpus event-F1 among 16 joint candidates. That grid's LOCO selection scored 0.664 pooled /
+  0.590 mean; it is not a held-out score for the fixed default.
 - **Two operating points.** Event-F1 and NAB favour different settings (`results/figures/pareto_f1_nab.png`).
 - **Miss analysis** classifies every missed window as suppressed, seen only by another detector, or weak.
 
@@ -176,7 +178,7 @@ Run in this order from the repo root with the venv active. Every `eval.run` call
 leaderboard and figures look up.
 
 ```bash
-pytest -q                                                                                   # 113 passed, ~5 s
+python -m pytest -q                                                                         # 114 passed, ~5 s
 python -m eval.nab_score --nab-results null windowedGaussian numenta                       # 0.00 / 39.65 / 70.10 (= published)
 python -m eval.run --detector null --tag baseline
 python -m eval.run --detector random --tag baseline
@@ -185,13 +187,14 @@ python -c "import json; from sentinel.config import ORIGINAL_DEFAULT_CONFIG as c
 python -m eval.run --detector sentinel --config /tmp/orig.json --tag "likhit default"
 python -m eval.run --detector sentinel --tag "engine default (final)"
 python -m eval.run --detector sentinel --config results/best_nab_config.json --tag "NAB operating point (final)"
-python -m eval.tune --grid recall2 --tag loco-recall2 --jobs 8    # ~5 min on 9 cores; writes tuning.md, best_config.json
+# Historical 432-setting search; results/tuning.md records the former default.
+# The current best_config.json is from the later lag/margin sweep in configuration_tuning.md.
 python -m eval.ablation --tag final                               # results/ablation.md, figures/ablation.png (~3 min)
 python -m eval.miss_analysis                                      # results/miss_analysis.md, figures/miss_analysis.png
 python -m eval.benchmark                                          # µs/point, all detectors
 python -m eval.nab_runtime                                        # NAB detectors timed (needs statsmodels; ~2 min)
 python -m eval.nab_compare                                        # results/model_comparison.md, figures/model_comparison.png
-python -m eval.predict --input data --windows auto -q             # must print event-F1=0.673
+python -m eval.predict --input data --windows auto -q             # must print event-F1=0.691
 python -m eval.leaderboard                                        # results/leaderboard.md
 python -m eval.figures                                            # results/figures/*.png
 ```
@@ -205,11 +208,11 @@ row ("tuned for event-F1 (LOCO, RobustZ+LaggedResidual)") is a stored run. It is
 
 | Quantity | Value | Tolerance |
 |---|---|---|
-| Engine default event-F1 / P / R / TP / FP / FN | 0.673 / 0.747 / 0.612 / 71 / 24 / 45 | exact (deterministic) |
-| NAB standard (engine default / NAB point / original defaults) | 54.90 / 60.58 / 53.00 | ±0.01 |
+| Engine default event-F1 / P / R / TP / FP / FN | 0.691 / 0.731 / 0.655 / 76 / 28 / 40 | exact (deterministic) |
+| NAB standard (engine default / NAB point / original defaults) | 58.80 / 60.58 / 53.00 | ±0.01 |
 | windowedGaussian (thr 1.0) event-F1 / NAB (our per-point scorer) | 0.302 / 40.13 | exact |
-| LOCO pooled / mean held-out F1 (`recall2`) | 0.654 / 0.593 | exact |
-| Sentinel µs/point (`eval.benchmark`) | 2.7–2.9 | hardware-dependent |
+| Joint lag/margin grid LOCO pooled / mean F1 | 0.664 / 0.590 | grid-selection result |
+| Sentinel µs/point (`eval.benchmark`) | about 2.8 | hardware-dependent |
 
 **Determinism.** The engine has no randomness, except the IsolationForest stretch detector, which uses a fixed seed
 42. The random baseline is seeded per file. Detection results are bit-identical across runs and machines with the
@@ -225,19 +228,18 @@ baselines, and from `eval.run` otherwise.
 
 | Detector | Event-F1 | P | R | TP | FP | FN | NAB std | µs/pt |
 |---|---|---|---|---|---|---|---|---|
-| windowedGaussian (NAB baseline, thr 1.0) | 0.302 | 0.211 | 0.534 | 62 | 232 | 54 | 40.1 | 48.6 |
+| windowedGaussian (NAB baseline, thr 1.0) | 0.302 | 0.211 | 0.534 | 62 | 232 | 54 | 40.1 | 49.3 |
 | Sentinel, original K1–K8 defaults | 0.311 | 0.197 | 0.733 | 85 | 346 | 31 | 53.0 | 6.4 |
 | Sentinel, phase 2 (per-detector risk, ADR-009) | 0.563 | 0.675 | 0.483 | 56 | 27 | 60 | 42.8 | 2.4 |
-| **Sentinel, engine default (submitted)** | **0.673** | **0.747** | 0.612 | 71 | **24** | 45 | 54.9 | **2.8** |
+| **Sentinel, engine default** | **0.691** | **0.731** | **0.655** | **76** | **28** | **40** | **58.8** | **2.8** |
 | Sentinel, NAB operating point | 0.489 | 0.366 | **0.733** | 85 | 147 | **31** | **60.6** | 5.1 |
 
 - **Engine default:** RobustZ + LaggedResidual, MAX fusion, SPOT q = 1e-6 (1e-5 for LaggedResidual), spatial-extreme
-  flag (5% of the range), debounce 3, extreme bypass 2.0×, cooldown 0.5 × probation.
+  flag (5.75% of the range), LaggedResidual `w=8, h=256`, debounce 3, extreme bypass 2.0×, cooldown 0.5 × probation.
 - **NAB operating point** (`results/best_nab_config.json`): adds Seasonal (threshold 15) and two-sided VarRatio
   (threshold 3), a 2-detector agreement bypass, and LaggedResidual risk 1e-4.
-- **Held-out (LOCO) F1 per category for the default:** artificialWithAnomaly 0.250, realAWSCloudwatch 0.737,
-  realAdExchange 0.741, realKnownCause 0.500, realTraffic 0.640, realTweets 0.689. artificialNoAnomaly has no
-  windows and 0 FPs.
+- **Joint lag/margin grid LOCO selection:** pooled F1 0.664 / mean 0.590. This validates the selection
+  procedure, not the one fixed default. artificialNoAnomaly has no windows and 0 FPs.
 
 **Comparison with published NAB detectors** ([results/model_comparison.md](results/model_comparison.md)). Event
 metrics for published detectors are computed by our scorer from NAB's stored per-point scores at NAB's own
@@ -246,21 +248,22 @@ standard-profile threshold. µs/point was measured on the same machine with NAB'
 
 | Model | Event-F1 | P | R | FP | NAB std | µs/point |
 |---|---|---|---|---|---|---|
-| CAD OSE | 0.676 | 0.590 | 0.793 | 64 | 69.9 | 228.9 |
-| **Sentinel, engine default** | **0.673** | **0.747** | 0.612 | **24** | 54.9 | **2.7** |
+| CAD OSE | 0.676 | 0.590 | 0.793 | 64 | 69.9 | 231.1 |
+| **Sentinel, engine default** | **0.691** | **0.731** | **0.655** | **28** | **58.8** | **2.7** |
 | Numenta HTM | 0.527 | 0.387 | 0.828 | 152 | 70.1 | not runnable (nupic, Python 2) |
 | Sentinel, NAB operating point | 0.489 | 0.366 | 0.733 | 147 | 60.6 | 5.1 |
 | ARTime | 0.483 | 0.328 | 0.914 | 217 | 74.9 | not runnable (Julia) |
 | Relative Entropy | 0.452 | 0.341 | 0.672 | 151 | 54.6 | 585.3 |
-| earthgecko Skyline | 0.372 | 0.247 | 0.750 | 265 | 58.2 | 231.0 |
-| KNN CAD | 0.350 | 0.225 | 0.784 | 313 | 58.0 | 791.6 |
-| Windowed Gaussian (NAB) | 0.283 | 0.183 | 0.629 | 326 | 39.6 | 62.4 |
+| earthgecko Skyline | 0.372 | 0.247 | 0.750 | 265 | 58.2 | 316.9 |
+| KNN CAD | 0.350 | 0.225 | 0.784 | 313 | 58.0 | 773.7 |
+| Windowed Gaussian (NAB) | 0.283 | 0.183 | 0.629 | 326 | 39.6 | 57.8 |
 
 Caveats:
 - The published detectors' thresholds were tuned for the NAB score, and each threshold crossing counts as one event
   (no merging or cooldown). Their event-F1 is therefore a lower bound on what they could reach.
-- Sentinel was tuned on this same public corpus. Its held-out (LOCO) F1 of 0.654 is the fairer comparison.
-- The runtime table times a 20,132-point subset, so Sentinel shows 2.7 µs there and 2.8 µs on the full corpus.
+- Sentinel was tuned on this same public corpus. The lag/margin grid LOCO selection F1 is 0.664 pooled;
+  it is not a held-out score for the fixed default.
+- Runtime depends on hardware and load; the new default measured 2.86 µs/point on the full corpus.
 - The windowedGaussian row uses NAB's implementation and threshold. Our re-implementation at threshold 1.0 (first
   table) gets 0.302.
 
@@ -275,8 +278,8 @@ Figures: [published_comparison.png](results/figures/published_comparison.png),
 ## Known limitations
 
 - Tuning and evaluation use one public corpus. LOCO limits but does not remove optimism.
-- Of the 45 missed windows, most are pattern breaks inside the normal range that only Seasonal sees, and adding
-  Seasonal costs more FPs than it gains. 12 windows have no detector signal at all (`results/miss_analysis.md`).
+- The new default misses 40 windows. The refreshed [miss analysis](results/miss_analysis.md) classifies
+  21 as alarms from other detectors, 11 as weak signal, and 8 as suppressed events.
 - Streams shorter than 7 points get probation 0 and are never flagged. `seasonal.auto_period` has no effect.
   Rebaseline is count-based, not CUSUM-confirmed.
 
