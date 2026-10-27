@@ -1,4 +1,4 @@
-# Data — never pushed; each person keeps a local copy
+# Raw data stays local. Only the canonical derived prediction outputs below are tracked.
 data/
 *.csv
 !results/**/*.csv
@@ -27,5 +27,11 @@ dist/
 .vscode/
 .idea/
 
-# prediction outputs (eval.predict)
-outputs/
+# Keep only the current-default NAB predictions; other generated outputs stay local.
+outputs/*
+!outputs/predictions/
+outputs/predictions/*
+!outputs/predictions/*/
+!outputs/predictions/*.csv
+!outputs/predictions/*/*.csv
+!outputs/predictions/summary.json

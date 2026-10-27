@@ -92,3 +92,38 @@
 - Changed: `sentinel/config.py` (`w=8, h=256`, spatial margin 5.75%), `results/best_config.json`, pinned historical `best_joint_config.json` and NAB preset, tests, evaluation generators, documentation, four new run JSONs, refreshed tables and figures.
 - Result: fresh `Sentinel()` full-corpus event-F1 0.691 / P 0.731 / R 0.655 / TP 76 / FP 28 / FN 40 / NAB 58.80. `eval.predict` with saved default matched exactly. NAB-focused preset remained F1 0.489 / NAB 60.58. Full-corpus benchmark 2.76 µs/point; same-stream comparison 2.7 µs/point. `python -m pytest -q`: 114 passed; `git diff --check` and local Markdown links passed.
 - Notes / next: 16-setting joint-grid LOCO selection was 0.664 pooled / 0.590 mean, not a held-out score for the fixed default. Refreshed ablation found an unvalidated 0.697 candidate when per-detector SPOT risk is removed; left the requested 0.691 default in place. Historical 0.673 runs and tuning records remain labelled as prior results.
+
+## 2026-10-27 14:00 — L13 Simplify presentation source
+- Changed: `presentation.md`.
+- Result: rewrote the outline as ten simple slides matching the required slide topics, updated LaggedResidual to the average of 8 readings roughly 256 points earlier, and kept only the current default in text and selected images. Current-default official NAB score is 58.80, as requested after clarifying the separate 60.58 result.
+- Notes / next: PDF generation is deferred until the user finishes reviewing the Markdown.
+
+## 2026-10-27 14:03 — L13 Remove presentation speaker notes
+- Changed: `presentation.md`.
+- Result: removed all ten speaker-note blocks while preserving the ten-slide outline and current-default results.
+- Notes / next: PDF generation remains deferred during Markdown review.
+
+## 2026-10-27 14:14 — L13 Add cross-model metric charts
+- Changed: `eval/presentation_charts.py`, `results/figures/event_f1_vs_inference_time.png`, `results/figures/precision_vs_recall_models.png`, `presentation.md`.
+- Result: added event-F1 versus measured inference time and precision versus recall charts for 15 NAB comparison models plus the current Sentinel default. Models without runnable local latency and Null's undefined precision are labelled.
+- Notes / next: charts use `results/model_comparison.md`, one muted accent colour, and numbered model keys for slide readability. PDF generation remains deferred during Markdown review.
+
+## 2026-10-27 14:16 — L13 Change comparisons to horizontal bars
+- Changed: `eval/presentation_charts.py`, both comparison figures, `presentation.md`.
+- Result: each figure now has two aligned horizontal bar panels in the same model order. Missing runtimes and undefined precision show a dash; the time panel uses a labelled compressed scale.
+- Notes / next: regenerated and visually checked both images. No PDF generated.
+
+## 2026-10-27 14:18 — L13 Add detection delay to evaluation slide
+- Changed: `presentation.md`.
+- Result: added the current default's median delay of 100 readings (49.7% through labelled window) from the 0.691-F1 run. Defined it as first alert minus window start for detected windows only.
+- Notes / next: no published-model delay comparison is currently recorded in `results/model_comparison.md`.
+
+## 2026-10-27 14:22 — L13 Compare detection delay across models
+- Changed: `eval/delay_compare.py`, `results/delay_comparison.md`, `results/runs/20261027-142128_delay_comparison.json`, `presentation.md`.
+- Result: scored first-alert delay for Sentinel and 15 NAB published models on the same 116 labelled windows; slide 7 shows five representative models with their windows found. Sentinel found 76 windows with median delay 100 readings (49.7% of window width). The published model medians are also near the middle of their detected windows.
+- Notes / next: delay is conditional on detected windows. Published NAB predictions use threshold crossings as event starts; Sentinel uses its event manager. PDF generation remains deferred during Markdown review.
+
+## 2026-10-27 14:29 — L13 Publish current-default predictions
+- Changed: `.gitignore`, `README.md`, `eval/predict.py`, `outputs/predictions/` (58 per-file CSVs, combined CSV, events CSV, summary JSON).
+- Result: regenerated current-default predictions for all 365,558 NAB points; 104 predicted events, TP 76 / FP 28 / FN 40, event-F1 0.691, precision 0.731, recall 0.655. Verified combined rows, file keys, and events against the summary.
+- Notes / next: user explicitly requested tracking and pushing these derived CSVs. Old local predictions were moved outside the repo to `/private/tmp/sentinel-predictions-previous-20261027`; raw NAB input data remains ignored. README links the canonical files and gives the regeneration command.

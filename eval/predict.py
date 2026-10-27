@@ -1,6 +1,6 @@
 """Run Sentinel on any folder of `timestamp,value` CSVs (e.g. the hidden test windows) and write predictions.
 
-    python -m eval.predict --input data/starter --out outputs/predictions
+    python -m eval.predict --input data/starter --out outputs/starter-predictions
     python -m eval.predict --input some_file.csv --config results/best_config.json
     python -m eval.predict --input data/starter --windows labels.json   # also score if labels exist
 
@@ -28,7 +28,7 @@ from eval.data import FileInfo, REPO_ROOT, list_files, load_series, load_windows
 from eval.run import make_factory, run_file
 
 DEFAULT_CONFIG = REPO_ROOT / "results" / "best_config.json"
-DEFAULT_OUT = REPO_ROOT / "outputs" / "predictions"  # *.csv is gitignored outside results/
+DEFAULT_OUT = REPO_ROOT / "outputs" / "predictions"  # tracked public NAB default; use --out for other inputs
 
 
 def find_inputs(path: Path) -> List[FileInfo]:
