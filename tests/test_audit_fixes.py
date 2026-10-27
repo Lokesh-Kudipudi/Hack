@@ -44,7 +44,7 @@ def test_spatial_only_event_is_attributed_to_spatial_extreme():
     # gentle new maximum: beyond the running range + 5% but far below RobustZ's 6σ base threshold
     xs = np.clip(xs, 7.0, 13.0)
     xs[1300] = 13.5
-    s = Sentinel(n_total=len(xs))
+    s = Sentinel(n_total=len(xs), config={"detectors": ["robust_z"]})
     res = [s.update(t, float(x)) for t, x in zip(ts, xs)]
     r = res[1300]
     assert r.is_event_start

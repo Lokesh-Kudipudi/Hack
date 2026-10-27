@@ -30,7 +30,7 @@ NAMES = {"ARTime": "ARTime", "numenta": "Numenta HTM", "contextOSE": "CAD OSE", 
          "relativeEntropy": "Relative Entropy", "randomCutForest": "Random Cut Forest", "twitterADVec": "Twitter ADVec",
          "windowedGaussian": "Windowed Gaussian (NAB)", "skyline": "Etsy Skyline", "bayesChangePt": "Bayesian Changepoint",
          "random": "Random (NAB)", "expose": "EXPoSE", "null": "Null (NAB)"}
-OURS = [(("sentinel", "engine default (final)"), "Sentinel — engine default (ours, submitted)"),
+OURS = [(("sentinel", "engine default (final)"), "Sentinel — engine default (ours)"),
         (("sentinel", "NAB operating point (final)"), "Sentinel — NAB operating point (ours)")]
 
 
@@ -99,8 +99,9 @@ def render(rows: List[Dict], held_out: Optional[float]) -> str:
         lines.append(f"| {i} | {name} | **{_f(r['f1'])}** | {_f(r['precision'])} | {_f(r['recall'])} | {r['tp']} | "
                      f"{r['fp']} | {r['fn']} | {_f(r['nab'], 1)} | {us} |")
     if held_out is not None:
-        lines += ["", f"Sentinel's engine default was tuned on this corpus; its leave-one-category-out held-out "
-                      f"event-F1 is **{held_out:.3f}** (pooled)."]
+        lines += ["", f"The 16-setting lag/margin grid selected on six categories and scored on the seventh "
+                      f"has pooled held-out event-F1 **{held_out:.3f}**. This is a selection-procedure score, "
+                      "not a held-out estimate for the one fixed engine default."]
     lines.append("")
     return "\n".join(lines)
 
@@ -129,7 +130,8 @@ def plot(rows: List[Dict], path) -> None:
 
 def main() -> List[Dict]:
     rows = build()
-    tunes = [r for r in load_runs() if r.get("kind") == "tune" and r.get("tag") == "loco-recall2"]
+    tunes = [r for r in load_runs() if r.get("kind") == "configuration_tuning_sweep"
+             and r.get("study") == "joint_lag_spatial"]
     held = tunes[-1]["loco"]["pooled_held_out"]["f1"] if tunes else None
     (REPO_ROOT / "results" / "model_comparison.md").write_text(render(rows, held))
     plot(rows, REPO_ROOT / "results" / "figures" / "model_comparison.png")

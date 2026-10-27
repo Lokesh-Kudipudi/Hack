@@ -173,11 +173,11 @@ DSPOT (SPOT on the residual from a moving average) is implemented as `spot.dspot
 
 This flag comes from Numenta's "spatial anomaly". The engine keeps the running min `lo` and max `hi` of all values
 seen, seeded from probation. Once at least 100 values have been seen, a value with
-**x > hi + 0.05·(hi − lo)** or **x < lo − 0.05·(hi − lo)** is flagged. The range then extends to include x.
+**x > hi + 0.0575·(hi − lo)** or **x < lo − 0.0575·(hi − lo)** is flagged. The range then extends to include x.
 
 A flagged point is ANOMALOUS and confirmed immediately: its ratio is raised to `extreme_ratio`, which bypasses
 debounce. If no detector alarmed, the evidence names `SpatialExtreme` as the top detector and reports the previous
-range. This flag is the largest single recall gain: removing it drops event-F1 from 0.673 to 0.428.
+range. In the previous configuration (5% margin), removing this flag dropped event-F1 from 0.673 to 0.428.
 
 ### 3.7 Event manager ([sentinel/events.py](sentinel/events.py), [ADR-003](ARCHITECTURE_DECISIONS.md#adr-003-event-debounce-and-confirmation-protocol), [ADR-006](ARCHITECTURE_DECISIONS.md#adr-006-event-lifecycle-management-gap-merging--re-baselining))
 
@@ -212,7 +212,7 @@ Every ANOMALOUS point carries the following evidence:
 | `observed` | the value |
 | `deviation_sigma` | \|observed − expected\| / s, on the robust MAD scale from probation. It is a deviation of the value itself, even when the top detector measures variance or drift |
 | `fired`, `top_detector` | detectors that alarmed (plus `SpatialExtreme`), and the one with the highest ratio |
-| `detector_score`, `threshold_ratio` | top detector's raw score and raw / max(z_q, base). For a spatial-only flag: distance beyond the range / (0.05·range) |
+| `detector_score`, `threshold_ratio` | top detector's raw score and raw / max(z_q, base). For a spatial-only flag: distance beyond the range / (0.0575·range) |
 | `confidence` | 0.50 + 0.35·clip((ratio − 1)/2, 0, 1) + 0.08·min(3, #fired − 1), clipped to [0.50, 0.99] |
 | `context` | spatial-only flags: the range `[range_low, range_high]` it broke |
 | `text` | one human-readable sentence built from the fields above, with weekday and time |
@@ -228,13 +228,13 @@ starts:
 - NORMAL: min(0.30, 0.30 · fused score)
 
 Any threshold in (0.48, 0.6] therefore reproduces exactly the event starts. The NAB score of the per-point scores
-(54.90) equals the NAB score of the 0/1 event starts (54.90).
+(58.80) equals the NAB score of the 0/1 event starts (58.80).
 
-## 4. Worked example: realKnownCause/nyc_taxi.csv
+## 4. Historical worked example: realKnownCause/nyc_taxi.csv
 
 NYC taxi passenger counts in 30-minute buckets: 10,320 points and 5 labelled windows. Probation is
 min(floor(0.15 · 10,320), 750) = **750** points, so the cooldown is 0.5 × 750 = **375** points. Output from the
-engine default (run with the commands in §4.1):
+previous default (`w=16, h=64`, 5% margin; run with the explicit config in §4.1):
 
 **After probation.** RobustZ median 16,104 and scale 5,504.9. The spatial range is [1,769, 29,985]. SPOT fits:
 
@@ -276,18 +276,22 @@ The evidence JSON exactly as returned:
 }
 ```
 
-On this file the engine default makes exactly one event, a TP, and misses the other 4 windows (Thanksgiving,
+On this file the previous default makes exactly one event, a TP, and misses the other 4 windows (Thanksgiving,
 Christmas, New Year, the January blizzard). Those are pattern breaks inside the normal range. The **NAB operating
 point** (`results/best_nab_config.json`: adds Seasonal and two-sided VarRatio, agreement bypass) makes 9 events on
 nyc_taxi. It finds the marathon at the same point (LaggedResidual + SpatialExtreme) and the blizzard window at
 2015-01-28 19:00, but also 7 false positives at 03:30–04:00 night-time lows. This is the event-F1 vs NAB trade-off in
 miniature.
 
+With the **current** `w=8, h=256`, 5.75% default, the same file has four event starts, all inside labelled windows:
+four TP, zero FP, one FN. The first event is at 2014-11-01 13:30 and is attributed to LaggedResidual. See the
+regenerated [example plot](results/figures/example_nyc_taxi.png).
+
 ### 4.1 Reproduce the example
 
 ```bash
-.venv/bin/python -m eval.predict --input data/NAB/data/realKnownCause/nyc_taxi.csv --config default --out outputs/nyc
-.venv/bin/python -m sentinel -i data/NAB/data/realKnownCause/nyc_taxi.csv --anomalies-only
+.venv/bin/python -m eval.predict --input data/NAB/data/realKnownCause/nyc_taxi.csv --config '{"lagged_residual":{"w":16,"h":64},"spatial":{"tol":0.05}}' --out outputs/nyc-previous
+.venv/bin/python -m eval.predict --input data/NAB/data/realKnownCause/nyc_taxi.csv --config default --out outputs/nyc-current
 ```
 
 ## 5. Glossary
@@ -312,7 +316,7 @@ miniature.
 | **LOCO validation** | Leave-one-category-out: for each of the 7 categories, choose the best config on the other 6 and score it on the held-out one. Reported as the pooled (TP/FP/FN summed) and mean held-out F1 |
 | **Ablation** | Adding or removing one component at a time and measuring the change (`results/ablation.md`) |
 | **Pareto front** | Configs that no other config beats on both event-F1 and NAB (`results/figures/pareto_f1_nab.png`) |
-| **Spatial extreme** | A value outside the running [min, max] by more than 5% of the range (§3.6) |
+| **Spatial extreme** | A value outside the running [min, max] by more than 5.75% of the range (§3.6) |
 | **Cooldown** | The number of points after an event start during which no new event may start |
 | **Debounce** | The number of consecutive ANOMALOUS points needed before an event starts (unless bypassed) |
 | **Extreme-ratio bypass** | A single detector at ≥ `extreme_ratio` × its threshold (or the spatial flag) confirms an event on the first point |

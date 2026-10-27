@@ -11,11 +11,11 @@
 **Sentinel** is an ultra-lightweight, strictly causal, lookahead-free streaming anomaly detection engine designed for real-time univariate time series. It resolves the fundamental conflict between academic deep learning models (which suffer from lookahead data leakage, high compute latency, and uncalibrated false alarms) and naive statistical heuristics (which suffer from rigid thresholds and catastrophic false-positive storms).
 
 ### Key Performance Highlights (final, full NAB corpus):
-- **Superior Event Detection (Primary Metric):** The engine default (`Sentinel()`, no config) achieves **Event-F1 = 0.673** (Precision 0.747, Recall 0.612, 24 FP events) versus **0.302** for the Windowed Gaussian baseline (232 FPs) and 0.311 for the original K1–K8 defaults.
-- **Proved Generalization:** Under **Leave-One-Category-Out (LOCO)** validation (tune on 6 categories, test on the unseen 7th) the held-out event-F1 is **0.654 pooled / 0.593 mean**.
-- **Beats Published Industry Models on NAB:** The NAB operating point scores **60.58** (standard profile), above earthgecko Skyline (58.2), KNN CAD (58.0), Relative Entropy (54.6), AWS Random Cut Forest (51.7), Twitter ADVec (47.1) and Windowed Gaussian (39.6). The engine default scores 54.90.
+- **Superior Event Detection (Primary Metric):** The engine default (`Sentinel()`, no config) achieves **Event-F1 = 0.691** (Precision 0.731, Recall 0.655, 28 FP events) versus **0.302** for the Windowed Gaussian baseline (232 FPs) and 0.311 for the original K1–K8 defaults.
+- **LOCO grid check:** The 16-setting lag/margin selection scored **0.664 pooled / 0.590 mean** when each category was held out in turn. This is a selection-procedure result, not a held-out score for the one fixed default.
+- **Beats Published Industry Models on NAB:** The NAB operating point scores **60.58** (standard profile), above earthgecko Skyline (58.2), KNN CAD (58.0), Relative Entropy (54.6), AWS Random Cut Forest (51.7), Twitter ADVec (47.1) and Windowed Gaussian (39.6). The engine default scores 58.80.
 - **Detection at the anomaly:** median detection is at the labelled anomaly point (+0 points); NAB windows start well before it.
-- **Ultra-Low Latency & High Throughput:** **2.7 µs/point** (~367,000 observations/sec on one CPU core, p99 4.4 µs) including input validation — ~18x under our own < 50 µs/pt budget (≈ the cost of the Windowed Gaussian baseline, 49 µs).
+- **Ultra-Low Latency & High Throughput:** **2.86 µs/point** (~350,000 observations/sec on one CPU core) including input validation — ~18x under our own < 50 µs/pt budget (≈ the cost of the Windowed Gaussian baseline, 49 µs).
 - **Production-Grade Explainability:** Emits structured JSON diagnostic cards with expected normal ranges, standard deviation magnitudes, fired detectors, and human-readable root-cause explanations.
 
 ---
@@ -53,9 +53,9 @@ Recent literature has shown that heavy time-series foundation models (Transforme
    - *Sentinel Implementation:* Sentinel strictly rejects per-window z-normalization. Instead, scale ($\text{MAD}$) and baseline location ($\text{median}$) are learned during an initial probation warmup window (first 15% of the series, max 750 points) and updated with slow exponential anti-pollution smoothing ($\alpha = 0.01$).
 3. **Multi-Horizon Residual Decomposition (§6.1):**
    - A critical discovery in §6.1 is that short-horizon baselines ($w=3$) excel at capturing isolated spikes, but fail catastrophically on sequence anomalies (e.g., persistent level shifts or multi-point drops). Why? Because after 3 data points, the anomaly enters the moving window and "contaminates" the reference mean, causing the anomaly score to collapse back to zero.
-   - *Sentinel Implementation:* Sentinel decomposes detection across two distinct horizons:
-     - **Short Horizon (`LastW`, $w=3$):** Catches instantaneous step discontinuities.
-     - **Long Horizon (`LaggedResidual`, $w=16, h=64$):** Measures the deviation of $x_t$ against a reference window that ended $h=64$ steps in the past. Even if an anomaly lasts 30 points, the reference window remains uncontaminated in the pre-anomaly normal regime.
+   - *Sentinel Implementation:* Sentinel includes complementary short and long reference methods:
+     - **Short/reference level (`RobustZ`):** Catches values far from the robust normal level. `LastW` ($w=3$) is available as an optional short-horizon detector.
+     - **Long Horizon (`LaggedResidual`, $w=8, h=256$):** Measures the deviation of $x_t$ against a reference window that ended $h=256$ steps in the past. Even if an anomaly lasts 30 points, the reference window remains uncontaminated in the pre-anomaly normal regime.
 4. **Volatility / Noise Burst Detection (`VarRatio`, $w=24$):**
    - Captures second-order regime shifts where the mean remains unchanged but variance explodes (e.g., mechanical vibration chatter or network packet jitter).
 
@@ -125,11 +125,11 @@ The development of Sentinel was guided by 10 formal Architecture Decision Record
 ### ADR-001: Strict Streaming & Causal Invariant
 - **Context:** Many published models cheat by centering windows ($[t - w/2, t + w/2]$) or requiring offline batch normalization. Furthermore, high-throughput cloud streaming systems require microsecond execution speeds.
 - **Decision:** Every operation must be strictly causal (depending only on $\tau \le t$) and execute in $O(1)$ time complexity using circular buffers (`collections.deque`) with running sum maintenance. Deep neural network dependencies (PyTorch/TensorFlow) were rejected for the runtime core.
-- **Empirical Impact:** **2.7 µs/point** for the final engine default (~367,000 points/sec, incl. input validation), consuming less than 15 MB of RAM across all 58 concurrent series.
+- **Empirical Impact:** **2.76 µs/point** for the current engine default (~362,000 points/sec, incl. input validation), consuming less than 15 MB of RAM across all 58 concurrent series.
 
 ### ADR-002: Multi-Horizon Specialized Ensemble
 - **Context:** Anomalies have diverse mathematical topologies: single-point spikes, step jumps, variance bursts, diurnal pattern violations, and slow drift. No single scalar distance can detect all types simultaneously without massive false alarms.
-- **Decision:** Decompose detection into an ensemble of 7 specialized detectors (D1 to D7) operating on complementary time horizons ($w \in \{1, 3, 16, 24, 64, \text{diurnal}\}$).
+- **Decision:** Decompose detection into an ensemble of 7 specialized detectors (D1 to D7) operating on complementary time horizons ($w \in \{1, 3, 8, 24, \text{diurnal}\}$).
 - **Empirical Impact:** Recall increased from $0.595 \to 0.759$ (88 of 116 ground-truth windows caught across the 58 streams).
 
 ### ADR-003: Event Debounce and Confirmation Protocol
@@ -197,7 +197,7 @@ Sentinel's detection core consists of 7 specialized, lookahead-free detectors:
 ├────┼──────────────────────────┼──────────────┼─────────────┼──────────────────────────────┤
 │ D1 │ RobustZ                  │ Probation/EW │ O(1)        │ Single-point isolated spikes │
 │ D2 │ LastW                    │ w = 3        │ O(1)        │ Abrupt step discontinuities  │
-│ D3 │ LaggedResidual           │ w=16, h=64   │ O(1)        │ Multi-point sequence shifts  │
+│ D3 │ LaggedResidual           │ w=8, h=256   │ O(1)        │ Multi-point sequence shifts  │
 │ D4 │ VarRatio                 │ w = 24       │ O(1)        │ Volatility & noise bursts    │
 │ D5 │ Seasonal                 │ 24 buckets   │ O(1)        │ Contextual diurnal breaks    │
 │ D6 │ CUSUM                    │ k = 0.5      │ O(1)        │ Persistent drift & level     │
@@ -312,12 +312,13 @@ Final build-up (`python -m eval.ablation`, `results/ablation.md`; latency = mean
 | + Spatial-extreme flag (ADR-010) | 0.587 | 0.627 | 0.552 | 38 | New running extremes flagged on the first point |
 | + Debounce 3, extreme ratio 2.0 | 0.610 | 0.681 | 0.552 | 30 | Fewer one-point false alarms |
 | + Cooldown 0.5 × probation | 0.640 | 0.652 | 0.629 | 39 | Short streams no longer muted for 600 points |
-| **+ LaggedResidual risk 1e-5 = engine default** | **0.673** | **0.747** | **0.612** | **24** | **Final; 2.7 µs/pt** |
+| **+ LaggedResidual risk 1e-5 = previous default** | 0.673 | 0.747 | 0.612 | 24 | Prior setting |
+| **+ lag 8/256 and margin 5.75% = current default** | **0.691** | **0.731** | **0.655** | **28** | **2.86 µs/pt** |
 | NAB operating point (+ Seasonal, two-sided VarRatio, agreement bypass) | 0.489 | 0.366 | 0.733 | 147 | Trades F1 for recall; NAB 60.58 |
 
-Removing the spatial flag from the final default costs the most (0.673 → 0.428). Adding Seasonal, two-sided VarRatio
+For the previous default, removing the spatial flag lowered F1 from 0.673 to 0.428. The current-default ablation is in `results/ablation.md`. Adding Seasonal, two-sided VarRatio
 (K19), the auto-period Seasonal (K19) or the isolation forest (D7) to the default raises recall but lowers event-F1
-(0.52–0.60), so they are used only in the NAB operating point.
+(0.54–0.62), so they are not part of the event-F1 default. The NAB operating point uses Seasonal and VarRatio.
 
 ---
 
@@ -332,18 +333,18 @@ latencies measured on our machine with `python -m eval.nab_runtime` — NAB's ow
 | Perfect Detector | 100.0 | 100.0 | 100.0 | — | Oracle |
 | ARTime | 74.9 | 65.1 | 80.4 | not runnable here (Julia) | Non-streaming Auto-regressive |
 | Numenta HTM | 70.1 | 63.1 | 74.3 | not runnable here (nupic, Py2) | Hierarchical Temporal Memory |
-| CAD OSE | 69.9 | 67.0 | 73.2 | 229.5 µs/pt (measured) | Conformal Anomaly Detector |
-| **Sentinel (Ours — NAB operating point)** | **60.58** | **54.02** | **64.75** | **4.8 µs/pt (measured)** | **Strict $O(1)$ Causal Streaming** |
-| earthgecko Skyline | 58.2 | 46.2 | 63.9 | 227.7 µs/pt (measured) | Multi-process heuristics |
-| KNN CAD | 58.0 | 43.4 | 64.8 | 776.9 µs/pt (measured) | $O(N)$ Nearest Neighbors |
-| **Sentinel (Ours — engine default)** | **54.90** | **53.78** | **57.00** | **2.7 µs/pt (measured)** | **Strict $O(1)$ Causal Streaming** |
-| Relative Entropy | 54.6 | 47.6 | 58.8 | 577.3 µs/pt (measured) | Kernel Density Estimator |
+| CAD OSE | 69.9 | 67.0 | 73.2 | 231.1 µs/pt (measured) | Conformal Anomaly Detector |
+| **Sentinel (Ours — NAB operating point)** | **60.58** | **54.02** | **64.75** | **5.2 µs/pt (full-corpus run)** | **Strict $O(1)$ Causal Streaming** |
+| earthgecko Skyline | 58.2 | 46.2 | 63.9 | 316.9 µs/pt (measured) | Multi-process heuristics |
+| KNN CAD | 58.0 | 43.4 | 64.8 | 773.7 µs/pt (measured) | $O(N)$ Nearest Neighbors |
+| **Sentinel (Ours — engine default)** | **58.80** | **57.53** | **61.04** | **2.7 µs/pt (same-stream timing)** | **Strict $O(1)$ Causal Streaming** |
+| Relative Entropy | 54.6 | 47.6 | 58.8 | 585.3 µs/pt (measured) | Kernel Density Estimator |
 | Random Cut Forest (AWS) | 51.7 | 38.4 | 59.7 | not runnable here (AWS service) | Batch Random Cut Trees |
 | Twitter ADVec v1.0.0 | 47.1 | 33.6 | 53.5 | not runnable here (R) | Seasonal ESD |
-| Windowed Gaussian (NAB Baseline) | 39.6 | 20.9 | 47.4 | 57.6 µs/pt (measured, NAB impl.) | Sliding Gaussian Window |
-| Etsy Skyline | 35.7 | 27.1 | 44.5 | 2589.8 µs/pt (measured) | Heuristic voting |
-| Bayesian Changepoint | 17.7 | 3.2 | 32.2 | 113.6 µs/pt (measured) | $O(N^2)$ Exact Bayesian |
-| EXPoSE | 16.4 | 3.2 | 26.9 | 550.1 µs/pt (measured) | Kernel Embedding |
+| Windowed Gaussian (NAB Baseline) | 39.6 | 20.9 | 47.4 | 57.8 µs/pt (measured, NAB impl.) | Sliding Gaussian Window |
+| Etsy Skyline | 35.7 | 27.1 | 44.5 | 2612.1 µs/pt (measured) | Heuristic voting |
+| Bayesian Changepoint | 17.7 | 3.2 | 32.2 | 112.7 µs/pt (measured) | $O(N^2)$ Exact Bayesian |
+| EXPoSE | 16.4 | 3.2 | 26.9 | 545.0 µs/pt (measured) | Kernel Embedding |
 
 ---
 
@@ -368,7 +369,7 @@ Sentinel maintains an exhaustive test suite guaranteeing mathematical and struct
 1. **Config default synchronization — done:** the tuned operating point is the built-in default (`sentinel/config.py`, ADR-009/010).
 2. **Deep-merge configuration — done:** nested overrides merge; an empty dict clears a default.
 3. **Horizon rescaling — tested, not adopted:** adaptive local scaling of LaggedResidual lowered F1 (0.453); the real fix was a per-detector SPOT risk level (ADR-009).
-4. **Starter-pack validation — tooling ready:** `python -m eval.predict --input <folder>` runs any folder of CSVs and writes per-point predictions, events and a summary (reproduces F1 0.673 on the starter pack).
+4. **Starter-pack validation — tooling ready:** `python -m eval.predict --input <folder>` runs any folder of CSVs and writes per-point predictions, events and a summary (reproduces F1 0.691 on the starter pack).
 
 ---
 *Generated autonomously for the Hackathon Technical Checkpoint Review.*

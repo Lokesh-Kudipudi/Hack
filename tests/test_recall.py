@@ -58,6 +58,6 @@ def test_spatial_needs_min_seed_points():
 def test_defaults_adopt_tuned_recall_settings():
     # ADR-010: spatial flag + cooldown 0.5 x probation on by default; smoothing / agreement bypass off
     s = Sentinel(n_total=N)
-    assert s.spatial is not None and s.spatial.tol == 0.05
+    assert s.spatial is not None and s.spatial.tol == 0.0575
     assert s.event_manager.cooldown_duration == int(0.5 * s.probation_limit)
     assert not s.smoother.applies("RobustZ") and s.event_manager.agree_k == 0
