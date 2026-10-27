@@ -127,3 +127,8 @@
 - Changed: `.gitignore`, `README.md`, `eval/predict.py`, `outputs/predictions/` (58 per-file CSVs, combined CSV, events CSV, summary JSON).
 - Result: regenerated current-default predictions for all 365,558 NAB points; 104 predicted events, TP 76 / FP 28 / FN 40, event-F1 0.691, precision 0.731, recall 0.655. Verified combined rows, file keys, and events against the summary.
 - Notes / next: user explicitly requested tracking and pushing these derived CSVs. Old local predictions were moved outside the repo to `/private/tmp/sentinel-predictions-previous-20261027`; raw NAB input data remains ignored. README links the canonical files and gives the regeneration command.
+
+## 2026-10-27 14:37 — L13 Build ten-slide PDF
+- Changed: `presentation.pdf`, `eval/build_presentation_pdf.py`, `README.md`, `.gitattributes`.
+- Result: generated a ten-page 16:9 PDF from the reviewed outline with the current default only, both model comparison charts, the NYC taxi example, and no speaker notes. Rendered every page and checked layout at full size. The deck keeps event-F1 0.691 and official NAB score 58.80.
+- Notes / next: `python -m eval.build_presentation_pdf` regenerates the PDF with ReportLab. No PPTX was created.
