@@ -3,7 +3,7 @@
 This document is for a technical reader who has not seen the code. It follows one point through `Sentinel.update()`
 ([sentinel/pipeline.py](../sentinel/pipeline.py)) and uses the parameter values in
 [sentinel/config.py](../sentinel/config.py) (`DEFAULT_CONFIG`). Design decisions are linked to the ADRs in
-[ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md). Terms are defined in the [glossary](#glossary). All numbers
+[architecture_decisions.md](architecture_decisions.md). Terms are defined in the [glossary](#glossary). All numbers
 were re-measured for this document (commands in [README.md](../README.md#reproducibility)).
 
 ## 1. Problem framing
@@ -17,7 +17,7 @@ were re-measured for this document (commands in [README.md](../README.md#reprodu
   - `is_event_start`: True only on the first point of a new anomaly event. Event-F1 is scored on these points.
   - `evidence`: a dict that explains the flag (filled when `label == "ANOMALOUS"`)
   - `detector_scores`: the calibrated score of each active detector
-- **Causality** ([ADR-001](ARCHITECTURE_DECISIONS.md#adr-001-strict-streaming--causal-invariant)). Every statistic is
+- **Causality** ([ADR-001](architecture_decisions.md#adr-001-strict-streaming--causal-invariant)). Every statistic is
   computed from points that have already been seen. The only information about the future is the stream length
   `n_total`, which sets the probation length exactly as NAB does (§2). `tests/test_causality.py` checks this:
   results on a prefix of a stream are identical to the first part of the results on the full stream.
@@ -100,7 +100,7 @@ engine does the following:
 3. **SPOT initialisation.** Each detector's SPOT model is fitted on that detector's probation raw scores (§3.4).
 4. **Spatial range.** The spatial-extreme flag is seeded with the probation min and max.
 
-### 3.3 Detectors D1–D7 ([sentinel/detectors.py](../sentinel/detectors.py), [ADR-002](ARCHITECTURE_DECISIONS.md#adr-002-causal-multi-horizon-detector-ensemble-d1-to-d7))
+### 3.3 Detectors D1–D7 ([sentinel/detectors.py](../sentinel/detectors.py), [ADR-002](architecture_decisions.md#adr-002-causal-multi-horizon-detector-ensemble-d1-to-d7))
 
 All detectors are O(1) or O(w) per point and use running sums over `deque` buffers. *m* and *s* are the probation
 median and robust scale.
@@ -132,7 +132,7 @@ option has no effect, so the ablation row "Seasonal (auto period, thr 40)" is re
 RobustZ is always instantiated, even when it is not listed in `detectors`, because its median and scale are the
 baseline for the other detectors and for evidence.
 
-### 3.4 SPOT / EVT thresholds ([sentinel/spot.py](../sentinel/spot.py), [ADR-005](ARCHITECTURE_DECISIONS.md#adr-005-dynamic-tail-thresholding-via-extreme-value-theory-spotdspot), [ADR-009](ARCHITECTURE_DECISIONS.md#adr-009-per-detector-spot-risk-level-and-tuned-defaults))
+### 3.4 SPOT / EVT thresholds ([sentinel/spot.py](../sentinel/spot.py), [ADR-005](architecture_decisions.md#adr-005-dynamic-tail-thresholding-via-extreme-value-theory-spotdspot), [ADR-009](architecture_decisions.md#adr-009-per-detector-spot-risk-level-and-tuned-defaults))
 
 Each detector gets its own SPOT model. SPOT stands for Streaming Peaks-Over-Threshold (Siffer et al., KDD 2017).
 
@@ -161,7 +161,7 @@ Each detector gets its own SPOT model. SPOT stands for Streaming Peaks-Over-Thre
 
 DSPOT (SPOT on the residual from a moving average) is implemented as `spot.dspot_depth > 0` and is off by default.
 
-### 3.5 Fusion ([sentinel/fusion.py](../sentinel/fusion.py), [ADR-004](ARCHITECTURE_DECISIONS.md#adr-004-multi-detector-fusion-engine-sentinelfusionpy))
+### 3.5 Fusion ([sentinel/fusion.py](../sentinel/fusion.py), [ADR-004](architecture_decisions.md#adr-004-multi-detector-fusion-engine-sentinelfusionpy))
 
 - The fused score is the **MAX** of the calibrated detector scores.
 - **Decision** (default `fusion = "max"`, `vote_k = 1`): the point is ANOMALOUS if any detector alarms.
@@ -169,7 +169,7 @@ DSPOT (SPOT on the residual from a moving average) is implemented as `spot.dspot
   ≥ `extreme_ratio`. A single detector far past its threshold still counts.
 - The **top detector** is the one with the highest threshold ratio. It decides the evidence type.
 
-### 3.6 Spatial-extreme flag ([sentinel/recall.py](../sentinel/recall.py), [ADR-010](ARCHITECTURE_DECISIONS.md#adr-010-recall-mechanisms-spatial-extreme-flag-proportional-cooldown-confirmation))
+### 3.6 Spatial-extreme flag ([sentinel/recall.py](../sentinel/recall.py), [ADR-010](architecture_decisions.md#adr-010-recall-mechanisms-spatial-extreme-flag-proportional-cooldown-confirmation))
 
 This flag comes from Numenta's "spatial anomaly". The engine keeps the running min `lo` and max `hi` of all values
 seen, seeded from probation. Once at least 100 values have been seen, a value with
@@ -179,7 +179,7 @@ A flagged point is ANOMALOUS and confirmed immediately: its ratio is raised to `
 debounce. If no detector alarmed, the evidence names `SpatialExtreme` as the top detector and reports the previous
 range. In the previous configuration (5% margin), removing this flag dropped event-F1 from 0.673 to 0.428.
 
-### 3.7 Event manager ([sentinel/events.py](../sentinel/events.py), [ADR-003](ARCHITECTURE_DECISIONS.md#adr-003-event-debounce-and-confirmation-protocol), [ADR-006](ARCHITECTURE_DECISIONS.md#adr-006-event-lifecycle-management-gap-merging--re-baselining))
+### 3.7 Event manager ([sentinel/events.py](../sentinel/events.py), [ADR-003](architecture_decisions.md#adr-003-event-debounce-and-confirmation-protocol), [ADR-006](architecture_decisions.md#adr-006-event-lifecycle-management-gap-merging--re-baselining))
 
 Event-F1 counts only the first event start in each window, and every start outside a window is a false positive. The
 event manager turns per-point decisions into few, well-placed starts. Default parameters:
@@ -201,7 +201,7 @@ median jumps to the current value. AGENTS.md §4.5 asks for a CUSUM-confirmed sh
 **Baseline hygiene.** RobustZ's median and the Seasonal profiles update only on NORMAL points, so an ongoing anomaly
 does not become the baseline.
 
-### 3.8 Evidence ([sentinel/explain.py](../sentinel/explain.py), [ADR-007](ARCHITECTURE_DECISIONS.md#adr-007-structured-evidence--explainability-schema))
+### 3.8 Evidence ([sentinel/explain.py](../sentinel/explain.py), [ADR-007](architecture_decisions.md#adr-007-structured-evidence--explainability-schema))
 
 Every ANOMALOUS point carries the following evidence:
 
@@ -217,7 +217,7 @@ Every ANOMALOUS point carries the following evidence:
 | `context` | spatial-only flags: the range `[range_low, range_high]` it broke |
 | `text` | one human-readable sentence built from the fields above, with weekday and time |
 
-### 3.9 Event-aligned output score ([ADR-008](ARCHITECTURE_DECISIONS.md#adr-008-event-aligned-continuous-scoring-for-official-nab-calibration))
+### 3.9 Event-aligned output score ([ADR-008](architecture_decisions.md#adr-008-event-aligned-continuous-scoring-for-official-nab-calibration))
 
 The NAB scorer thresholds the per-point `score`, and every point above the threshold counts as a detection. A plateau
 of high scores across an event would add a false positive for every extra point. So the score is aligned with event

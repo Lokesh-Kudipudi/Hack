@@ -103,7 +103,7 @@ Sentinel adheres strictly to the evaluation methodology defined by Lavin & Ahmad
 
 ## 3. Every Architecture Decision Made (ADR Logs)
 
-The development of Sentinel was guided by 10 formal Architecture Decision Records (full text in `ARCHITECTURE_DECISIONS.md`):
+The development of Sentinel was guided by 10 formal Architecture Decision Records (full text in `architecture_decisions.md`):
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
