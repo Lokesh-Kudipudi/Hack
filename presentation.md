@@ -117,11 +117,11 @@ Event manager → score, label, explanation
 | Numenta HTM | 0.527 | 152 | — |
 | Windowed Gaussian (NAB) | 0.283 | 326 | 57.8 µs |
 
-![Event-F1 versus inference time: current Sentinel default and published NAB models](results/figures/event_f1_vs_inference_time.png)
+![Two-panel horizontal bars comparing event-F1 and inference time](results/figures/event_f1_vs_inference_time.png)
 
-![Precision versus recall: current Sentinel default and published NAB models](results/figures/precision_vs_recall_models.png)
+![Two-panel horizontal bars comparing precision and recall](results/figures/precision_vs_recall_models.png)
 
-The charts include all models with recorded event metrics. Models without a local runtime are listed beside the first chart; Null has undefined precision and is listed beside the second. Published models' event results use NAB's stored scores and thresholds. Measured runtimes use the same machine.
+The charts include all models with recorded event metrics. A dash means no local runtime or undefined precision. The time axis is compressed, but its value labels are in actual µs per point. Published models' event results use NAB's stored scores and thresholds; measured runtimes use the same machine.
 
 ---
 

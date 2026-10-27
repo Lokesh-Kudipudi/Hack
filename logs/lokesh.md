@@ -107,3 +107,8 @@
 - Changed: `eval/presentation_charts.py`, `results/figures/event_f1_vs_inference_time.png`, `results/figures/precision_vs_recall_models.png`, `presentation.md`.
 - Result: added event-F1 versus measured inference time and precision versus recall charts for 15 NAB comparison models plus the current Sentinel default. Models without runnable local latency and Null's undefined precision are labelled.
 - Notes / next: charts use `results/model_comparison.md`, one muted accent colour, and numbered model keys for slide readability. PDF generation remains deferred during Markdown review.
+
+## 2026-10-27 14:16 — L13 Change comparisons to horizontal bars
+- Changed: `eval/presentation_charts.py`, both comparison figures, `presentation.md`.
+- Result: each figure now has two aligned horizontal bar panels in the same model order. Missing runtimes and undefined precision show a dash; the time panel uses a labelled compressed scale.
+- Notes / next: regenerated and visually checked both images. No PDF generated.
