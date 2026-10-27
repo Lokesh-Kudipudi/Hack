@@ -59,10 +59,10 @@ class ExplainEngine:
         anom_type = self.type_map.get(top_detector, "anomaly")
         direction = "above" if observed >= expected else "below"
 
-        # Time context (fast tuple lookup without strftime overhead)
+        # Time context (fast tuple lookup without method call overhead)
         time_str = ""
         try:
-            time_str = f" ({_WEEKDAYS[t.weekday()]} {t.hour:02d}:{t.minute:02d})"
+            time_str = f" ({_WEEKDAYS[t.dayofweek]} {t.hour:02d}:{t.minute:02d})"
         except Exception:
             pass
 
@@ -84,9 +84,10 @@ class ExplainEngine:
             text += f" Cumulative drift statistic {float(detector_score):.1f}."
 
         # Corroborating detector clause
-        other_fired = [d for d in fired if d != top_detector]
-        if other_fired:
-            text += f" Corroborated by: {', '.join(other_fired)}."
+        if len(fired) > 1:
+            other_fired = [d for d in fired if d != top_detector]
+            if other_fired:
+                text += f" Corroborated by: {', '.join(other_fired)}."
 
         evidence: Dict[str, Any] = {
             "type": anom_type,
