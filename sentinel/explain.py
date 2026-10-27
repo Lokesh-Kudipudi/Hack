@@ -68,7 +68,14 @@ class ExplainEngine:
 
         # Primary explanation clause using specialized templates
         desc = TYPE_DESCRIPTIONS.get(anom_type, anom_type)
-        if anom_type == "spike":
+        if top_detector == "SpatialExtreme" and context and "range_high" in context:
+            edge = "high" if observed > context["range_high"] else "low"
+            bound = context["range_high"] if edge == "high" else context["range_low"]
+            text = (f"Value {observed:.2f} is a new {edge}{time_str}: {'above' if edge == 'high' else 'below'} "
+                    f"the range seen so far [{context['range_low']:.2f}, {context['range_high']:.2f}] by more than "
+                    f"the tolerated margin ({observed - bound:+.2f}; {deviation_sigma:.1f}σ {direction} "
+                    f"expected {expected:.2f}).")
+        elif anom_type == "spike":
             text = f"Value {observed:.2f} is {deviation_sigma:.1f}σ {direction} expected {expected:.2f}{time_str} ({top_detector} detected {desc})."
         elif anom_type == "pattern_break":
             text = f"Value {observed:.2f} violates expected {expected:.2f}{time_str} seasonal profile ({deviation_sigma:.1f}σ {direction})."

@@ -33,10 +33,19 @@ from sentinel.validate import MAX_SAFE_MAGNITUDE, sanitize_observation
 
 def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
     """Copy of base with override applied; nested dicts merge instead of being replaced.
-    An empty dict replaces (e.g. {"spot": {"q_per_detector": {}}} clears the per-detector risks)."""
+    An empty dict replaces (e.g. {"spot": {"q_per_detector": {}}} clears the per-detector risks).
+    Dotted keys set nested values ("spot.q": 1e-6), as in results/best_*.json and eval.run.sentinel_config."""
     out = copy.deepcopy(base)
     for k, v in override.items():
-        if isinstance(v, dict) and v and isinstance(out.get(k), dict):
+        if "." in k:
+            *path, leaf = k.split(".")
+            d = out
+            for p in path:
+                if not isinstance(d.get(p), dict):
+                    d[p] = {}
+                d = d[p]
+            d[leaf] = copy.deepcopy(v)
+        elif isinstance(v, dict) and v and isinstance(out.get(k), dict):
             out[k] = _deep_merge(out[k], v)
         else:
             out[k] = copy.deepcopy(v)
@@ -254,8 +263,12 @@ class Sentinel:
     def update(self, t: Any, x: Any) -> Result:
         """Stream one point (timestamp, value) through Sentinel."""
         last_t = self._last_t
-        if not (type(t) is pd.Timestamp and type(x) is float and math.isfinite(x) and abs(x) <= MAX_SAFE_MAGNITUDE
-                and (last_t is None or t > last_t)):
+        try:
+            fast = (type(t) is pd.Timestamp and type(x) is float and math.isfinite(x) and abs(x) <= MAX_SAFE_MAGNITUDE
+                    and (last_t is None or t > last_t))
+        except TypeError:  # e.g. tz-aware vs tz-naive timestamps
+            fast = False
+        if not fast:
             # slow path only for unusual input (NaN/inf, bad types, duplicate/backward timestamps)
             expected_base = (
                 self.detectors["RobustZ"].expected()
@@ -325,12 +338,21 @@ class Sentinel:
         fused_score, is_anom, top_name, top_ratio, fired = self.fusion_engine.fuse(
             calibrated_scores, norm_ratios, alarms
         )
-        if self.spatial is not None and self.spatial.update(x):
-            # L19: new extreme beyond the tolerated range -> anomalous now, confirmed without debounce
-            is_anom = True
-            fired = fired + [SpatialExtreme.name]
-            top_ratio = max(top_ratio, self.extreme_ratio)
-            fused_score = max(fused_score, 1.0 - 1e-6)
+        spatial_ctx = None
+        if self.spatial is not None:
+            lo, hi = self.spatial.lo, self.spatial.hi
+            if self.spatial.update(x):
+                # L19: new extreme beyond the tolerated range -> anomalous now, confirmed without debounce
+                if not fired:
+                    # no detector crossed its threshold: the spatial flag alone is the evidence
+                    top_name = SpatialExtreme.name
+                    pad = self.spatial.tol * (hi - lo)
+                    spatial_ctx = {"range_low": round(lo, 3), "range_high": round(hi, 3),
+                                   "exceedance_ratio": round((x - hi if x > hi else lo - x) / max(pad, 1e-12), 3)}
+                is_anom = True
+                fired = fired + [SpatialExtreme.name]
+                top_ratio = max(top_ratio, self.extreme_ratio)
+                fused_score = max(fused_score, 1.0 - 1e-6)
         top_score = raw_scores.get(top_name, 0.0)
         label = "ANOMALOUS" if is_anom else "NORMAL"
 
@@ -354,8 +376,8 @@ class Sentinel:
         # Evidence generation (Task K6)
         evidence = None
         if label == "ANOMALOUS":
-            top_det = self.detectors[top_name]
-            expected_val = top_det.expected()
+            top_det = self.detectors.get(top_name)
+            expected_val = top_det.expected() if top_det is not None else None
             if expected_val is None:
                 expected_val = self.detectors["RobustZ"].expected() or 0.0
 
@@ -369,8 +391,9 @@ class Sentinel:
                 deviation_sigma=abs(x - expected_val) / max(robust_scale, 1e-9),
                 top_detector=top_name,
                 fired=fired,
-                detector_score=top_score,
-                threshold_ratio=top_ratio,
+                detector_score=top_score if spatial_ctx is None else None,
+                threshold_ratio=top_ratio if spatial_ctx is None else spatial_ctx["exceedance_ratio"],
+                context=spatial_ctx,
             )
 
         # Event-aligned continuous score:
