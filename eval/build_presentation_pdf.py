@@ -1,4 +1,4 @@
-"""Build the ten-slide Sentinel PDF from the reviewed presentation outline.
+"""Build the Sentinel PDF from the reviewed presentation outline.
 
 Run: python -m eval.build_presentation_pdf
 """
@@ -22,6 +22,7 @@ FIGURES = ROOT / "results" / "figures"
 FONT_DIR = (Path.home() / ".cache/codex-runtimes/codex-primary-runtime/dependencies/native/"
             "libreoffice-headless/libreoffice/LibreOfficeDev.app/Contents/Resources/fonts/truetype")
 PAGE_W, PAGE_H = 960, 540
+TOTAL_SLIDES = 11
 MARGIN = 54
 DARK = colors.HexColor("#172235")
 MUTED = colors.HexColor("#4B5563")
@@ -76,7 +77,7 @@ def header(c: canvas.Canvas, number: int, title: str) -> float:
     c.line(MARGIN, PAGE_H - 80, PAGE_W - MARGIN, PAGE_H - 80)
     c.setFillColor(MUTED)
     c.setFont("LiberationSans", 10)
-    c.drawRightString(PAGE_W - MARGIN, 24, f"{number} / 10")
+    c.drawRightString(PAGE_W - MARGIN, 24, f"{number} / {TOTAL_SLIDES}")
     return 100
 
 
@@ -204,8 +205,14 @@ def slide_5(c: canvas.Canvas) -> None:
     y += 22
     y = put(c, "RobustZ starts with the median of learning-period readings. It also measures the usual spread, so being above the median alone does not trigger an alert.",
             MARGIN, y, 850, size=15)
-    put(c, "LaggedResidual helps detect changes that continue for a while.",
-        MARGIN, y + 22, 850, size=15, color=ACCENT)
+    put(c, "Examples from the current default", MARGIN, y + 23, 850,
+        size=15, color=ACCENT, bold=True)
+    put(c, "<b>RobustZ:</b> CVS tweet count reached 10 versus an expected 0.41. It was far above its usual level.",
+        MARGIN, y + 51, 850, size=13.3)
+    put(c, "<b>Spatial-extreme flag:</b> Ambient temperature read 82.29 versus the earlier high of 80.52, crossing the new-high margin.",
+        MARGIN, y + 79, 850, size=13.3)
+    put(c, "Both are inside labelled anomaly windows. The spatial flag is a separate new-range check alongside the two statistical detectors.",
+        MARGIN, y + 111, 850, size=11.5, color=MUTED)
     finish(c)
 
 
@@ -253,29 +260,51 @@ def slide_7(c: canvas.Canvas) -> None:
 
 
 def slide_8(c: canvas.Canvas) -> None:
-    header(c, 8, "Comparison with other models")
-    put(c, "Sentinel default: F1 0.691  |  precision 0.731  |  recall 0.655  |  2.7 µs per point",
-        MARGIN, 98, 850, size=16, bold=True, color=ACCENT)
-    figure(c, FIGURES / "event_f1_vs_inference_time.png", 40, 143, 434, 298)
-    figure(c, FIGURES / "precision_vs_recall_models.png", 486, 143, 434, 298)
-    put(c, "Left: event-F1 and measured runtime. Right: precision and recall. Runtime axis is compressed; labels show actual µs. A dash means unavailable. Published models use NAB's stored scores and thresholds.",
-        MARGIN, 450, 850, size=11.4, color=MUTED)
+    header(c, 8, "Event-F1 and inference time")
+    figure(c, FIGURES / "event_f1_vs_inference_time.png", 54, 111, 638, 374)
+    put(c, "Sentinel default", 713, 141, 193, size=16, bold=True, color=ACCENT)
+    put(c, "0.691 event-F1", 713, 176, 193, size=18, bold=True)
+    put(c, "2.7 µs per point", 713, 208, 193, size=16)
+    put(c, "CAD OSE", 713, 278, 193, size=15, bold=True, color=MUTED)
+    put(c, "0.676 event-F1", 713, 310, 193, size=16)
+    put(c, "231 µs per point", 713, 340, 193, size=14)
+    put(c, "Published models use NAB's stored scores and thresholds. Same-stream runtimes; time axis compressed, with actual µs in labels. A dash means no local runtime.",
+        MARGIN, 484, 850, size=11.5, color=MUTED)
     finish(c)
 
 
 def slide_9(c: canvas.Canvas) -> None:
-    header(c, 9, "Example alert and evidence")
-    figure(c, FIGURES / "example_nyc_taxi.png", MARGIN, 115, 852, 270)
-    put(c, "NYC taxi, 1 November 2014", MARGIN, 392, 850, size=17, bold=True)
-    put(c, "A reading rose to 25,115, versus an older-window average near 2,602. LaggedResidual flagged the difference.",
-        MARGIN, 422, 850, size=15)
-    put(c, "Green bands: labelled windows. Red dots: event starts. Sentinel finds 4 of 5 windows here, with 0 false events.",
-        MARGIN, 465, 850, size=12.5, color=MUTED)
+    header(c, 9, "Precision and recall")
+    figure(c, FIGURES / "precision_vs_recall_models.png", 54, 111, 638, 374)
+    put(c, "Sentinel default", 713, 141, 193, size=16, bold=True, color=ACCENT)
+    put(c, "Precision 0.731", 713, 176, 193, size=17, bold=True)
+    put(c, "Recall 0.655", 713, 208, 193, size=16)
+    put(c, "CAD OSE", 713, 278, 193, size=15, bold=True, color=MUTED)
+    put(c, "Precision 0.590", 713, 310, 193, size=16)
+    put(c, "Recall 0.793", 713, 340, 193, size=16)
+    put(c, "Published models use NAB's stored scores and thresholds. More windows found can come with more false alerts. A dash means undefined precision.",
+        MARGIN, 484, 850, size=11.5, color=MUTED)
     finish(c)
 
 
 def slide_10(c: canvas.Canvas) -> None:
-    y = header(c, 10, "Limits and next steps")
+    header(c, 10, "Four NYC taxi alerts")
+    figure(c, FIGURES / "example_nyc_taxi.png", MARGIN, 100, 852, 238)
+    data = [
+        ["Alert", "Reading", "Older average", "Why LaggedResidual flagged it"],
+        ["1 Nov 2014, 13:30", "25,115", "2,602", "Much higher than the earlier level"],
+        ["28 Nov 2014, 06:00", "2,870", "24,890", "Much lower than the earlier level"],
+        ["25 Dec 2014, 06:00", "2,144", "26,316", "Much lower than the earlier level"],
+        ["27 Jan 2015, 06:00", "69", "22,673", "Nearly zero compared with the earlier level"],
+    ]
+    table(c, data, [173, 105, 146, 426], 353, size=12.2, row_pad=4.2)
+    put(c, "Each older average uses 8 readings roughly 256 points earlier. Four of five labelled windows found; no false events.",
+        MARGIN, 485, 850, size=11.5, color=MUTED)
+    finish(c)
+
+
+def slide_11(c: canvas.Canvas) -> None:
+    y = header(c, 11, "Limits and next steps")
     for text in [
         "<b>40 of 116</b> labelled windows are missed. Changes in daily patterns can be hard to spot when readings remain within the usual range.",
         "The default was selected and measured on public NAB data. Performance on hidden data is unknown.",
@@ -294,7 +323,7 @@ def main() -> None:
     pdf.setTitle("Sentinel - Hackathon Challenge 2")
     pdf.setAuthor("Team April 28")
     for build in (slide_1, slide_2, slide_3, slide_4, slide_5,
-                  slide_6, slide_7, slide_8, slide_9, slide_10):
+                  slide_6, slide_7, slide_8, slide_9, slide_10, slide_11):
         build(pdf)
     pdf.save()
     print(OUTPUT)

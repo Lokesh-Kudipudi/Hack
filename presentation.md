@@ -1,4 +1,4 @@
-# Sentinel — 10-slide presentation outline
+# Sentinel — 11-slide presentation outline
 
 Keep the slides simple: white background, dark text, one muted accent colour, and a plain sans-serif font. Show only Sentinel's current default when discussing our model. Compare it with other models where useful.
 
@@ -76,6 +76,13 @@ Event manager → score, label, explanation
 - RobustZ starts with the **median** of the learning-period readings. The typical spread is measured separately, so a value is not called unusual merely because it is above the median.
 - LaggedResidual helps detect changes that continue for a while.
 
+**Other real alerts from the current default:**
+
+- **RobustZ:** On 26 March 2015, the CVS tweet count reached **10** versus an expected **0.41**. It was far above its usual level.
+- **Spatial-extreme flag (SEF):** On 21 December 2013, ambient temperature read **82.29** versus the earlier high of **80.52**. It crossed the new-high margin.
+
+Both alerts fall inside labelled anomaly windows. SEF is a separate new-range check alongside the two statistical detectors.
+
 ---
 
 ## Slide 6 — Experiment history and tuning
@@ -121,7 +128,7 @@ Median timing is similar across these models; the number of windows found differ
 
 ---
 
-## Slide 8 — Comparison with other models
+## Slide 8 — Event-F1 and inference time
 
 | Model | Event-F1 | False events | Same-stream time per point |
 |---|---:|---:|---:|
@@ -132,25 +139,43 @@ Median timing is similar across these models; the number of windows found differ
 
 ![Two-panel horizontal bars comparing event-F1 and inference time](results/figures/event_f1_vs_inference_time.png)
 
-![Two-panel horizontal bars comparing precision and recall](results/figures/precision_vs_recall_models.png)
-
-The charts include all models with recorded event metrics. A dash means no local runtime or undefined precision. The time axis is compressed, but its value labels are in actual µs per point. Published models' event results use NAB's stored scores and thresholds; measured runtimes use the same machine.
+The chart includes all models with recorded event metrics. A dash means no local runtime. The time axis is compressed, but its value labels are in actual µs per point. Published models' event results use NAB's stored scores and thresholds; measured runtimes use the same machine.
 
 ---
 
-## Slide 9 — Example alert and evidence
+## Slide 9 — Precision and recall
+
+| Model | Precision | Recall |
+|---|---:|---:|
+| **Sentinel current default** | **0.731** | **0.655** |
+| CAD OSE | 0.590 | 0.793 |
+| Numenta HTM | 0.387 | 0.828 |
+| Windowed Gaussian (NAB) | 0.183 | 0.629 |
+
+![Two-panel horizontal bars comparing precision and recall](results/figures/precision_vs_recall_models.png)
+
+The chart includes all models with recorded event metrics. A dash means undefined precision. More detected windows can come with more false events, so precision and recall should be read together.
+
+---
+
+## Slide 10 — Example alert and evidence
 
 ![Current default on NYC taxi data](results/figures/example_nyc_taxi.png)
 
-**Example alert:** NYC taxi readings on 1 November 2014 rose to **25,115**, compared with an older-window average of about **2,602**. LaggedResidual flagged the difference.
+All four red dots are LaggedResidual event starts. It compares each reading with the average of 8 readings from roughly 256 points earlier.
 
-- Green bands: labelled anomaly windows.
-- Red dots: Sentinel event starts.
-- On this file, the current default finds **4 of 5** windows with **0 false events**.
+| Alert | Reading | Older average | Why it was flagged |
+|---|---:|---:|---|
+| 1 Nov 2014, 13:30 | 25,115 | 2,602 | Much higher than the earlier level. |
+| 28 Nov 2014, 06:00 | 2,870 | 24,890 | Much lower than the earlier level. |
+| 25 Dec 2014, 06:00 | 2,144 | 26,316 | Much lower than the earlier level. |
+| 27 Jan 2015, 06:00 | 69 | 22,673 | Nearly zero compared with the earlier level. |
+
+Green bands show labelled anomaly windows. The current default finds **4 of 5** windows with **0 false events** on this file.
 
 ---
 
-## Slide 10 — Limits and next steps
+## Slide 11 — Limits and next steps
 
 - **40 of 116** labelled windows are still missed. Changes in daily patterns can be hard to spot when values remain inside the usual range.
 - The default was selected and measured on public NAB data. Performance on hidden data is unknown.
