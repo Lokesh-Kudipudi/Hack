@@ -1,0 +1,151 @@
+{
+ "kind": "delay_comparison",
+ "created": "2026-10-27T14:21:28.560261",
+ "protocol": "AGENTS.md \u00a75; NAB standard thresholds for published models",
+ "rows": [
+  {
+   "model": "Sentinel current default",
+   "source": "saved current-default run",
+   "f1": 0.6909090909090909,
+   "windows_found": 76,
+   "median_delay_points": 100.0,
+   "median_window_fraction": 0.4967741935483871,
+   "mean_window_fraction": 0.5060034779345668
+  },
+  {
+   "model": "CAD OSE",
+   "source": "NAB standard threshold",
+   "f1": 0.6764705882352942,
+   "windows_found": 92,
+   "median_delay_points": 111.0,
+   "median_window_fraction": 0.4969746673956625,
+   "mean_window_fraction": 0.48902531933525006
+  },
+  {
+   "model": "Numenta HTM",
+   "source": "NAB standard threshold",
+   "f1": 0.5274725274725275,
+   "windows_found": 96,
+   "median_delay_points": 100.5,
+   "median_window_fraction": 0.49563406940063093,
+   "mean_window_fraction": 0.4569185608227723
+  },
+  {
+   "model": "ARTime",
+   "source": "NAB standard threshold",
+   "f1": 0.48291571753986334,
+   "windows_found": 106,
+   "median_delay_points": 105.0,
+   "median_window_fraction": 0.49889689105807195,
+   "mean_window_fraction": 0.4726924264962348
+  },
+  {
+   "model": "Numenta TM",
+   "source": "NAB standard threshold",
+   "f1": 0.457286432160804,
+   "windows_found": 91,
+   "median_delay_points": 102.0,
+   "median_window_fraction": 0.4939759036144578,
+   "mean_window_fraction": 0.4466474945158523
+  },
+  {
+   "model": "Relative Entropy",
+   "source": "NAB standard threshold",
+   "f1": 0.45217391304347826,
+   "windows_found": 78,
+   "median_delay_points": 116.5,
+   "median_window_fraction": 0.4975124378109453,
+   "mean_window_fraction": 0.4893764611116763
+  },
+  {
+   "model": "HTM Java",
+   "source": "NAB standard threshold",
+   "f1": 0.4439140811455847,
+   "windows_found": 93,
+   "median_delay_points": 101.0,
+   "median_window_fraction": 0.4909090909090909,
+   "mean_window_fraction": 0.4377650402929145
+  },
+  {
+   "model": "earthgecko Skyline",
+   "source": "NAB standard threshold",
+   "f1": 0.3717948717948718,
+   "windows_found": 87,
+   "median_delay_points": 115.0,
+   "median_window_fraction": 0.4878048780487805,
+   "mean_window_fraction": 0.43979419915192247
+  },
+  {
+   "model": "KNN CAD",
+   "source": "NAB standard threshold",
+   "f1": 0.35,
+   "windows_found": 91,
+   "median_delay_points": 100.0,
+   "median_window_fraction": 0.48756218905472637,
+   "mean_window_fraction": 0.44381762658904295
+  },
+  {
+   "model": "Twitter ADVec",
+   "source": "NAB standard threshold",
+   "f1": 0.3407079646017699,
+   "windows_found": 77,
+   "median_delay_points": 137.0,
+   "median_window_fraction": 0.49673202614379086,
+   "mean_window_fraction": 0.4873702702503335
+  },
+  {
+   "model": "Random Cut Forest",
+   "source": "NAB standard threshold",
+   "f1": 0.3333333333333333,
+   "windows_found": 87,
+   "median_delay_points": 102.0,
+   "median_window_fraction": 0.49382716049382713,
+   "mean_window_fraction": 0.46920503633053895
+  },
+  {
+   "model": "Etsy Skyline",
+   "source": "NAB standard threshold",
+   "f1": 0.29508196721311475,
+   "windows_found": 72,
+   "median_delay_points": 110.5,
+   "median_window_fraction": 0.48319291235994094,
+   "mean_window_fraction": 0.42871598526954147
+  },
+  {
+   "model": "Windowed Gaussian (NAB)",
+   "source": "NAB standard threshold",
+   "f1": 0.283495145631068,
+   "windows_found": 73,
+   "median_delay_points": 100.0,
+   "median_window_fraction": 0.4878048780487805,
+   "mean_window_fraction": 0.4492037743459604
+  },
+  {
+   "model": "EXPoSE",
+   "source": "NAB standard threshold",
+   "f1": 0.1608832807570978,
+   "windows_found": 51,
+   "median_delay_points": 112.0,
+   "median_window_fraction": 0.4740740740740741,
+   "mean_window_fraction": 0.4586823141122022
+  },
+  {
+   "model": "Random (NAB)",
+   "source": "NAB standard threshold",
+   "f1": 0.16037735849056603,
+   "windows_found": 51,
+   "median_delay_points": 141.0,
+   "median_window_fraction": 0.4971751412429379,
+   "mean_window_fraction": 0.4853841631454262
+  },
+  {
+   "model": "Null (NAB)",
+   "source": "NAB standard threshold",
+   "f1": 0.0,
+   "windows_found": 0,
+   "median_delay_points": null,
+   "median_window_fraction": null,
+   "mean_window_fraction": null
+  }
+ ]
+}

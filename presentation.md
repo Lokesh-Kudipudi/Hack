@@ -109,6 +109,16 @@ Event manager → score, label, explanation
 
 Delay is measured from window start to first alert in the **76 detected windows**. NAB labels usually lie near the middle of their windows.
 
+| Model | Windows found | Median delay from window start |
+|---|---:|---:|
+| **Sentinel current default** | **76** | **100 readings (49.7%)** |
+| CAD OSE | 92 | 111 readings (49.7%) |
+| Numenta HTM | 96 | 100.5 readings (49.6%) |
+| ARTime | 106 | 105 readings (49.9%) |
+| Windowed Gaussian (NAB) | 73 | 100 readings (48.8%) |
+
+Median timing is similar across these models; the number of windows found differs more. The full 16-model comparison is in [results/delay_comparison.md](results/delay_comparison.md).
+
 ---
 
 ## Slide 8 — Comparison with other models

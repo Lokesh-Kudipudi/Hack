@@ -117,3 +117,8 @@
 - Changed: `presentation.md`.
 - Result: added the current default's median delay of 100 readings (49.7% through labelled window) from the 0.691-F1 run. Defined it as first alert minus window start for detected windows only.
 - Notes / next: no published-model delay comparison is currently recorded in `results/model_comparison.md`.
+
+## 2026-10-27 14:22 — L13 Compare detection delay across models
+- Changed: `eval/delay_compare.py`, `results/delay_comparison.md`, `results/runs/20261027-142128_delay_comparison.json`, `presentation.md`.
+- Result: scored first-alert delay for Sentinel and 15 NAB published models on the same 116 labelled windows; slide 7 shows five representative models with their windows found. Sentinel found 76 windows with median delay 100 readings (49.7% of window width). The published model medians are also near the middle of their detected windows.
+- Notes / next: delay is conditional on detected windows. Published NAB predictions use threshold crossings as event starts; Sentinel uses its event manager. PDF generation remains deferred during Markdown review.
