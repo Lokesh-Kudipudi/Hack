@@ -102,3 +102,8 @@
 - Changed: `presentation.md`.
 - Result: removed all ten speaker-note blocks while preserving the ten-slide outline and current-default results.
 - Notes / next: PDF generation remains deferred during Markdown review.
+
+## 2026-10-27 14:14 — L13 Add cross-model metric charts
+- Changed: `eval/presentation_charts.py`, `results/figures/event_f1_vs_inference_time.png`, `results/figures/precision_vs_recall_models.png`, `presentation.md`.
+- Result: added event-F1 versus measured inference time and precision versus recall charts for 15 NAB comparison models plus the current Sentinel default. Models without runnable local latency and Null's undefined precision are labelled.
+- Notes / next: charts use `results/model_comparison.md`, one muted accent colour, and numbered model keys for slide readability. PDF generation remains deferred during Markdown review.

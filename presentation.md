@@ -110,16 +110,18 @@ Event manager → score, label, explanation
 
 ## Slide 8 — Comparison with other models
 
-| Model | Event-F1 | False events | Time per point |
+| Model | Event-F1 | False events | Same-stream time per point |
 |---|---:|---:|---:|
-| **Sentinel current default** | **0.691** | **28** | **2.8 µs** |
+| **Sentinel current default** | **0.691** | **28** | **2.7 µs** |
 | CAD OSE | 0.676 | 64 | 231 µs |
 | Numenta HTM | 0.527 | 152 | — |
-| Windowed Gaussian baseline | 0.302 | 232 | 49 µs |
+| Windowed Gaussian (NAB) | 0.283 | 326 | 57.8 µs |
 
-![Current default compared with Windowed Gaussian by category](results/figures/per_category_f1.png)
+![Event-F1 versus inference time: current Sentinel default and published NAB models](results/figures/event_f1_vs_inference_time.png)
 
-Published models' event results use NAB's stored scores and thresholds. The listed runtimes for runnable models were measured on the same machine.
+![Precision versus recall: current Sentinel default and published NAB models](results/figures/precision_vs_recall_models.png)
+
+The charts include all models with recorded event metrics. Models without a local runtime are listed beside the first chart; Null has undefined precision and is listed beside the second. Published models' event results use NAB's stored scores and thresholds. Measured runtimes use the same machine.
 
 ---
 
